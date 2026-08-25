@@ -1,0 +1,16 @@
+{
+  "name": "@tapedeck/example-sma-crossover",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Smoke-test strategy: a moving-average crossover, used to exercise the whole pipeline",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "scripts": {
+    "start": "node src/main.ts"
+  },
+  "dependencies": {
+    "@tapedeck/core": "workspace:*"
+  }
+}
