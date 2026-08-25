@@ -10,13 +10,16 @@ An event-driven backtesting and paper-trading engine for TypeScript. Determinist
 construction, honest about what it cannot know, and fast enough that a million bars is not a
 coffee break.
 
-[![The report a run writes](docs/images/report.png)](docs/images/report-full.png)
+[![The report a run writes](docs/images/report.png)](https://naderfilho.github.io/Tapedeck/)
 
-That is the real output of `node examples/sma-crossover/src/main.ts` on a committed year of hourly
+**[Open the real page →](https://naderfilho.github.io/Tapedeck/)** — rebuilt by CI from the
+committed fixture on every push, so it cannot drift from the code that produced it.
+
+That is the output of `node examples/sma-crossover/src/main.ts` on a committed year of hourly
 BTCUSDT — one self-contained HTML file, no scripts and no network. The box at the top is the point
 of the whole project: **what this run could not know, printed above the numbers it qualifies**, not
-in a footnote. [The rest of the page](docs/images/report-full.png) carries the drawdown, the trade
-distribution, the exact execution configuration and every trade.
+in a footnote. Below the fold sit the drawdown, the trade distribution, the exact execution
+configuration and every trade.
 
 > **Status: phase 4 of 6.** The kernel, the indicator library, the data adapters, the SQLite store,
 > the metrics and report package, the `tapedeck` command line and live paper trading are done —
