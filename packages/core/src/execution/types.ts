@@ -67,6 +67,18 @@ export interface NewOrder {
   readonly tif?: TimeInForce | undefined;
   /** Free-form label echoed on every resulting event. Use it to name the leg of a bracket. */
   readonly tag?: string | undefined;
+  /**
+   * One-cancels-other group. Orders sharing a group reduce each other as they fill.
+   *
+   * A bracket is a stop and a target that must never both execute. Building that out of two orders
+   * and a `cancel` inside `onFill` works and is what this engine required until now, but it is not
+   * the same thing: between the fill and the cancel the second leg is still live, and on a bar that
+   * touches both levels the simulator can execute it. A venue's OCO does not have that window.
+   *
+   * Reduction, not cancellation, because a partial fill on one leg must leave the other covering
+   * exactly what is left. A leg reduced to nothing is cancelled with reason `oco`.
+   */
+  readonly oco?: string | undefined;
 }
 
 /** The subset of an order a strategy may amend in place. */

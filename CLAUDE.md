@@ -7,7 +7,7 @@ explains it to whoever is about to change it.
 
 Phases 1, 2, 3, 4 and 6 are done and committed: the deterministic kernel, the incremental indicator library,
 the data adapters and `.tape` format, the SQLite store, the metrics and HTML report, the `tapedeck`
-CLI, live paper trading, and the B3 layer. 604 tests, 97% statement coverage, a committed year of real hourly
+CLI, live paper trading, and the B3 layer. 610 tests, 97% statement coverage, a committed year of real hourly
 BTCUSDT.
 
 Phase 5 — polish — is what is left. The roadmap at the end of the README is the authority on what

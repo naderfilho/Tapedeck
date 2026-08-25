@@ -9,6 +9,7 @@ import {
   type CalendarSpec,
   type ExecutionConfig,
   type InstrumentSpec,
+  type OrderAmendedEvent,
   type OrderCancelledEvent,
   type OrderFilledEvent,
   type OrderRejectedEvent,
@@ -40,6 +41,7 @@ export interface ScriptOptions {
   readonly onFill?: (fill: OrderFilledEvent, ctx: StrategyContext) => void;
   readonly onReject?: (event: OrderRejectedEvent, ctx: StrategyContext) => void;
   readonly onCancel?: (event: OrderCancelledEvent, ctx: StrategyContext) => void;
+  readonly onAmend?: (event: OrderAmendedEvent, ctx: StrategyContext) => void;
   readonly onStop?: (ctx: StrategyContext) => void;
 }
 
@@ -51,6 +53,7 @@ export function runScript(options: ScriptOptions): RunResult {
     onFill: (fill, ctx) => options.onFill?.(fill, ctx),
     onReject: (event, ctx) => options.onReject?.(event, ctx),
     onCancel: (event, ctx) => options.onCancel?.(event, ctx),
+    onAmend: (event, ctx) => options.onAmend?.(event, ctx),
     onStop: (ctx) => options.onStop?.(ctx),
   };
 

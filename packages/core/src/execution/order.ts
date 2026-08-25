@@ -26,6 +26,8 @@ export interface OrderState {
   readonly type: OrderType;
   readonly tif: TimeInForce;
   readonly tag: string | null;
+  /** OCO group, or null. Orders in a group reduce one another as they fill. */
+  readonly oco: string | null;
   readonly submittedTs: Timestamp;
   /** Submission order, used to break ties when several orders match in the same bar. */
   readonly submitSeq: number;
@@ -70,6 +72,7 @@ export interface OrderSnapshot {
   readonly stopPrice: PriceInt | null;
   readonly status: OrderStatus;
   readonly avgFillPrice: PriceInt;
+  readonly oco: string | null;
   readonly submittedTs: Timestamp;
   readonly activeFrom: Timestamp;
   readonly triggered: boolean;
@@ -94,6 +97,7 @@ export function snapshotOrder(order: OrderState): OrderSnapshot {
     stopPrice: order.stopPrice,
     status: order.status,
     avgFillPrice: order.avgFillPrice,
+    oco: order.oco,
     submittedTs: order.submittedTs,
     activeFrom: order.activeFrom,
     triggered: order.triggered,
@@ -188,6 +192,7 @@ export function createOrderState(args: CreateOrderArgs): OrderState {
     type: request.type,
     tif,
     tag: request.tag ?? null,
+    oco: request.oco ?? null,
     submittedTs: args.submittedTs,
     submitSeq: args.submitSeq,
     expiresAt: tif === 'day' ? args.nextClose : null,

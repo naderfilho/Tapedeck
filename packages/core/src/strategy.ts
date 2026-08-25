@@ -13,6 +13,7 @@
 
 import type {
   BarEvent,
+  OrderAmendedEvent,
   OrderCancelledEvent,
   OrderFilledEvent,
   OrderRejectedEvent,
@@ -123,6 +124,12 @@ export interface Strategy<P extends object = Record<string, never>> {
   onReject?(rejection: OrderRejectedEvent, ctx: StrategyContext): void;
 
   onCancel?(cancellation: OrderCancelledEvent, ctx: StrategyContext): void;
+
+  /**
+   * An order changed in place — because this strategy asked, or because an OCO sibling filled and
+   * reduced it. The order keeps its id and its place in the queue.
+   */
+  onAmend?(amendment: OrderAmendedEvent, ctx: StrategyContext): void;
 
   /** Called once, after the last bar and after any end-of-run flattening. */
   onStop?(ctx: StrategyContext): void;

@@ -1,7 +1,7 @@
 # Tapedeck
 
 [![CI](https://github.com/naderfilho/Tapedeck/actions/workflows/ci.yml/badge.svg)](https://github.com/naderfilho/Tapedeck/actions/workflows/ci.yml)
-![tests](https://img.shields.io/badge/tests-604-brightgreen)
+![tests](https://img.shields.io/badge/tests-610-brightgreen)
 ![coverage](https://img.shields.io/badge/coverage-97%25-brightgreen)
 ![node](https://img.shields.io/badge/node-%E2%89%A524-informational)
 [![licence](https://img.shields.io/badge/licence-PolyForm%20Noncommercial-blue)](LICENSE.md)
@@ -429,7 +429,7 @@ hoped for:
 ## Testing
 
 ```bash
-pnpm test          # 604 tests
+pnpm test          # 610 tests
 pnpm coverage      # 97% statements, 97% functions; 85% is the floor for every package
 pnpm lint          # no `any`, no `@ts-ignore`, no wall clock in the kernel
 pnpm typecheck     # strict, plus noUncheckedIndexedAccess and exactOptionalPropertyTypes

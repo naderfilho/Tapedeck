@@ -46,7 +46,12 @@ import {
   createBarGate,
   createTickGate,
 } from '../tape/view.ts';
-import { EventKind, type OrderFilledEvent, type SignalEvent } from '../events/events.ts';
+import {
+  EventKind,
+  type OrderAmendedEvent,
+  type OrderFilledEvent,
+  type SignalEvent,
+} from '../events/events.ts';
 import type { BarIndicator, IndicatorHandle, UseIndicatorOptions } from '../indicator.ts';
 import { type ExecutionConfig, PRESETS } from '../execution/models.ts';
 import { SimulatedBroker } from '../execution/broker.ts';
@@ -119,6 +124,7 @@ export class Engine<P extends object> {
 
   private readonly equity = new EquityRecorder();
   private readonly fills: OrderFilledEvent[] = [];
+  private readonly amendments: OrderAmendedEvent[] = [];
   /** Registered through `ctx.use()`, updated in registration order once per matching bar. */
   private readonly indicators: { instrumentId: InstrumentId; indicator: BarIndicator<unknown> }[] =
     [];
@@ -190,6 +196,10 @@ export class Engine<P extends object> {
         },
         onCancelled: (event) => {
           this.strategy.onCancel?.(event, this.context);
+        },
+        onAmended: (event) => {
+          if (this.recordFills) this.amendments.push(event);
+          this.strategy.onAmend?.(event, this.context);
         },
       },
     });
@@ -462,6 +472,7 @@ export class Engine<P extends object> {
       trades: this.tradeLog.trades,
       equityCurve: this.equity.snapshot(),
       fills: this.fills,
+      amendments: this.amendments,
       signals: this.recordSignals ? this.signals : [],
       openPositions: this.portfolio.openPositions(),
       logs: this.logger.records,

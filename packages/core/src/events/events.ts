@@ -34,6 +34,7 @@ export const EventKind = {
   OrderFilled: 5,
   OrderCancelled: 6,
   PortfolioUpdate: 7,
+  OrderAmended: 8,
 } as const;
 
 export type EventKind = (typeof EventKind)[keyof typeof EventKind];
@@ -141,7 +142,7 @@ export interface OrderFilledEvent extends EventBase {
 export interface OrderCancelledEvent extends EventBase {
   readonly kind: typeof EventKind.OrderCancelled;
   readonly orderId: OrderId;
-  readonly reason: 'requested' | 'expired' | 'time_in_force' | 'run_ended';
+  readonly reason: 'requested' | 'expired' | 'time_in_force' | 'run_ended' | 'oco';
   readonly leavesQty: QtyInt;
   readonly tag: string | null;
 }
@@ -155,8 +156,35 @@ export interface PortfolioUpdateEvent extends EventBase {
   readonly marginUsed: MoneyInt;
 }
 
+/**
+ * An order changed in place, keeping its id and its queue position.
+ *
+ * It exists for the record rather than for the strategy: a report that shows a limit filling at a
+ * price the order was never submitted at, with nothing in between to explain it, is a report that
+ * looks wrong. Both the old and the new values are carried so the change is legible without
+ * replaying the run.
+ */
+export interface OrderAmendedEvent extends EventBase {
+  readonly kind: typeof EventKind.OrderAmended;
+  readonly orderId: OrderId;
+  readonly instrumentId: InstrumentId;
+  readonly qty: QtyInt;
+  readonly previousQty: QtyInt;
+  readonly limitPrice: PriceInt | null;
+  readonly previousLimitPrice: PriceInt | null;
+  readonly stopPrice: PriceInt | null;
+  readonly previousStopPrice: PriceInt | null;
+  /** Why the engine changed it: a strategy asked, or an OCO sibling filled. */
+  readonly reason: 'requested' | 'oco';
+  readonly tag: string | null;
+}
+
 export type OrderEvent =
-  OrderAcceptedEvent | OrderRejectedEvent | OrderFilledEvent | OrderCancelledEvent;
+  | OrderAcceptedEvent
+  | OrderRejectedEvent
+  | OrderFilledEvent
+  | OrderCancelledEvent
+  | OrderAmendedEvent;
 
 export type TapedeckEvent = MarketEvent | SignalEvent | OrderEvent | PortfolioUpdateEvent;
 

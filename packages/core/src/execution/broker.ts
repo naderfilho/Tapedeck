@@ -43,6 +43,7 @@ import {
 import type { FillId, Liquidity, NewOrder, OrderAmend, OrderId, Side } from './types.ts';
 import type {
   OrderAcceptedEvent,
+  OrderAmendedEvent,
   OrderCancelledEvent,
   OrderFilledEvent,
   OrderRejectedEvent,
@@ -63,6 +64,7 @@ export interface BrokerSink {
   onRejected(event: OrderRejectedEvent): void;
   onFilled(event: OrderFilledEvent): void;
   onCancelled(event: OrderCancelledEvent): void;
+  onAmended(event: OrderAmendedEvent): void;
 }
 
 export interface BrokerStats {
@@ -82,6 +84,9 @@ export interface BrokerStats {
   stopLimitDeferrals: number;
   /** Orders whose configured latency was shorter than one bar and therefore could not be honoured. */
   subBarLatencyIgnored: number;
+  ordersAmended: number;
+  /** Legs reduced or cancelled because an OCO sibling filled. */
+  ocoReductions: number;
 }
 
 export interface SimulatedBrokerOptions {
@@ -142,6 +147,8 @@ export class SimulatedBroker implements Broker {
     ambiguousBars: 0,
     stopLimitDeferrals: 0,
     subBarLatencyIgnored: 0,
+    ordersAmended: 0,
+    ocoReductions: 0,
   };
 
   constructor(options: SimulatedBrokerOptions) {
@@ -255,6 +262,7 @@ export class SimulatedBroker implements Broker {
         type: snapshot.type,
         tif: snapshot.tif,
         tag: snapshot.tag,
+        oco: snapshot.oco,
         submittedTs: snapshot.submittedTs,
         submitSeq: this.submitSeq++,
         expiresAt: snapshot.tif === 'day' ? this.calendar.nextClose(snapshot.submittedTs) : null,
@@ -286,8 +294,9 @@ export class SimulatedBroker implements Broker {
   /**
    * Amends an order in place, keeping its id and its queue position.
    *
-   * Deliberately silent: no event is emitted, because a strategy that amends is not learning
-   * anything new about the market. An `OrderAmended` event is on the roadmap for report fidelity.
+   * Validation happens before anything changes, so a rejected amendment leaves the order exactly
+   * as it was rather than half-applied — a limit that moved while the quantity did not is a state
+   * no venue would have produced.
    */
   replace(id: OrderId, amend: OrderAmend): boolean {
     const order = this.orders.get(id);
@@ -296,17 +305,72 @@ export class SimulatedBroker implements Broker {
 
     if (amend.qty !== undefined) {
       if (amend.qty <= order.filledQty || amend.qty % instrument.lotSize !== 0) return false;
-      order.qty = amend.qty;
     }
     if (amend.limitPrice !== undefined) {
       if (order.limitPrice === null || amend.limitPrice % instrument.tickSize !== 0) return false;
-      order.limitPrice = amend.limitPrice;
     }
     if (amend.stopPrice !== undefined) {
       if (order.stopPrice === null || amend.stopPrice % instrument.tickSize !== 0) return false;
-      order.stopPrice = amend.stopPrice;
     }
+
+    this.applyAmend(order, amend, 'requested');
     return true;
+  }
+
+  /** Changes an order and emits the record of it. Callers validate first. */
+  private applyAmend(order: OrderState, amend: OrderAmend, reason: 'requested' | 'oco'): void {
+    const previousQty = order.qty;
+    const previousLimitPrice = order.limitPrice;
+    const previousStopPrice = order.stopPrice;
+
+    if (amend.qty !== undefined) order.qty = amend.qty;
+    if (amend.limitPrice !== undefined) order.limitPrice = amend.limitPrice;
+    if (amend.stopPrice !== undefined) order.stopPrice = amend.stopPrice;
+
+    this.stats.ordersAmended++;
+    this.sink.onAmended({
+      kind: EventKind.OrderAmended,
+      ts: this.clock.now(),
+      seq: this.nextSeq(),
+      orderId: order.id,
+      instrumentId: order.instrumentId,
+      qty: order.qty,
+      previousQty,
+      limitPrice: order.limitPrice,
+      previousLimitPrice,
+      stopPrice: order.stopPrice,
+      previousStopPrice,
+      reason,
+      tag: order.tag,
+    });
+  }
+
+  /**
+   * Reduces every other live leg of an OCO group by `filled`.
+   *
+   * Reduction rather than cancellation, so a partial fill on one leg leaves the other covering
+   * exactly what remains. A leg with nothing left is cancelled. This runs the instant the fill is
+   * applied, before the next candidate in the same bar is considered — which is the whole point:
+   * building a bracket out of a `cancel` inside `onFill` leaves the sibling live for one more
+   * candidate, and a bar that touches both levels executes both.
+   */
+  private reduceOcoSiblings(filled: OrderState, quantity: QtyInt): void {
+    const group = filled.oco;
+    if (group === null || quantity <= 0) return;
+
+    for (const other of this.orders.values()) {
+      if (other === filled || other.oco !== group) continue;
+      if (!isOrderStatusLive(other.status)) continue;
+
+      const remaining = leavesQty(other);
+      if (remaining <= quantity) {
+        this.stats.ocoReductions++;
+        this.finishCancel(other, 'oco');
+        continue;
+      }
+      this.stats.ocoReductions++;
+      this.applyAmend(other, { qty: asQty(other.qty - quantity) }, 'oco');
+    }
   }
 
   getOrder(id: OrderId): OrderSnapshot | undefined {
@@ -744,6 +808,7 @@ export class SimulatedBroker implements Broker {
       tag: order.tag,
     };
     this.sink.onFilled(event);
+    this.reduceOcoSiblings(order, fillQty);
 
     if (leaves > 0 && (order.tif === 'ioc' || order.tif === 'fok')) {
       this.finishCancel(order, 'time_in_force');

@@ -8,7 +8,7 @@
  */
 
 import type { MoneyInt } from '../math/fixed.ts';
-import type { OrderFilledEvent, SignalEvent } from '../events/events.ts';
+import type { OrderAmendedEvent, OrderFilledEvent, SignalEvent } from '../events/events.ts';
 import type { PositionView } from '../portfolio/portfolio.ts';
 import type { TradeRecord } from '../portfolio/trades.ts';
 import type { LogEntry } from '../util/logger.ts';
@@ -103,6 +103,8 @@ export interface RunResult {
   readonly trades: readonly TradeRecord[];
   readonly equityCurve: EquityCurve;
   readonly fills: readonly OrderFilledEvent[];
+  /** Amendments, in order. Empty unless `recordFills` was on. */
+  readonly amendments: readonly OrderAmendedEvent[];
   /** Intents the strategy published through `ctx.signal()`, for intent-vs-execution attribution. */
   readonly signals: readonly SignalEvent[];
   readonly openPositions: readonly PositionView[];
@@ -167,6 +169,7 @@ export function serializeRunResult(result: RunResult): string {
         equity: Array.from(result.equityCurve.equity),
       },
       fills: result.fills,
+      amendments: result.amendments,
       signals: result.signals,
       openPositions: result.openPositions,
       logs: result.logs,

@@ -96,6 +96,7 @@ export {
   type EventBase,
   type MarketEvent,
   type OrderAcceptedEvent,
+  type OrderAmendedEvent,
   type OrderCancelledEvent,
   type OrderEvent,
   type OrderFilledEvent,
