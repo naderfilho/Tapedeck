@@ -10,8 +10,10 @@
       "@tapedeck/data": ["packages/data/src/index.ts"],
       "@tapedeck/store": ["packages/store/src/index.ts"],
       "@tapedeck/report": ["packages/report/src/index.ts"],
-      "@tapedeck/cli": ["packages/cli/src/index.ts"]
-    }
+      "@tapedeck/cli": ["packages/cli/src/index.ts"],
+      "@tapedeck/data/codec": ["packages/data/src/tape-format.ts"]
+    },
+    "lib": ["ES2023", "DOM"]
   },
   "include": [
     "packages/*/src/**/*.ts",
@@ -20,6 +22,7 @@
     "examples/*/test/**/*.ts",
     "bench/**/*.ts",
     "scripts/**/*.ts",
+    "demo/**/*.ts",
     "*.ts"
   ]
 }

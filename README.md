@@ -10,10 +10,13 @@ An event-driven backtesting and paper-trading engine for TypeScript. Determinist
 construction, honest about what it cannot know, and fast enough that a million bars is not a
 coffee break.
 
-[![The report a run writes](docs/images/report.png)](https://naderfilho.github.io/Tapedeck/)
+[![The report a run writes](docs/images/report.png)](https://naderfilho.github.io/Tapedeck/report/)
 
-**[Open the real page →](https://naderfilho.github.io/Tapedeck/)** — rebuilt by CI from the
-committed fixture on every push, so it cannot drift from the code that produced it.
+**[Run a backtest in your browser →](https://naderfilho.github.io/Tapedeck/demo/)** — change the
+periods and the costs and the engine re-runs in the tab, on the same kernel the CLI uses. It works
+because `core` has zero runtime dependencies and imports nothing from `node:`; portability fell out
+of a rule made for reproducibility. **[The report above is here](https://naderfilho.github.io/Tapedeck/report/)**,
+rebuilt by CI from the committed fixture on every push so it cannot drift from the code.
 
 That is the output of `node examples/sma-crossover/src/main.ts` on a committed year of hourly
 BTCUSDT — one self-contained HTML file, no scripts and no network. The box at the top is the point
@@ -99,6 +102,12 @@ Costs
 That last line is the point of the exercise. A 24/72 crossover on hourly BTC made 8,332 before
 costs and kept 2,305 of it; a backtester that skipped fees would have reported a strategy three and
 a half times better than the one that exists.
+
+The 36.7% win rate is not a defect either, and it is worth saying so before someone reads it as
+one: trend following pays for a few large wins with many small losses, so the number that decides
+whether it works is the profit factor. Sweep the periods across a 5&times;5 grid and thirteen of the
+nineteen combinations lose money outright — which is the more useful lesson, and the reason the
+example ships the parameters it started with rather than the ones that flattered it afterwards.
 
 Node 24 strips the types natively, so every file in this repository runs without a build step. If
 `corepack enable pnpm` needs administrator rights, `corepack pnpm install` works just as well.

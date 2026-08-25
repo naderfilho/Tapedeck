@@ -35,6 +35,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./codec": {
+      "types": "./dist/tape-format.d.ts",
+      "default": "./dist/tape-format.js"
     }
   },
   "scripts": {

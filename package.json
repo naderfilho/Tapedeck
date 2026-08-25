@@ -30,7 +30,9 @@
     "format:check": "prettier --check .",
     "bench": "node bench/replay.bench.ts",
     "check": "pnpm lint && pnpm typecheck && pnpm test",
-    "fixtures": "node scripts/fetch-fixtures.ts"
+    "fixtures": "node scripts/fetch-fixtures.ts",
+    "site": "node demo/build.ts",
+    "site:serve": "node demo/serve.ts"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
@@ -39,6 +41,7 @@
     "@tapedeck/indicators": "workspace:*",
     "@types/node": "^24.10.1",
     "@vitest/coverage-v8": "^3.2.4",
+    "esbuild": "^0.28.2",
     "eslint": "^9.39.1",
     "eslint-config-prettier": "^10.1.8",
     "fast-check": "^4.4.0",

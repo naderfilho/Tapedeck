@@ -29,6 +29,9 @@ import {
   asDuration,
 } from '@tapedeck/core';
 
+const TEXT_ENCODER = new TextEncoder();
+const TEXT_DECODER = new TextDecoder();
+
 const MAGIC = 'TAPEDCK1';
 const MAGIC_BYTES = 8;
 const LENGTH_BYTES = 4;
@@ -87,7 +90,7 @@ function bytesPerElement(dtype: ColumnType): number {
 }
 
 function encode(header: TapeHeader, columns: readonly ArrayBufferView[]): Uint8Array {
-  const headerJson = Buffer.from(JSON.stringify(header), 'utf8');
+  const headerJson = TEXT_ENCODER.encode(JSON.stringify(header));
   const dataStart = align(MAGIC_BYTES + LENGTH_BYTES + headerJson.byteLength);
 
   let total = dataStart;
@@ -97,17 +100,17 @@ function encode(header: TapeHeader, columns: readonly ArrayBufferView[]): Uint8A
     total = align(total + column.byteLength);
   }
 
-  const out = Buffer.alloc(total);
-  out.write(MAGIC, 0, 'ascii');
-  out.writeUInt32LE(headerJson.byteLength, MAGIC_BYTES);
-  headerJson.copy(out, MAGIC_BYTES + LENGTH_BYTES);
+  const out = new Uint8Array(total);
+  for (let i = 0; i < MAGIC_BYTES; i++) out[i] = MAGIC.charCodeAt(i);
+  new DataView(out.buffer).setUint32(MAGIC_BYTES, headerJson.byteLength, true);
+  out.set(headerJson, MAGIC_BYTES + LENGTH_BYTES);
 
   columns.forEach((column, i) => {
     const bytes = new Uint8Array(column.buffer, column.byteOffset, column.byteLength);
     out.set(bytes, offsets[i] ?? 0);
   });
 
-  return new Uint8Array(out.buffer, out.byteOffset, out.byteLength);
+  return out;
 }
 
 /**
@@ -134,12 +137,13 @@ function readHeader(bytes: Uint8Array): { header: TapeHeader; dataStart: number 
   if (bytes.byteLength < MAGIC_BYTES + LENGTH_BYTES) {
     throw new MarketDataError('not a tape file: too short to contain a header');
   }
-  const buffer = Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength);
-  const magic = buffer.toString('ascii', 0, MAGIC_BYTES);
+  let magic = '';
+  for (let i = 0; i < MAGIC_BYTES; i++) magic += String.fromCharCode(bytes[i] ?? 0);
   if (magic !== MAGIC) {
     throw new MarketDataError(`not a tape file: magic was ${JSON.stringify(magic)}`, { magic });
   }
-  const headerLength = buffer.readUInt32LE(MAGIC_BYTES);
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const headerLength = view.getUint32(MAGIC_BYTES, true);
   const headerEnd = MAGIC_BYTES + LENGTH_BYTES + headerLength;
   if (headerEnd > bytes.byteLength) {
     throw new MarketDataError('tape file is truncated: header runs past the end of the file');
@@ -148,7 +152,7 @@ function readHeader(bytes: Uint8Array): { header: TapeHeader; dataStart: number 
   let header: TapeHeader;
   try {
     header = JSON.parse(
-      buffer.toString('utf8', MAGIC_BYTES + LENGTH_BYTES, headerEnd),
+      TEXT_DECODER.decode(bytes.subarray(MAGIC_BYTES + LENGTH_BYTES, headerEnd)),
     ) as TapeHeader;
   } catch (cause: unknown) {
     throw new MarketDataError('tape header is not valid JSON', { cause: String(cause) });

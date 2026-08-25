@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Tapedeck — the engine, running in your browser</title>
+    <meta
+      name="description"
+      content="A deterministic backtest over a year of real BTCUSDT, re-run in your browser on the same kernel the CLI uses."
+    />
+    <style>
+      :root {
+        --ink: #0f172a;
+        --muted: #64748b;
+        --line: #e2e8f0;
+        --bg: #f8fafc;
+        --card: #ffffff;
+        --up: #047857;
+        --down: #b91c1c;
+        --accent: #1d4ed8;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font:
+          15px/1.55 ui-sans-serif,
+          system-ui,
+          -apple-system,
+          'Segoe UI',
+          sans-serif;
+      }
+      .wrap {
+        max-width: 980px;
+        margin: 0 auto;
+        padding: 32px 20px 64px;
+      }
+      header a {
+        color: var(--muted);
+        text-decoration: none;
+      }
+      header a:hover {
+        color: var(--accent);
+      }
+      h1 {
+        font-size: 26px;
+        margin: 18px 0 6px;
+      }
+      .lede {
+        color: var(--muted);
+        margin: 0 0 4px;
+        max-width: 68ch;
+      }
+      #source {
+        color: var(--muted);
+        font-size: 13px;
+        margin: 10px 0 24px;
+      }
+      form {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px 22px;
+        align-items: flex-end;
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 18px 20px;
+      }
+      label {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        font-size: 12px;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      input[type='number'],
+      select {
+        font: inherit;
+        padding: 7px 9px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: #fff;
+        color: var(--ink);
+        min-width: 108px;
+      }
+      .check {
+        flex-direction: row;
+        align-items: center;
+        gap: 8px;
+        text-transform: none;
+        letter-spacing: 0;
+        font-size: 14px;
+        color: var(--ink);
+        padding-bottom: 8px;
+      }
+      button {
+        font: inherit;
+        font-weight: 600;
+        padding: 9px 20px;
+        border: 0;
+        border-radius: 6px;
+        background: var(--accent);
+        color: #fff;
+        cursor: pointer;
+      }
+      button:hover {
+        background: #1e40af;
+      }
+      #error {
+        color: var(--down);
+        min-height: 20px;
+        margin: 10px 0 0;
+        font-size: 14px;
+      }
+      #timing {
+        margin: 22px 0 18px;
+        font-size: 14px;
+        color: var(--muted);
+      }
+      #cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 12px;
+      }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 12px 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .card .label {
+        font-size: 11px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .card .value {
+        font-size: 19px;
+        font-variant-numeric: tabular-nums;
+      }
+      .value.up {
+        color: var(--up);
+      }
+      .value.down {
+        color: var(--down);
+      }
+      h2 {
+        font-size: 12px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin: 30px 0 8px;
+      }
+      .panel {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 10px;
+      }
+      .panel svg {
+        display: block;
+        width: 100%;
+        height: 230px;
+      }
+      #warnings {
+        margin-top: 26px;
+        border-left: 4px solid #b45309;
+        background: #fffbeb;
+        padding: 12px 18px;
+        border-radius: 0 8px 8px 0;
+      }
+      #warnings h3 {
+        margin: 0 0 6px;
+        font-size: 12px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: #92400e;
+      }
+      #warnings ul {
+        margin: 0;
+        padding-left: 18px;
+        color: #78350f;
+        font-size: 14px;
+      }
+      footer {
+        margin-top: 42px;
+        padding-top: 18px;
+        border-top: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 13px;
+      }
+      footer a {
+        color: var(--accent);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <a href="../">← Tapedeck</a>
+      </header>
+
+      <h1>The engine, running in your browser</h1>
+      <p class="lede">
+        Change the parameters and the backtest re-runs here, in this tab, on the same deterministic
+        kernel the command line uses. Nothing is sent anywhere: the page loads a committed year of
+        real BTCUSDT and replays it locally.
+      </p>
+      <p class="lede">
+        This works because <code>@tapedeck/core</code> has zero runtime dependencies and imports
+        nothing from <code>node:</code>. That rule was made for reproducibility, not for
+        portability; running in a browser fell out of it for free.
+      </p>
+      <p id="source">loading the tape…</p>
+
+      <form onsubmit="return false;">
+        <label>fast average <input id="fast" type="number" min="2" max="200" value="24" /></label>
+        <label>slow average <input id="slow" type="number" min="3" max="400" value="72" /></label>
+        <label>size <input id="qty" type="number" min="1000" step="1000" value="25000" /></label>
+        <label
+          >costs
+          <select id="preset">
+            <option value="binanceSpot">Binance spot (10 bps + slippage)</option>
+            <option value="ideal">none (the flattering one)</option>
+          </select>
+        </label>
+        <label class="check"><input id="short" type="checkbox" checked /> allow shorts</label>
+        <button id="run" type="button">Run</button>
+      </form>
+      <p id="error"></p>
+
+      <p id="timing"></p>
+      <div id="cards"></div>
+
+      <h2>Equity</h2>
+      <div class="panel" id="equity"></div>
+
+      <h2>Drawdown</h2>
+      <div class="panel" id="drawdown"></div>
+
+      <div id="warnings"></div>
+
+      <footer>
+        <p>
+          Two things worth trying. Set the costs to <em>none</em>: the result roughly quadruples,
+          and that gap is the whole argument — a backtester that skips fees reports a strategy that
+          does not exist. Then hunt for better periods: across a 5&times;5 grid of them,
+          <strong>thirteen of nineteen lose money</strong>, and none finishes with more winners than
+          losers. A 36% win rate is what trend following looks like — many small losses paying for a
+          few large wins — so the number to read is the profit factor, not the win rate.
+        </p>
+        <p>
+          <a href="../report/">the static report</a> ·
+          <a href="https://github.com/naderfilho/Tapedeck">source</a>
+        </p>
+      </footer>
+    </div>
+    <script type="module" src="./demo.js"></script>
+  </body>
+</html>

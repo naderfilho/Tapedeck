@@ -7,3 +7,4 @@ coverage/
 out/
 /data/
 !fixtures/**
+site/
