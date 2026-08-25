@@ -9,7 +9,6 @@
 import type { Instrument, InstrumentId } from '../instrument.ts';
 import { type PriceInt, type QtyInt, asQty, isTickAligned } from '../math/fixed.ts';
 import type { Timestamp } from '../time/timestamp.ts';
-import { utcDayIndex } from '../time/timestamp.ts';
 import type {
   NewOrder,
   OrderId,
@@ -30,8 +29,16 @@ export interface OrderState {
   readonly submittedTs: Timestamp;
   /** Submission order, used to break ties when several orders match in the same bar. */
   readonly submitSeq: number;
-  /** UTC day of submission; a `day` order dies when the engine crosses into another one. */
-  readonly submitDay: number;
+  /**
+   * When a `day` order stops being live, or `null` for every other time-in-force.
+   *
+   * This is the venue's next session close, which is not the same as midnight: an order placed on
+   * B3 at 16:00 dies at 18:00 that afternoon, and one placed at 19:00 — after the bell, before the
+   * next session — dies at 18:00 tomorrow. Keying the rule off the UTC calendar day, as this did
+   * until the trading calendar existed, kept a Friday order alive into Friday evening and killed a
+   * 21:00-UTC order that São Paulo still considered same-day.
+   */
+  readonly expiresAt: Timestamp | null;
 
   qty: QtyInt;
   limitPrice: PriceInt | null;
@@ -167,20 +174,23 @@ export interface CreateOrderArgs {
   readonly submittedTs: Timestamp;
   readonly submitSeq: number;
   readonly activeFrom: Timestamp;
+  /** The venue's next session close. Only consulted for a `day` order. */
+  readonly nextClose: Timestamp;
 }
 
 export function createOrderState(args: CreateOrderArgs): OrderState {
   const { request } = args;
+  const tif = request.tif ?? 'gtc';
   return {
     id: args.id,
     instrumentId: request.instrumentId,
     side: request.side,
     type: request.type,
-    tif: request.tif ?? 'gtc',
+    tif,
     tag: request.tag ?? null,
     submittedTs: args.submittedTs,
     submitSeq: args.submitSeq,
-    submitDay: utcDayIndex(args.submittedTs),
+    expiresAt: tif === 'day' ? args.nextClose : null,
     qty: request.qty,
     limitPrice: request.limitPrice ?? null,
     stopPrice: request.stopPrice ?? null,

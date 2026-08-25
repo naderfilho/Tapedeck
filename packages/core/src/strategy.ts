@@ -25,6 +25,7 @@ import type { PositionView } from './portfolio/portfolio.ts';
 import type { NewOrder, OrderAmend, OrderId } from './execution/types.ts';
 import type { OrderSnapshot } from './execution/order.ts';
 import type { ReadonlyClock } from './time/clock.ts';
+import type { TradingCalendar } from './time/calendar.ts';
 import type { Timestamp } from './time/timestamp.ts';
 import type { Logger } from './util/logger.ts';
 import type { Rng } from './util/rng.ts';
@@ -48,6 +49,15 @@ export interface PortfolioView {
  */
 export interface StrategyContext {
   readonly clock: ReadonlyClock;
+  /**
+   * The venue's sessions. `ALWAYS_OPEN` unless the run declared one.
+   *
+   * Present because "how long until the close" is a question strategies on a session-based venue
+   * actually ask — not opening a position in the last ten minutes, flattening before a holiday —
+   * and deriving it from timestamps in every strategy would mean every strategy reimplementing
+   * Carnival.
+   */
+  readonly calendar: TradingCalendar;
   readonly log: Logger;
   /** The run's seeded random stream, forked for this strategy (ADR-0006). */
   readonly rng: Rng;

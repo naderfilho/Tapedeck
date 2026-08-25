@@ -4,7 +4,9 @@
  */
 
 import {
+  type BarChunk,
   type BarEvent,
+  type CalendarSpec,
   type ExecutionConfig,
   type InstrumentSpec,
   type OrderCancelledEvent,
@@ -22,6 +24,9 @@ export interface ScriptOptions {
   readonly rows: readonly BarRow[];
   readonly instrument?: InstrumentSpec;
   readonly execution?: Partial<ExecutionConfig>;
+  readonly calendar?: CalendarSpec;
+  /** Feed this chunk instead of building one from `rows`. For tests that need real timestamps. */
+  readonly chunkOverride?: BarChunk;
   readonly initialCash?: string;
   readonly seed?: number;
   /** Feed the same data split into this many chunks. Used by the chunk-invariance test. */
@@ -56,14 +61,14 @@ export function runScript(options: ScriptOptions): RunResult {
     initialCash: options.initialCash ?? '100000',
     seed: options.seed ?? 1,
     execution: options.execution,
+    ...(options.calendar === undefined ? {} : { calendar: options.calendar }),
     flattenAtEnd: options.flattenAtEnd ?? false,
     barViewMode: options.barViewMode,
   });
 
-  const chunk = bars(options.rows, {
-    startTs: options.startTs,
-    timeframe: options.timeframe,
-  });
+  const chunk =
+    options.chunkOverride ??
+    bars(options.rows, { startTs: options.startTs, timeframe: options.timeframe });
   for (const part of splitChunk(chunk, options.chunks ?? 1)) engine.feedBars(part);
   return engine.finish();
 }

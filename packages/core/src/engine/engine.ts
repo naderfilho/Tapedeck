@@ -35,6 +35,7 @@ import {
   parseFixed,
 } from '../math/fixed.ts';
 import { SimulatedClock } from '../time/clock.ts';
+import { type CalendarSpec, ALWAYS_OPEN, TradingCalendar } from '../time/calendar.ts';
 import { SimulatedScheduler } from '../time/scheduler.ts';
 import { type Timestamp, asTimestamp } from '../time/timestamp.ts';
 import { type BarChunk, type TickChunk, validateBarChunk } from '../tape/chunk.ts';
@@ -70,6 +71,12 @@ export interface RunOptions<P extends object> {
   readonly seed?: number | undefined;
   /** Defaults to {@link PRESETS.ideal}. Partial overrides are merged over it. */
   readonly execution?: Partial<ExecutionConfig> | undefined;
+  /**
+   * The venue's sessions. Decides when a `day` order dies, and is readable by a strategy through
+   * `ctx.calendar`. Defaults to `ALWAYS_OPEN`, which is right for crypto and reproduces the
+   * behaviour the engine had before calendars existed.
+   */
+  readonly calendar?: CalendarSpec | undefined;
   /** Defaults to `guarded` outside production, `reuse` in it. See ADR-0004. */
   readonly barViewMode?: ViewMode | undefined;
   readonly recordEquityCurve?: boolean | undefined;
@@ -94,6 +101,7 @@ const MAX_RECORDED_SIGNALS = 100_000;
 export class Engine<P extends object> {
   readonly registry = new InstrumentRegistry();
   private readonly clock = new SimulatedClock();
+  readonly calendar: TradingCalendar;
   private readonly scheduler = new SimulatedScheduler(this.clock);
   private readonly portfolio: Portfolio;
   private readonly tradeLog: TradeLog;
@@ -138,6 +146,7 @@ export class Engine<P extends object> {
     }
     for (const spec of options.instruments) this.registry.register(spec);
 
+    this.calendar = new TradingCalendar(options.calendar ?? ALWAYS_OPEN);
     this.execution = { ...PRESETS.ideal(), ...options.execution };
     this.recordEquity = options.recordEquityCurve ?? true;
     this.recordFills = options.recordFills ?? true;
@@ -160,6 +169,7 @@ export class Engine<P extends object> {
       clock: this.clock,
       scheduler: this.scheduler,
       execution: this.execution,
+      calendar: this.calendar,
       rng: rootRng.fork('broker'),
       nextSeq: () => this.seq++,
       sink: {
@@ -509,6 +519,7 @@ export class Engine<P extends object> {
 
     return {
       clock: this.clock,
+      calendar: this.calendar,
       log: this.logger,
       rng,
       portfolio: portfolioView,

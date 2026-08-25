@@ -81,8 +81,13 @@ describe('a strategy cannot reach around the bar it was handed', () => {
         keys = Object.keys(ctx);
       },
     });
+    // This list is an allowlist on purpose: anything added to the context has to be argued for
+    // here. `calendar` is on it because a session calendar is public information published years
+    // in advance — knowing that next Wednesday is Corpus Christi is not knowing a future price,
+    // and it carries no reference to the tape, the chunk or the engine.
     expect(keys.sort()).toEqual(
       [
+        'calendar',
         'cancel',
         'clock',
         'instrument',

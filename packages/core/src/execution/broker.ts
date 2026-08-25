@@ -23,7 +23,8 @@ import {
 } from '../math/fixed.ts';
 import type { ReadonlyClock } from '../time/clock.ts';
 import type { Scheduler } from '../time/scheduler.ts';
-import { type Timestamp, utcDayIndex } from '../time/timestamp.ts';
+import type { Timestamp } from '../time/timestamp.ts';
+import type { TradingCalendar } from '../time/calendar.ts';
 import type { BarEvent, TickEvent } from '../events/events.ts';
 import { EventKind } from '../events/events.ts';
 import type { Rng } from '../util/rng.ts';
@@ -90,6 +91,8 @@ export interface SimulatedBrokerOptions {
   readonly execution: ExecutionConfig;
   readonly rng: Rng;
   readonly sink: BrokerSink;
+  /** Decides when a `day` order dies. `ALWAYS_OPEN` reproduces the pre-calendar behaviour. */
+  readonly calendar: TradingCalendar;
   /** Supplies the monotonic sequence that gives every event its place in the total order. */
   readonly nextSeq: () => number;
 }
@@ -117,6 +120,7 @@ export class SimulatedBroker implements Broker {
   private readonly execution: ExecutionConfig;
   private readonly rng: Rng;
   private readonly sink: BrokerSink;
+  private readonly calendar: TradingCalendar;
   private readonly nextSeq: () => number;
 
   private readonly orders = new Map<OrderId, OrderState>();
@@ -147,6 +151,7 @@ export class SimulatedBroker implements Broker {
     this.execution = options.execution;
     this.rng = options.rng;
     this.sink = options.sink;
+    this.calendar = options.calendar;
     this.nextSeq = options.nextSeq;
     for (let i = 0; i < this.registry.size; i++) this.working.push([]);
   }
@@ -182,6 +187,7 @@ export class SimulatedBroker implements Broker {
       submittedTs: now,
       submitSeq: this.submitSeq++,
       activeFrom,
+      nextClose: this.calendar.nextClose(now),
     });
     this.orders.set(id, order);
 
@@ -251,7 +257,7 @@ export class SimulatedBroker implements Broker {
         tag: snapshot.tag,
         submittedTs: snapshot.submittedTs,
         submitSeq: this.submitSeq++,
-        submitDay: utcDayIndex(snapshot.submittedTs),
+        expiresAt: snapshot.tif === 'day' ? this.calendar.nextClose(snapshot.submittedTs) : null,
         qty: snapshot.qty,
         limitPrice: snapshot.limitPrice,
         stopPrice: snapshot.stopPrice,
@@ -337,13 +343,12 @@ export class SimulatedBroker implements Broker {
     const book = this.bookOf(bar.instrumentId);
     if (book.length === 0) return;
     const instrument = this.registry.byId(bar.instrumentId);
-    const day = utcDayIndex(bar.closeTs);
     const candidates = this.candidates;
     candidates.length = 0;
 
     for (const order of book) {
       if (!isOrderStatusLive(order.status)) continue;
-      if (order.tif === 'day' && order.submitDay !== day) {
+      if (order.expiresAt !== null && bar.closeTs >= order.expiresAt) {
         this.finishCancel(order, 'expired');
         continue;
       }
@@ -381,11 +386,10 @@ export class SimulatedBroker implements Broker {
     const book = this.bookOf(tick.instrumentId);
     if (book.length === 0) return;
     const instrument = this.registry.byId(tick.instrumentId);
-    const day = utcDayIndex(tick.ts);
 
     for (const order of book) {
       if (!isOrderStatusLive(order.status)) continue;
-      if (order.tif === 'day' && order.submitDay !== day) {
+      if (order.expiresAt !== null && tick.ts >= order.expiresAt) {
         this.finishCancel(order, 'expired');
         continue;
       }

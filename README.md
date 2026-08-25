@@ -1,7 +1,7 @@
 # Tapedeck
 
 [![CI](https://github.com/naderfilho/Tapedeck/actions/workflows/ci.yml/badge.svg)](https://github.com/naderfilho/Tapedeck/actions/workflows/ci.yml)
-![tests](https://img.shields.io/badge/tests-511-brightgreen)
+![tests](https://img.shields.io/badge/tests-547-brightgreen)
 ![coverage](https://img.shields.io/badge/coverage-97%25-brightgreen)
 ![node](https://img.shields.io/badge/node-%E2%89%A524-informational)
 [![licence](https://img.shields.io/badge/licence-MIT-blue)](LICENSE)
@@ -23,7 +23,7 @@ configuration and every trade.
 
 > **Status: phase 4 of 6.** The kernel, the indicator library, the data adapters, the SQLite store,
 > the metrics and report package, the `tapedeck` command line and live paper trading are done —
-> 511 tests, 97% statement coverage, and a committed year of real BTCUSDT candles so that
+> 547 tests, 97% statement coverage, and a committed year of real BTCUSDT candles so that
 > `pnpm test` measures something. Polish and the B3 session calendar are on the roadmap below.
 > Nothing is published to npm yet.
 
@@ -425,7 +425,7 @@ hoped for:
 ## Testing
 
 ```bash
-pnpm test          # 511 tests
+pnpm test          # 547 tests
 pnpm coverage      # 97% statements, 97% functions; 85% is the floor for every package
 pnpm lint          # no `any`, no `@ts-ignore`, no wall clock in the kernel
 pnpm typecheck     # strict, plus noUncheckedIndexedAccess and exactOptionalPropertyTypes
