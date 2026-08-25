@@ -23,6 +23,10 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: ${{ env.NODE_VERSION }}
+          # setup-node@v5 caches for the detected package manager by default. pnpm does not exist
+          # yet at this point — the next step is what installs it — so the cache is asked for in
+          # the second setup-node, below, and refused here.
+          package-manager-cache: false
 
       - name: Enable pnpm
         run: corepack enable pnpm
@@ -53,6 +57,10 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: ${{ env.NODE_VERSION }}
+          # setup-node@v5 caches for the detected package manager by default. pnpm does not exist
+          # yet at this point — the next step is what installs it — so the cache is asked for in
+          # the second setup-node, below, and refused here.
+          package-manager-cache: false
 
       - name: Enable pnpm
         run: corepack enable pnpm
@@ -82,6 +90,10 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: ${{ env.NODE_VERSION }}
+          # setup-node@v5 caches for the detected package manager by default. pnpm does not exist
+          # yet at this point — the next step is what installs it — so the cache is asked for in
+          # the second setup-node, below, and refused here.
+          package-manager-cache: false
 
       - name: Enable pnpm
         run: corepack enable pnpm
