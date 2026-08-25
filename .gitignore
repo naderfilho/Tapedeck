@@ -5,5 +5,5 @@ coverage/
 .DS_Store
 .vitest-cache/
 out/
-data/
+/data/
 !fixtures/**
