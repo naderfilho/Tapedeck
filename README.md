@@ -158,7 +158,10 @@ Three things it will not do quietly:
 
 `--store` with `--session` makes a session resumable. What comes back is the **account** — cash,
 the cost basis of every open position, the resting orders, and the order and fill counters so the
-audit trail continues. What does not come back is the strategy's own memory: a field in a closure
+audit trail continues. Resuming a real session mid-position, in a second process, blends the new
+fills into the existing cost basis and numbers the next fill 10 rather than 1 — which is what the
+counters are for: `paper_fills` is keyed by `(session, fillId)`, so a restart that began again at 1
+would overwrite a trade instead of recording one. What does not come back is the strategy's own memory: a field in a closure
 is gone, and `bar.index` restarts because it counts this run's bars. A strategy meant to survive a
 restart derives its state from event time, from its fills and from `ctx.portfolio`. The session
 says so in its warnings every time it resumes.

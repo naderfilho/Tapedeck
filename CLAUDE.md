@@ -128,7 +128,13 @@ Done. The shape it landed in, because it is not quite the shape this file predic
   extrapolated from nineteen seconds of wall time, which is what the first real session printed —
   say nothing at all about a session that short. Phase 5 should decide which metrics a live
   session should print, and which it should refuse to.
-- The live session has been run against the real Binance socket (aggTrade, fifteen seconds, 131
-  events, a real fill) and the output is in the README. It has **not** been run long enough to see
-  a reconnection, a full candle stream, or a crash and resume in anger. The code paths are tested
-  against a fake; the weather has not been.
+- What has now been done against the real Binance socket: aggTrade and `kline_1m` together for two
+  and a half minutes (1,535 events, two closed candles, 1,387 prints, queue never above 1), the
+  SQLite store written as it went, and the session resumed from that store in a second process —
+  which picked the position up at 1000, added its own 1000 with a correctly blended cost basis,
+  and gave its first fill id **10** rather than id 1. That last detail is the whole reason
+  `PaperState.counters` exists: without it `INSERT OR REPLACE INTO paper_fills` would have
+  overwritten fill 1 and lost a trade from the audit trail without a word.
+- What still has **not** been seen live: a reconnection (the gap path), a session long enough to
+  matter, and a real crash rather than a clean stop. Those paths are covered against a fake and
+  the fake drives the same code, but the weather has not been.
