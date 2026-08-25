@@ -19,6 +19,7 @@ import type {
   TickEvent,
 } from './events/events.ts';
 import type { Instrument, InstrumentId } from './instrument.ts';
+import type { BarIndicator, IndicatorHandle, UseIndicatorOptions } from './indicator.ts';
 import type { MoneyInt } from './math/fixed.ts';
 import type { PositionView } from './portfolio/portfolio.ts';
 import type { NewOrder, OrderAmend, OrderId } from './execution/types.ts';
@@ -56,6 +57,16 @@ export interface StrategyContext {
   instrument(instrumentId: InstrumentId): Instrument;
   /** Looks an instrument up by `venue` and `symbol`. Throws when it was not registered. */
   instrumentOf(venue: string, symbol: string): Instrument;
+
+  /**
+   * Registers an indicator and returns a read-only handle on its value.
+   *
+   * The engine updates it once per bar, after resting orders have matched and before `onBar`, so
+   * the value read inside `onBar` always corresponds to the bar being shown. Registering from
+   * `onInit` is the normal case and fixes the update order; registering later is allowed and the
+   * indicator simply starts from the next bar.
+   */
+  use<T>(indicator: BarIndicator<T>, options?: UseIndicatorOptions): IndicatorHandle<T>;
 
   submit(order: NewOrder): OrderId;
   cancel(id: OrderId): boolean;

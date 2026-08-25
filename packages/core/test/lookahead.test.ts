@@ -96,6 +96,7 @@ describe('a strategy cannot reach around the bar it was handed', () => {
         'rng',
         'signal',
         'submit',
+        'use',
       ].sort(),
     );
   });

@@ -46,6 +46,7 @@ import {
   createTickGate,
 } from '../tape/view.ts';
 import { EventKind, type OrderFilledEvent, type SignalEvent } from '../events/events.ts';
+import type { BarIndicator, IndicatorHandle, UseIndicatorOptions } from '../indicator.ts';
 import { type ExecutionConfig, PRESETS } from '../execution/models.ts';
 import { SimulatedBroker } from '../execution/broker.ts';
 import type { NewOrder, OrderAmend, OrderId } from '../execution/types.ts';
@@ -102,6 +103,9 @@ export class Engine<P extends object> {
 
   private readonly equity = new EquityRecorder();
   private readonly fills: OrderFilledEvent[] = [];
+  /** Registered through `ctx.use()`, updated in registration order once per matching bar. */
+  private readonly indicators: { instrumentId: InstrumentId; indicator: BarIndicator<unknown> }[] =
+    [];
   private readonly signals: SignalEvent[] = [];
 
   private readonly options: RunOptions<P>;
@@ -198,6 +202,7 @@ export class Engine<P extends object> {
     const { count, openTs, closeTs, open, high, low, close, volume } = chunk;
     const view = this.barView;
     const onBar = this.strategy.onBar?.bind(this.strategy);
+    const indicators = this.indicators;
     const guarded = this.guardedViews;
     const instrumentId = chunk.instrumentId;
     view.instrumentId = instrumentId;
@@ -222,6 +227,14 @@ export class Engine<P extends object> {
 
       this.broker.onBar(view);
       this.portfolio.mark(instrumentId, view.close);
+
+      // Indicators see the bar before the strategy does, so a value read inside `onBar` always
+      // belongs to the bar being shown — never one stale, never one early.
+      for (let k = 0; k < indicators.length; k++) {
+        const entry = indicators[k];
+        if (entry !== undefined && entry.instrumentId === instrumentId)
+          entry.indicator.update(view);
+      }
 
       if (onBar !== undefined) {
         if (guarded) {
@@ -418,6 +431,24 @@ export class Engine<P extends object> {
       portfolio: portfolioView,
       now: (): Timestamp => this.clock.now(),
       instrument: (instrumentId: InstrumentId): Instrument => this.registry.byId(instrumentId),
+      use: <T>(indicator: BarIndicator<T>, options?: UseIndicatorOptions): IndicatorHandle<T> => {
+        const instrumentId = options?.instrumentId ?? (0 as InstrumentId);
+        // Validates eagerly: a typo in the instrument id should fail at registration, not by
+        // silently producing an indicator that never receives a bar.
+        this.registry.byId(instrumentId);
+        this.indicators.push({ instrumentId, indicator });
+        return Object.freeze({
+          get name(): string {
+            return indicator.name;
+          },
+          get ready(): boolean {
+            return indicator.ready;
+          },
+          get value(): T | null {
+            return indicator.value;
+          },
+        });
+      },
       instrumentOf: (venue: string, symbol: string): Instrument =>
         this.registry.require(venue, symbol),
       submit: (order: NewOrder): OrderId => this.broker.submit(order),

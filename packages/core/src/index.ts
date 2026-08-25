@@ -176,6 +176,18 @@ export {
 export { type FillEffect, type PositionView, Portfolio } from './portfolio/portfolio.ts';
 export { type TradeRecord, TradeLog } from './portfolio/trades.ts';
 
+// Indicators
+export {
+  type BarIndicator,
+  type BarSample,
+  type Indicator,
+  type IndicatorHandle,
+  type PriceSource,
+  type UseIndicatorOptions,
+  type ValueIndicator,
+  sourceOf,
+} from './indicator.ts';
+
 // Strategy
 export type { PortfolioView, Strategy, StrategyContext, StrategyFactory } from './strategy.ts';
 
@@ -188,6 +200,7 @@ export {
   type RunResult,
   type RunStats,
   EquityRecorder,
+  parseRunResult,
   serializeRunResult,
 } from './engine/result.ts';
 
@@ -195,6 +208,8 @@ export {
 export type { BarRequest, DataProvider, StreamRequest, TickRequest } from './data.ts';
 export {
   type BarCache,
+  type BarCacheEntry,
+  type CachedBars,
   type BarQuery,
   type PaperRepository,
   type PaperState,
@@ -215,6 +230,7 @@ export {
   NotFoundError,
   OrderError,
   PrecisionError,
+  UpstreamError,
   TapedeckError,
 } from './util/errors.ts';
 export { type LogEntry, type LogLevel, type Logger, BufferedLogger } from './util/logger.ts';

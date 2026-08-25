@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
+  type BarIndicator,
+  type IndicatorHandle,
   type InstrumentId,
   type OrderId,
   type StrategyContext,
@@ -11,6 +13,10 @@ import { MONEY, TEST_FUTURE } from './helpers.ts';
 import { runScript } from './harness.ts';
 
 const ZERO = 0 as InstrumentId;
+
+/** Shared across the indicator tests so a handle can outlive the callback that created it. */
+let handleRef: IndicatorHandle | null = null;
+let lateHandle: IndicatorHandle | null = null;
 
 function limitBuy(ctx: StrategyContext, price: number, qty = 1): OrderId {
   return ctx.submit({
@@ -145,6 +151,115 @@ describe('amendments', () => {
       },
     });
     expect(outcomes).toEqual([true, false]);
+  });
+});
+
+describe('indicators', () => {
+  /**
+   * A stand-in for the real library. The core must not depend on `@tapedeck/indicators` even in
+   * its tests — the arrow points inward (ADR-0001) — and testing against the contract rather than
+   * an implementation is what proves the contract is enough.
+   */
+  function recorder(name: string, log: string[]): BarIndicator {
+    let last: number | null = null;
+    return {
+      name,
+      get ready() {
+        return last !== null;
+      },
+      get value() {
+        return last;
+      },
+      update(bar) {
+        log.push(name);
+        last = bar.close;
+        return last;
+      },
+      reset() {
+        last = null;
+      },
+    };
+  }
+
+  it('updates once per bar, before the strategy sees it', () => {
+    const seen: { close: number; indicator: number | null }[] = [];
+    runScript({
+      rows: [
+        { o: 100, h: 100, l: 100, c: 100 },
+        { o: 101, h: 101, l: 101, c: 101 },
+        { o: 102, h: 102, l: 102, c: 102 },
+      ],
+      onInit: (ctx) => {
+        const handle = ctx.use(recorder('probe', []));
+        handleRef = handle;
+      },
+      onBar: (bar) => {
+        seen.push({ close: bar.close, indicator: handleRef?.value ?? null });
+      },
+    });
+    // The value read inside onBar always belongs to the bar being shown, never the previous one.
+    expect(seen).toEqual([
+      { close: 100, indicator: 100 },
+      { close: 101, indicator: 101 },
+      { close: 102, indicator: 102 },
+    ]);
+  });
+
+  it('updates in registration order', () => {
+    const log: string[] = [];
+    runScript({
+      rows: [
+        { o: 1, h: 1, l: 1, c: 1 },
+        { o: 2, h: 2, l: 2, c: 2 },
+      ],
+      onInit: (ctx) => {
+        ctx.use(recorder('first', log));
+        ctx.use(recorder('second', log));
+      },
+    });
+    expect(log).toEqual(['first', 'second', 'first', 'second']);
+  });
+
+  it('hands back a read-only handle with no way to drive the indicator', () => {
+    const handles: IndicatorHandle[] = [];
+    runScript({
+      rows: ROWS,
+      onInit: (ctx) => {
+        handles.push(ctx.use(recorder('probe', [])));
+      },
+    });
+    const handle = handles[0];
+    expect(handle).toBeDefined();
+    expect(Object.keys(handle ?? {}).sort()).toEqual(['name', 'ready', 'value']);
+    expect(Object.isFrozen(handle)).toBe(true);
+  });
+
+  it('refuses to register against an instrument that does not exist', () => {
+    expect(() =>
+      runScript({
+        rows: ROWS,
+        onInit: (ctx) => {
+          ctx.use(recorder('probe', []), { instrumentId: 9 as InstrumentId });
+        },
+      }),
+    ).toThrow(NotFoundError);
+  });
+
+  it('can be registered after the run has started', () => {
+    let value: number | null = null;
+    runScript({
+      rows: [
+        { o: 1, h: 1, l: 1, c: 1 },
+        { o: 2, h: 2, l: 2, c: 2 },
+        { o: 3, h: 3, l: 3, c: 3 },
+      ],
+      onBar: (bar, ctx) => {
+        if (bar.index === 0) lateHandle = ctx.use(recorder('late', []));
+        value = lateHandle?.value ?? null;
+      },
+    });
+    // Registered while bar 0 was being handled, so it starts receiving from bar 1.
+    expect(value).toBe(3);
   });
 });
 
