@@ -22,6 +22,9 @@ import {
   type Duration,
   type InstrumentId,
   type InstrumentSpec,
+  type MarketStream,
+  type MarketStreamHandler,
+  type StreamRequest,
   BarChunkBuilder,
   ConfigError,
   MICROS_PER_DAY,
@@ -33,6 +36,7 @@ import {
   UpstreamError,
   parseFixed,
 } from '@tapedeck/core';
+import { BinanceStream } from './binance-stream.ts';
 
 export type FetchLike = (url: string, init?: RequestInit) => Promise<Response>;
 
@@ -251,6 +255,25 @@ export class BinanceDataProvider implements DataProvider {
     }
 
     if (builder.count > 0) yield builder.build();
+  }
+
+  /**
+   * The live feed for the same symbol, through the same scales.
+   *
+   * Synchronous, and it fetches nothing: `MarketStream.start()` is where the spec is resolved and
+   * the socket is opened. That keeps the contract callable from a place that has no `await`
+   * available, and it keeps `describe` cached on this provider rather than duplicated.
+   */
+  stream(request: StreamRequest, handler: MarketStreamHandler): MarketStream {
+    return new BinanceStream(
+      {
+        symbol: request.symbol,
+        kinds: request.kinds,
+        timeframe: request.timeframe,
+        describe: (symbol: string) => this.describe(symbol),
+      },
+      handler,
+    );
   }
 
   /**

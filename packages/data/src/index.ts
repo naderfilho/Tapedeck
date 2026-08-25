@@ -53,3 +53,11 @@ export {
   decimalsOf,
   trimZeros,
 } from './binance.ts';
+
+export {
+  type BinanceStreamOptions,
+  type BinanceStreamStats,
+  BinanceStream,
+} from './binance-stream.ts';
+
+export { type SocketFactory, type StreamSocket, nodeSocketFactory } from './socket.ts';
