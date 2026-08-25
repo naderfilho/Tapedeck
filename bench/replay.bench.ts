@@ -17,7 +17,14 @@
  * runs at.
  */
 
-import type { BarChunk, InstrumentId, Strategy, StrategyContext, ViewMode } from '@tapedeck/core';
+import type {
+  BarChunk,
+  IndicatorHandle,
+  InstrumentId,
+  Strategy,
+  StrategyContext,
+  ViewMode,
+} from '@tapedeck/core';
 
 process.env['TAPEDECK_STRICT'] ??= '0';
 
@@ -32,6 +39,7 @@ const {
   createRng,
   roundToTick,
 } = await import('@tapedeck/core');
+const { sma } = await import('@tapedeck/indicators');
 
 const BARS = 1_000_000;
 const REPEATS = 5;
@@ -68,73 +76,49 @@ function makeSeries(bars: number, tickSize: number): BarChunk {
 
 // --------------------------------------------------------------------------- strategies
 
-/** Fixed-window mean over a ring buffer: the shape every incremental indicator has. */
-class RollingMean {
-  private readonly window: Float64Array;
-  private readonly period: number;
-  private cursor = 0;
-  private filled = 0;
-  private sum = 0;
-
-  constructor(period: number) {
-    this.period = period;
-    this.window = new Float64Array(period);
-  }
-
-  update(value: number): number | null {
-    const outgoing = this.window[this.cursor] ?? 0;
-    this.window[this.cursor] = value;
-    this.cursor = (this.cursor + 1) % this.period;
-    if (this.filled < this.period) {
-      this.filled++;
-      this.sum += value;
-    } else {
-      this.sum += value - outgoing;
-    }
-    return this.filled === this.period ? this.sum / this.period : null;
-  }
-}
-
 function noopStrategy(): Strategy {
   return { id: 'noop', onInit: () => undefined };
 }
 
+/** Two moving averages from the real library, registered the way a strategy registers them. */
 function indicatorsOnly(): Strategy {
-  const fast = new RollingMean(20);
-  const slow = new RollingMean(60);
-  let sink = 0;
+  let fast: IndicatorHandle;
+  let slow: IndicatorHandle;
+  let crossings = 0;
   return {
     id: 'indicators',
-    onInit: () => undefined,
-    onBar: (bar) => {
-      const f = fast.update(bar.close);
-      const s = slow.update(bar.close);
-      // Keep the values observable so the optimiser cannot delete the work.
-      if (f !== null && s !== null && f > s) sink++;
+    onInit: (ctx) => {
+      fast = ctx.use(sma({ period: 20 }));
+      slow = ctx.use(sma({ period: 60 }));
+    },
+    onBar: () => {
+      // Read the values so the optimiser cannot delete the work.
+      if (fast.value !== null && slow.value !== null && fast.value > slow.value) crossings++;
     },
     onStop: (ctx) => {
-      ctx.log.debug('crossings', { sink });
+      ctx.log.debug('crossings', { crossings });
     },
   };
 }
 
 function crossover(): Strategy {
-  const fast = new RollingMean(20);
-  const slow = new RollingMean(60);
+  let fast: IndicatorHandle;
+  let slow: IndicatorHandle;
   let side = 0;
   return {
     id: 'crossover',
-    onInit: () => undefined,
-    onBar: (bar, ctx: StrategyContext) => {
-      const f = fast.update(bar.close);
-      const s = slow.update(bar.close);
+    onInit: (ctx) => {
+      fast = ctx.use(sma({ period: 20 }));
+      slow = ctx.use(sma({ period: 60 }));
+    },
+    onBar: (_bar, ctx: StrategyContext) => {
+      const f = fast.value;
+      const s = slow.value;
       if (f === null || s === null) return;
       const next = f > s ? 1 : -1;
       if (next === side) return;
       side = next;
-      const current = ctx.portfolio.position(ZERO).qty;
-      const target = next;
-      const delta = target - current;
+      const delta = next - ctx.portfolio.position(ZERO).qty;
       if (delta === 0) return;
       ctx.submit({
         instrumentId: ZERO,
