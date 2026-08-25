@@ -8,7 +8,9 @@
       "@tapedeck/core/*": ["packages/core/src/*"],
       "@tapedeck/indicators": ["packages/indicators/src/index.ts"],
       "@tapedeck/data": ["packages/data/src/index.ts"],
-      "@tapedeck/store": ["packages/store/src/index.ts"]
+      "@tapedeck/store": ["packages/store/src/index.ts"],
+      "@tapedeck/report": ["packages/report/src/index.ts"],
+      "@tapedeck/cli": ["packages/cli/src/index.ts"]
     }
   },
   "include": [

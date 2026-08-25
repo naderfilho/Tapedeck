@@ -136,6 +136,34 @@ describe('bar tapes', () => {
   });
 });
 
+describe('appending chunks', () => {
+  it('joins pages into one chunk with a bulk copy per column', () => {
+    const builder = new BarChunkBuilder(ZERO, asDuration(MICROS_PER_HOUR), 2);
+    builder.append(sampleBars(3));
+    builder.append(sampleBars(5));
+    const joined = builder.build();
+
+    // The capacity started at two and had to grow twice.
+    expect(joined.count).toBe(8);
+    expect(Array.from(joined.close.subarray(0, 3))).toEqual(Array.from(sampleBars(3).close));
+    expect(Array.from(joined.close.subarray(3))).toEqual(Array.from(sampleBars(5).close));
+  });
+
+  it('ignores an empty chunk', () => {
+    const builder = new BarChunkBuilder(ZERO, asDuration(MICROS_PER_HOUR), 4);
+    builder.append(new BarChunkBuilder(ZERO, asDuration(MICROS_PER_HOUR)).build());
+    expect(builder.count).toBe(0);
+  });
+
+  it('round-trips through a tape after appending', () => {
+    const builder = new BarChunkBuilder(ZERO, asDuration(MICROS_PER_HOUR), 1);
+    builder.append(sampleBars(40));
+    const chunk = builder.build();
+    const decoded = decodeBarTape(encodeBarTape({ instrument: SPEC, chunk, source: 'test' })).chunk;
+    expect(Array.from(decoded.volume)).toEqual(Array.from(chunk.volume));
+  });
+});
+
 describe('tick tapes', () => {
   it('round-trips prices, sizes and the aggressor column', () => {
     const builder = new TickChunkBuilder(ZERO, 4);

@@ -100,6 +100,33 @@ export class BarChunkBuilder {
     this.volume[i] = volume;
   }
 
+  /**
+   * Appends a whole chunk with a bulk copy per column.
+   *
+   * Anything that accumulates pages from a provider wants this rather than a loop over `push`: it
+   * moves the columns with `TypedArray.set` instead of seven bounds-checked reads per bar, and it
+   * removes the row of `?? 0` fallbacks that `noUncheckedIndexedAccess` otherwise demands at every
+   * call site.
+   */
+  append(chunk: BarChunk): void {
+    if (chunk.count === 0) return;
+    const needed = this.size + chunk.count;
+    if (needed > this.capacity) {
+      let capacity = Math.max(1, this.capacity);
+      while (capacity < needed) capacity *= 2;
+      this.reserve(capacity);
+    }
+    const at = this.size;
+    this.openTs.set(chunk.openTs.subarray(0, chunk.count), at);
+    this.closeTs.set(chunk.closeTs.subarray(0, chunk.count), at);
+    this.open.set(chunk.open.subarray(0, chunk.count), at);
+    this.high.set(chunk.high.subarray(0, chunk.count), at);
+    this.low.set(chunk.low.subarray(0, chunk.count), at);
+    this.close.set(chunk.close.subarray(0, chunk.count), at);
+    this.volume.set(chunk.volume.subarray(0, chunk.count), at);
+    this.size = needed;
+  }
+
   private reserve(capacity: number): void {
     this.capacity = capacity;
     this.openTs = grow(this.openTs, capacity);
