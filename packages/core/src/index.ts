@@ -55,6 +55,20 @@ export {
 } from './time/timestamp.ts';
 export { type Clock, type ReadonlyClock, LiveClock, SimulatedClock } from './time/clock.ts';
 export {
+  type CalendarSpec,
+  type CivilDate,
+  type SessionBounds,
+  type SessionSpec,
+  type SpecialDay,
+  ALWAYS_OPEN,
+  B3,
+  TradingCalendar,
+  civilFromDays,
+  daysFromCivil,
+  easterSunday,
+  weekdayOf,
+} from './time/calendar.ts';
+export {
   type Scheduler,
   type TimerCallback,
   type TimerId,
