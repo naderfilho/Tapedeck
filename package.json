@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "description": "Event-driven backtesting and paper trading engine for TypeScript",
-  "license": "MIT",
+  "license": "PolyForm-Noncommercial-1.0.0",
   "packageManager": "pnpm@10.34.5",
   "engines": {
     "node": ">=24.0.0"

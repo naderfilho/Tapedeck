@@ -2,7 +2,7 @@
   "name": "@tapedeck/store",
   "version": "0.1.0",
   "description": "Optional persistence for Tapedeck on node:sqlite: bar cache, run history, paper-trading state",
-  "license": "MIT",
+  "license": "PolyForm-Noncommercial-1.0.0",
   "type": "module",
   "engines": {
     "node": ">=24.0.0"

@@ -2,7 +2,7 @@
   "name": "@tapedeck/cli",
   "version": "0.1.0",
   "description": "The tapedeck command line: run backtests, render reports, fetch market data",
-  "license": "MIT",
+  "license": "PolyForm-Noncommercial-1.0.0",
   "type": "module",
   "engines": {
     "node": ">=24.0.0"

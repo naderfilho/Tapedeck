@@ -2,7 +2,7 @@
   "name": "@tapedeck/indicators",
   "version": "0.1.0",
   "description": "Incremental technical indicators for Tapedeck: O(1) per bar, never a second pass over the series",
-  "license": "MIT",
+  "license": "PolyForm-Noncommercial-1.0.0",
   "type": "module",
   "engines": {
     "node": ">=24.0.0"

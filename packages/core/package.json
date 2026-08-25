@@ -2,7 +2,7 @@
   "name": "@tapedeck/core",
   "version": "0.1.0",
   "description": "Deterministic event-driven backtesting kernel: events, clock, tape, simulated broker, portfolio",
-  "license": "MIT",
+  "license": "PolyForm-Noncommercial-1.0.0",
   "type": "module",
   "engines": {
     "node": ">=24.0.0"

@@ -1,10 +1,10 @@
 # Tapedeck
 
 [![CI](https://github.com/naderfilho/Tapedeck/actions/workflows/ci.yml/badge.svg)](https://github.com/naderfilho/Tapedeck/actions/workflows/ci.yml)
-![tests](https://img.shields.io/badge/tests-547-brightgreen)
+![tests](https://img.shields.io/badge/tests-556-brightgreen)
 ![coverage](https://img.shields.io/badge/coverage-97%25-brightgreen)
 ![node](https://img.shields.io/badge/node-%E2%89%A524-informational)
-[![licence](https://img.shields.io/badge/licence-MIT-blue)](LICENSE)
+[![licence](https://img.shields.io/badge/licence-PolyForm%20Noncommercial-blue)](LICENSE.md)
 
 An event-driven backtesting and paper-trading engine for TypeScript. Deterministic by
 construction, honest about what it cannot know, and fast enough that a million bars is not a
@@ -23,9 +23,9 @@ configuration and every trade.
 
 > **Status: phase 4 of 6.** The kernel, the indicator library, the data adapters, the SQLite store,
 > the metrics and report package, the `tapedeck` command line and live paper trading are done —
-> 547 tests, 97% statement coverage, and a committed year of real BTCUSDT candles so that
+> 556 tests, 97% statement coverage, and a committed year of real BTCUSDT candles so that
 > `pnpm test` measures something. Polish and the B3 session calendar are on the roadmap below.
-> Nothing is published to npm yet.
+> Nothing is published to npm, deliberately — see the roadmap.
 
 ## Why this exists
 
@@ -425,7 +425,7 @@ hoped for:
 ## Testing
 
 ```bash
-pnpm test          # 547 tests
+pnpm test          # 556 tests
 pnpm coverage      # 97% statements, 97% functions; 85% is the floor for every package
 pnpm lint          # no `any`, no `@ts-ignore`, no wall clock in the kernel
 pnpm typecheck     # strict, plus noUncheckedIndexedAccess and exactOptionalPropertyTypes
@@ -469,7 +469,9 @@ worth stating.
       depth and lag are reported, heartbeats so a quiet market still moves time, crash-recoverable
       sessions, and `tapedeck paper`. No credentials, anywhere.
 - [ ] **Phase 5 — polish.** Published benchmark history, a recorded walkthrough of the report,
-      full API documentation, npm release.
+      full API documentation. Not an npm release: the licence is noncommercial, and a package on a
+      registry that most consumers cannot legally use commercially is a trap rather than a
+      convenience. Clone it.
 - [ ] **Phase 6 — B3.** Session calendar and holidays, continuous contracts and expiry rolls,
       real ported strategies.
 
@@ -477,7 +479,10 @@ Not planned, and deliberately so: a strategy DSL, a GUI, or a "no-code" layer. T
 
 ## Licence
 
-MIT — see [LICENSE](LICENSE).
+[PolyForm Noncommercial License 1.0.0](LICENSE.md). Read it, study it, run it, fork it and build on
+it for any noncommercial purpose — learning, research, evaluation, personal trading. Commercial use
+is not granted, which includes selling it, reselling it, or operating it or a derivative as part of
+a commercial offering. For a commercial licence, get in touch.
 
 Nothing here is financial advice, and a backtest is not a prediction. The engine's job is to make
 its own assumptions visible so you can decide how much to believe it.

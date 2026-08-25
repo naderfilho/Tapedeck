@@ -2,7 +2,7 @@
   "name": "@tapedeck/report",
   "version": "0.1.0",
   "description": "Performance metrics and a self-contained HTML report for Tapedeck runs",
-  "license": "MIT",
+  "license": "PolyForm-Noncommercial-1.0.0",
   "type": "module",
   "engines": {
     "node": ">=24.0.0"

@@ -2,7 +2,7 @@
   "name": "@tapedeck/data",
   "version": "0.1.0",
   "description": "Data providers for Tapedeck: CSV, Binance, and the columnar .tape format",
-  "license": "MIT",
+  "license": "PolyForm-Noncommercial-1.0.0",
   "type": "module",
   "engines": {
     "node": ">=24.0.0"
