@@ -1,12 +1,26 @@
 # Tapedeck
 
+[![CI](https://github.com/naderfilho/Tapedeck/actions/workflows/ci.yml/badge.svg)](https://github.com/naderfilho/Tapedeck/actions/workflows/ci.yml)
+![tests](https://img.shields.io/badge/tests-476-brightgreen)
+![coverage](https://img.shields.io/badge/coverage-97%25-brightgreen)
+![node](https://img.shields.io/badge/node-%E2%89%A524-informational)
+[![licence](https://img.shields.io/badge/licence-MIT-blue)](LICENSE)
+
 An event-driven backtesting and paper-trading engine for TypeScript. Deterministic by
 construction, honest about what it cannot know, and fast enough that a million bars is not a
 coffee break.
 
+[![The report a run writes](docs/images/report.png)](docs/images/report-full.png)
+
+That is the real output of `node examples/sma-crossover/src/main.ts` on a committed year of hourly
+BTCUSDT — one self-contained HTML file, no scripts and no network. The box at the top is the point
+of the whole project: **what this run could not know, printed above the numbers it qualifies**, not
+in a footnote. [The rest of the page](docs/images/report-full.png) carries the drawdown, the trade
+distribution, the exact execution configuration and every trade.
+
 > **Status: phase 4 of 6.** The kernel, the indicator library, the data adapters, the SQLite store,
 > the metrics and report package, the `tapedeck` command line and live paper trading are done —
-> 474 tests, 97% statement coverage, and a committed year of real BTCUSDT candles so that
+> 476 tests, 97% statement coverage, and a committed year of real BTCUSDT candles so that
 > `pnpm test` measures something. Polish and the B3 session calendar are on the roadmap below.
 > Nothing is published to npm yet.
 
@@ -408,7 +422,7 @@ hoped for:
 ## Testing
 
 ```bash
-pnpm test          # 474 tests
+pnpm test          # 476 tests
 pnpm coverage      # 97% statements, 97% functions; 85% is the floor for every package
 pnpm lint          # no `any`, no `@ts-ignore`, no wall clock in the kernel
 pnpm typecheck     # strict, plus noUncheckedIndexedAccess and exactOptionalPropertyTypes

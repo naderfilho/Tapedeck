@@ -7,7 +7,7 @@ explains it to whoever is about to change it.
 
 Phases 1 to 4 are done and committed: the deterministic kernel, the incremental indicator library,
 the data adapters and `.tape` format, the SQLite store, the metrics and HTML report, the `tapedeck`
-CLI, and live paper trading. 474 tests, 97% statement coverage, a committed year of real hourly
+CLI, and live paper trading. 476 tests, 97% statement coverage, a committed year of real hourly
 BTCUSDT.
 
 Phase 5 is polish. Phase 6 is B3. The roadmap at the end of the README is the authority on what
@@ -119,8 +119,19 @@ Done. The shape it landed in, because it is not quite the shape this file predic
 
 ## Still owed from earlier phases
 
-- A screenshot or recording of `out/report.html` for the README. The browser pane was unavailable
-  when the report was built; the file is one command away from existing again.
+- ~~A screenshot of `out/report.html` for the README.~~ Done: `docs/images/report.png` (hero, cut
+  after the equity chart) and `report-full.png`. The browser pane is still unavailable here, so
+  they are captured with headless Chrome, which is also what makes them reproducible:
+
+  ```bash
+  node examples/sma-crossover/src/main.ts
+  chrome --headless --hide-scrollbars --force-device-scale-factor=2 \
+    --window-size=1280,985 --screenshot=docs/images/report.png out/report.html
+  ```
+
+  Regenerate them whenever the report's layout changes, or the README will be showing a page the
+  code no longer produces.
+
 - `OrderAmended` event: `broker.replace()` currently amends silently, documented as a gap.
 - OCO orders: a bracket is two orders and a cancel in `onFill` today, which works but is not the
   same as the venue doing it.
