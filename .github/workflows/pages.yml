@@ -1,0 +1,67 @@
+name: Report
+
+# Publishes the example's report to GitHub Pages so it can be read without cloning anything.
+#
+# The page is *regenerated from the committed fixture on every push*, never uploaded by hand. A
+# published artefact that was produced once, locally, months ago is a screenshot pretending to be
+# a result; this one cannot drift from the code that made it, because the code makes it again each
+# time. If the engine breaks, this job fails rather than serving a stale page.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deployment at a time, and never cancel one halfway: a half-deployed page is a broken link.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Build and publish the report
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+
+      - name: Enable pnpm
+        run: corepack enable pnpm
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+
+      - name: Run the example on the committed year of BTCUSDT
+        run: node examples/sma-crossover/src/main.ts
+
+      - name: Assemble the site
+        # The report is one self-contained file with no scripts and no external requests, so the
+        # whole site is that file under the name a web server looks for.
+        run: |
+          mkdir -p site
+          cp out/report.html site/index.html
+          cp out/metrics.json site/metrics.json
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - id: deploy
+        uses: actions/deploy-pages@v4
