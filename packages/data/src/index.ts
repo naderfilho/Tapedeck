@@ -61,3 +61,13 @@ export {
 } from './binance-stream.ts';
 
 export { type SocketFactory, type StreamSocket, nodeSocketFactory } from './socket.ts';
+
+export {
+  type AdjustmentMethod,
+  type ContinuousSeries,
+  type ContractBars,
+  type RollPoint,
+  type RollTrigger,
+  type StitchOptions,
+  stitchContinuous,
+} from './continuous.ts';
