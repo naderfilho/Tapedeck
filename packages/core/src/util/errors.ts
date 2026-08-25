@@ -16,6 +16,8 @@ export const ErrorCode = {
   NotFound: 'NOT_FOUND',
   /** The engine was driven out of its allowed lifecycle order. */
   IllegalState: 'ILLEGAL_STATE',
+  /** An upstream service failed, refused or answered with something unusable. */
+  Upstream: 'UPSTREAM',
   /** A code path that should be unreachable was reached. Always a bug in Tapedeck. */
   Internal: 'INTERNAL',
 } as const;
@@ -74,6 +76,12 @@ export class NotFoundError extends TapedeckError {
 export class IllegalStateError extends TapedeckError {
   constructor(message: string, details?: ErrorDetails) {
     super(ErrorCode.IllegalState, message, details);
+  }
+}
+
+export class UpstreamError extends TapedeckError {
+  constructor(message: string, details?: ErrorDetails) {
+    super(ErrorCode.Upstream, message, details);
   }
 }
 

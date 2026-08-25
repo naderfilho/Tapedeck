@@ -38,12 +38,12 @@ describe('instrument specs', () => {
     expect(wdo.notionalDivisor).toBe(10);
   });
 
-  it('resolves a crypto spot pair with eight decimals of quantity', () => {
+  it('resolves a crypto spot pair at the scales the venue actually allows', () => {
     const btc = registryWith(INSTRUMENTS.BTCUSDT).byId(0 as InstrumentId);
     expect(btc.tickSize).toBe(1);
-    expect(btc.lotSize).toBe(1_000);
+    expect(btc.lotSize).toBe(1);
     expect(btc.accounting).toBe('cash');
-    expect(btc.notionalDivisor).toBe(10 ** 10);
+    expect(btc.notionalDivisor).toBe(10 ** 7);
   });
 
   it('defaults futures to margin accounting and everything else to cash', () => {
@@ -99,9 +99,12 @@ describe('notional arithmetic', () => {
   });
 
   it('stays exact where the intermediate product leaves the safe-integer range', () => {
-    const btc = registryWith(INSTRUMENTS.BTCUSDT).byId(0 as InstrumentId);
-    // 100 BTC at 70,000: price 7e6, quantity 1e10, product 7e16 — well past 2^53.
-    expect(notionalOf(btc, asPrice(7_000_000), asQty(10_000_000_000))).toBe(7_000_000 * MONEY);
+    // A hypothetical pair quoted to eight decimals of quantity — the deepest scale the fixed-point
+    // rules permit. 100 units at 70,000: price 7e6, quantity 1e10, product 7e16, well past 2^53.
+    const deep = registryWith({ ...INSTRUMENTS.BTCUSDT, qtyExp: 8, lotSize: '0.00000001' }).byId(
+      0 as InstrumentId,
+    );
+    expect(notionalOf(deep, asPrice(7_000_000), asQty(10_000_000_000))).toBe(7_000_000 * MONEY);
   });
 
   it('keeps the sign of a price move', () => {

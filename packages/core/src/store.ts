@@ -25,10 +25,28 @@ export interface BarQuery {
   readonly to: Timestamp;
 }
 
+/**
+ * What a cache hands back: the bars *and* the scales they were stored at.
+ *
+ * Returning bars without the instrument would be returning integers without units — the same
+ * `7000012` is 70,000.12 or 0.07000012 depending on a number the caller has no way to guess.
+ */
+export interface CachedBars {
+  readonly instrument: InstrumentSpec;
+  readonly chunk: BarChunk;
+}
+
+export interface BarCacheEntry {
+  readonly query: BarQuery;
+  readonly instrument: InstrumentSpec;
+  readonly chunk: BarChunk;
+}
+
 /** Cache of downloaded market data, keyed by instrument and time range. */
 export interface BarCache {
-  get(query: BarQuery): Promise<BarChunk | null>;
-  put(query: BarQuery, chunk: BarChunk): Promise<void>;
+  /** Returns bars covering the whole query, or `null` when no stored range contains it. */
+  get(query: BarQuery): Promise<CachedBars | null>;
+  put(entry: BarCacheEntry): Promise<void>;
   /** Ranges already cached for a symbol, so a fetch can ask only for the gaps. */
   coverage(venue: string, symbol: string, timeframe: Duration): Promise<readonly BarQuery[]>;
 }

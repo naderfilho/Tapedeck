@@ -126,6 +126,27 @@ function replacer(_key: string, value: unknown): unknown {
  * runs that agree semantically produce identical bytes. Derived float metrics live in
  * `@tapedeck/report` and are compared at a tolerance instead (ADR-0006).
  */
+/**
+ * Rebuilds a result from {@link serializeRunResult}.
+ *
+ * Only the equity curve needs work: JSON has no typed arrays, so the two columns come back as
+ * plain arrays and are copied into `Float64Array`s. Every other field is already exactly what it
+ * was, because every other field is an integer or a string (ADR-0002).
+ */
+export function parseRunResult(json: string): RunResult {
+  const raw = JSON.parse(json) as Omit<RunResult, 'equityCurve'> & {
+    equityCurve: { length: number; ts: number[]; equity: number[] };
+  };
+  return {
+    ...raw,
+    equityCurve: {
+      length: raw.equityCurve.length,
+      ts: Float64Array.from(raw.equityCurve.ts),
+      equity: Float64Array.from(raw.equityCurve.equity),
+    },
+  };
+}
+
 export function serializeRunResult(result: RunResult): string {
   return JSON.stringify(
     {

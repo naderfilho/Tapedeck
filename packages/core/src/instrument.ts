@@ -228,14 +228,17 @@ export const INSTRUMENTS = {
     accounting: 'margin',
     initialMargin: '1500',
   },
-  /** Binance spot BTC/USDT. */
+  /**
+   * Binance spot BTC/USDT. The scales mirror the venue's own PRICE_FILTER and LOT_SIZE, so this
+   * preset and a live `describe()` agree field for field.
+   */
   BTCUSDT: {
     symbol: 'BTCUSDT',
     venue: 'BINANCE',
     kind: 'spot',
     currency: 'USDT',
     priceExp: 2,
-    qtyExp: 8,
+    qtyExp: 5,
     tickSize: '0.01',
     lotSize: '0.00001',
     pointValue: '1',

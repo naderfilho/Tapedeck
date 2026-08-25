@@ -83,7 +83,7 @@ describe('NullStore', () => {
     await expect(NullStore.runs.load('run-1')).resolves.toBeNull();
     await expect(NullStore.runs.list()).resolves.toEqual([]);
     await expect(NullStore.bars.get({} as never)).resolves.toBeNull();
-    await expect(NullStore.bars.put({} as never, {} as never)).resolves.toBeUndefined();
+    await expect(NullStore.bars.put({} as never)).resolves.toBeUndefined();
     await expect(NullStore.bars.coverage('B3', 'WIN', 0 as never)).resolves.toEqual([]);
     await expect(NullStore.paper.snapshot({} as never)).resolves.toBeUndefined();
     await expect(NullStore.paper.appendFill('s', {} as never)).resolves.toBeUndefined();
