@@ -5,12 +5,13 @@ explains it to whoever is about to change it.
 
 ## Where things stand
 
-Phases 1 to 3 are done and committed: the deterministic kernel, the incremental indicator library,
-the data adapters and `.tape` format, the SQLite store, the metrics and HTML report, and the
-`tapedeck` CLI. 424 tests, 97% statement coverage, a committed year of real hourly BTCUSDT.
+Phases 1 to 4 are done and committed: the deterministic kernel, the incremental indicator library,
+the data adapters and `.tape` format, the SQLite store, the metrics and HTML report, the `tapedeck`
+CLI, and live paper trading. 474 tests, 97% statement coverage, a committed year of real hourly
+BTCUSDT.
 
-Phase 4 is paper trading. Phase 5 is polish. Phase 6 is B3. The roadmap at the end of the README is
-the authority on what each contains.
+Phase 5 is polish. Phase 6 is B3. The roadmap at the end of the README is the authority on what
+each contains.
 
 ## How to work here
 
@@ -48,8 +49,8 @@ needs to, write an ADR arguing for it first.
 6. **No `any`, no `@ts-ignore`.** `noUncheckedIndexedAccess` and `exactOptionalPropertyTypes` are on.
 7. **Core has zero runtime dependencies** and imports no other workspace package. The allowlist for
    everything else is in ADR-0007.
-8. **Read the ADRs before arguing with the code.** `docs/adr/` — thirteen of them, each with the
-   alternatives that were rejected.
+8. **Read the ADRs before arguing with the code.** `docs/adr/` — fourteen of them, each with the
+   alternatives that were rejected. ADR-0014 amends ADR-0003; read them together.
 
 ## Testing style
 
@@ -88,23 +89,27 @@ work touches them:
 
 He owes nothing else: instruments, data source and phase ordering were all settled.
 
-## Phase 4, concretely
+## What phase 4 turned out to be
 
-The claim to prove is ADR-0003: a strategy runs unchanged in backtest and live, because only two
-things differ — which `Clock` answers `now()`, and who fills the event queue.
+Done. The shape it landed in, because it is not quite the shape this file predicted:
 
-- `@tapedeck/data` gains a Binance WebSocket stream (the `ws` dependency is already allowed).
-- The engine gains a live driver: the socket handler enqueues and calls a synchronous `drain()`,
-  which is the same routine the backtest runs. `LiveClock` already exists and is already tested.
-- `PaperRepository` in `@tapedeck/store` already has the schema; wire crash recovery so the session
-  rebuilds its open orders and positions from the store rather than the other way round.
-- **No credentials, ever.** The live feed drives the _simulated_ broker. The only thing that reaches
-  the venue is a subscription. This is ADR-0011 and it is not negotiable.
-- Backpressure is the queue's problem: a slow strategy grows the queue and the engine reports the
-  lag rather than silently reordering.
-- The hard part is testing it. Drive the socket from a fake, replay a recorded frame sequence, and
-  assert that feeding the same events through the live path and the backtest path produces the same
-  fills.
+- `LiveSession` in `packages/core/src/engine/live.ts` owns a bounded FIFO and a synchronous
+  `drain()`. The socket handler enqueues and drains; nothing in the kernel changed.
+- **The kernel runs on event time in live mode too.** The prediction in this file was that
+  `LiveClock` would answer `now()` live. It cannot: venue timestamps and our wall clock differ by
+  an unknown skew, so a machine two seconds fast would fill differently on identical data, and the
+  equivalence test could not exist at all. Lag is measured and reported instead. ADR-0014 argues
+  it and amends ADR-0003.
+- Heartbeats (`Engine.advanceTo`) move time when the market is quiet, so an order's latency is not
+  held hostage by an illiquid instrument.
+- `ws` was not needed. Node 24 has a global `WebSocket`, so `@tapedeck/data` still depends on
+  nothing but `zod`, and the row ADR-0007 reserved for `ws` is gone.
+- Crash recovery restores the **account** and not the strategy. Two equivalence tests failed on
+  this before it was understood: a closure field does not come back, and `bar.index` restarts
+  because it counts this run's bars. Both are documented in `Strategy.onInit`, in the resumed
+  session's warnings, and in a test that asserts the counter really does reset.
+- `tapedeck paper` wires it together. Its feed and its stop condition are injectable, which is how
+  the tests drive it without a socket and without waiting on a clock.
 
 ## Still owed from earlier phases
 
@@ -113,3 +118,10 @@ things differ — which `Clock` answers `now()`, and who fills the event queue.
 - `OrderAmended` event: `broker.replace()` currently amends silently, documented as a gap.
 - OCO orders: a bracket is two orders and a cancel in `onFill` today, which works but is not the
   same as the venue doing it.
+- Phase 4 owes one thing: nobody has run `tapedeck paper` against the real Binance socket. Every
+  path is covered by a fake driving the same code, and the end-to-end test replays a real year of
+  BTCUSDT through the parser and the queue, but the first real connection has not happened. It
+  needs a network and a few minutes of someone's attention, not more code.
+- A paper session's report reuses the backtest metrics unchanged. Some of them — CAGR over an hour
+  of wall time, for instance — say very little about a session that short. Phase 5 should decide
+  which metrics a live session should print at all.

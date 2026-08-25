@@ -4,11 +4,11 @@ An event-driven backtesting and paper-trading engine for TypeScript. Determinist
 construction, honest about what it cannot know, and fast enough that a million bars is not a
 coffee break.
 
-> **Status: phase 3 of 6.** The kernel, the indicator library, the data adapters, the SQLite store,
-> the metrics and report package and the `tapedeck` command line are done — 424 tests, 97% statement
-> coverage, and a committed year of real BTCUSDT candles so that `pnpm test` measures something.
-> Live paper trading and the B3 session calendar are on the roadmap below. Nothing is published to
-> npm yet.
+> **Status: phase 4 of 6.** The kernel, the indicator library, the data adapters, the SQLite store,
+> the metrics and report package, the `tapedeck` command line and live paper trading are done —
+> 474 tests, 97% statement coverage, and a committed year of real BTCUSDT candles so that
+> `pnpm test` measures something. Polish and the B3 session calendar are on the roadmap below.
+> Nothing is published to npm yet.
 
 ## Why this exists
 
@@ -28,8 +28,9 @@ all the way to the ledger. When the engine cannot know something — sub-bar lat
 which side of a bar traded first — it says so in the result, above the numbers it qualifies.
 
 The second goal is that a strategy runs unchanged in backtest and in live paper trading. That is
-not a compatibility layer: both modes share one synchronous kernel, and only two things differ —
-which clock answers `now()` and who fills the event queue.
+not a compatibility layer: both modes share one synchronous kernel, and the only real difference is
+who fills the event queue — a file, or a socket. Both run on event time; the wall clock measures
+how far behind a live session is and reports it, and never decides when an order may fill.
 
 ## Quickstart
 
@@ -97,10 +98,59 @@ tapedeck report out/run.json --html out/report.html --risk-free-rate 0.05
 tapedeck data fetch --symbol BTCUSDT --timeframe 1h \
   --from 2025-08-01T00:00:00Z --to 2026-08-01T00:00:00Z --out data/btc.tape
 tapedeck data convert exported.csv --instrument win.json --timeframe 1m --out data/win.tape
+
+# Point the same strategy at a live public feed, against the simulated broker
+tapedeck paper examples/sma-crossover/src/strategy.ts \
+  --symbol BTCUSDT --timeframe 1m --preset binanceSpot \
+  --params '{"fastPeriod":24,"slowPeriod":72,"qty":25000}' \
+  --store out/paper.sqlite --session btc-sma --duration 3600 \
+  --html out/paper.html
 ```
 
 A strategy is a module you point at, not a name in a registry — a strategy is code, and pretending
 otherwise means inventing a plugin system nobody asked for.
+
+## Paper trading
+
+`run` and `paper` load the same module, drive the same kernel and write the same report. The
+strategy is not told which one it is running under, because there is nothing it could correctly do
+with the answer.
+
+What differs is who fills the queue — a file, or a WebSocket handler that enqueues and calls the
+same synchronous `drain()` a backtest calls. The kernel runs on **event time** in both cases
+([ADR-0014](docs/adr/0014-paper-trading-runs-on-event-time.md)); the wall clock is used to measure
+how far behind the session is, and that number is reported rather than folded into execution.
+
+```text
+paper   BINANCE:BTCUSDT  bar
+session btc-sma  (resumed from the store)
+feed    connected wss://stream.binance.com:9443/stream?streams=btcusdt@kline_1m
+
+stopped: duration elapsed
+
+what this session could not know
+  - the feed reconnected 1 time(s), leaving 4.2s of tape unseen. Fills that would have
+    happened in those windows did not happen here.
+
+events  61 processed, 0 refused, queue peaked at 2
+lag     worst 0.412s, last 0.180s
+```
+
+Three things it will not do quietly:
+
+- **Drop events.** The queue has a cap; at the cap the session refuses events and counts the
+  refusals. It never drops the oldest, never drops the newest, and never reorders.
+- **Hide a gap.** A reconnection reports how much tape it missed.
+- **Touch a credential.** The feed is public market data and the broker is the simulator. The URL
+  builder refuses anything carrying a listen key, an API key or a signature
+  ([ADR-0011](docs/adr/0011-read-only-market-data.md)).
+
+`--store` with `--session` makes a session resumable. What comes back is the **account** — cash,
+the cost basis of every open position, the resting orders, and the order and fill counters so the
+audit trail continues. What does not come back is the strategy's own memory: a field in a closure
+is gone, and `bar.index` restarts because it counts this run's bars. A strategy meant to survive a
+restart derives its state from event time, from its fills and from `ctx.portfolio`. The session
+says so in its warnings every time it resumes.
 
 ## Architecture
 
@@ -110,14 +160,15 @@ flowchart LR
     csv["CSV export"]
     tape[".tape files"]
     rest["Binance REST"]
-    ws["Binance WebSocket<br/><small>phase 4</small>"]
+    ws["Binance WebSocket<br/><small>live feed</small>"]
   end
 
   subgraph kernel["Synchronous kernel — identical in backtest and live"]
     direction TB
+    queue["LiveSession queue<br/><small>bounded · drained synchronously</small>"]
     chunks["Tape<br/><small>columnar Float64Array chunks</small>"]
     sched["Scheduler<br/><small>min-heap keyed by (ts, seq)</small>"]
-    clock["Clock<br/><small>simulated or wall</small>"]
+    clock["Clock<br/><small>event time, in both modes</small>"]
     broker["SimulatedBroker<br/><small>slippage · commission · latency · liquidity</small>"]
     ind["Indicators<br/><small>updated before onBar</small>"]
     strat["Strategy<br/><small>onInit · onBar · onTick · onFill · onStop</small>"]
@@ -130,10 +181,11 @@ flowchart LR
     store["Store<br/><small>node:sqlite, optional</small>"]
   end
 
+  queue --> chunks
   csv --> chunks
   tape --> chunks
   rest --> chunks
-  ws --> sched
+  ws --> queue
   chunks --> clock
   clock --> sched
   sched --> broker
@@ -170,7 +222,7 @@ strategy is awake.
 | ---------------------- | ------------------------------------------------------------------- | -------------------- |
 | `@tapedeck/core`       | Events, clock, scheduler, tape, simulated broker, portfolio, engine | none                 |
 | `@tapedeck/indicators` | Incremental SMA, EMA, RMA, RSI, ATR, Bollinger, VWAP, MACD          | none                 |
-| `@tapedeck/data`       | CSV and Binance providers, the columnar `.tape` format              | `zod`                |
+| `@tapedeck/data`       | CSV, Binance REST and WebSocket, the columnar `.tape` format        | `zod`                |
 | `@tapedeck/report`     | Metrics, JSON output, and a self-contained HTML report              | none                 |
 | `@tapedeck/store`      | Bar cache, run history and paper state on `node:sqlite`             | none                 |
 | `@tapedeck/cli`        | The `tapedeck` command                                              | `commander`, `zod`   |
@@ -304,6 +356,10 @@ Each of these is an [ADR](docs/adr/) with the alternatives that were rejected an
   `realised + unrealised - commission` disagree.
 - **[A synchronous kernel](docs/adr/0003-synchronous-deterministic-kernel.md).** Asynchrony is
   confined to the edges. The cost: a strategy cannot do I/O inside a callback.
+- **[Paper trading on event time](docs/adr/0014-paper-trading-runs-on-event-time.md).** The wall
+  clock measures lag; it never decides when an order becomes matchable. Building this amended
+  ADR-0003, which had claimed the live clock drives the kernel — it cannot, or the same events
+  would fill differently on a machine two seconds fast.
 - **[Columnar tape and reused bar views](docs/adr/0004-columnar-tape-and-reused-bar-views.md).**
   The literal "one event object per bar" design caps out around 300k bars/s. The cost: a strategy
   must not retain the bar, which a revocable `Proxy` enforces in every test run.
@@ -338,8 +394,8 @@ hoped for:
 ## Testing
 
 ```bash
-pnpm test          # 424 tests
-pnpm coverage      # 97% statements, 98% functions; 85% is the floor for every package
+pnpm test          # 474 tests
+pnpm coverage      # 97% statements, 97% functions; 85% is the floor for every package
 pnpm lint          # no `any`, no `@ts-ignore`, no wall clock in the kernel
 pnpm typecheck     # strict, plus noUncheckedIndexedAccess and exactOptionalPropertyTypes
 ```
@@ -372,8 +428,9 @@ worth stating.
       real BTCUSDT.
 - [x] **Phase 3 — metrics, report and CLI.** Full metric set with stated conventions, JSON output,
       a self-contained HTML report with charts, and the `tapedeck` command.
-- [ ] **Phase 4 — paper trading.** Binance WebSocket feeding the same kernel, crash-recoverable
-      state, no credentials in the repository.
+- [x] **Phase 4 — paper trading.** Binance WebSocket feeding the same kernel through a queue whose
+      depth and lag are reported, heartbeats so a quiet market still moves time, crash-recoverable
+      sessions, and `tapedeck paper`. No credentials, anywhere.
 - [ ] **Phase 5 — polish.** Published benchmark history, a recorded walkthrough of the report,
       full API documentation, npm release.
 - [ ] **Phase 6 — B3.** Session calendar and holidays, continuous contracts and expiry rolls,

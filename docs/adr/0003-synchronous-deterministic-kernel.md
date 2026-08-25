@@ -1,6 +1,6 @@
 # 0003 — A synchronous kernel for both backtest and live
 
-- Status: Accepted
+- Status: Accepted, amended by [ADR-0014](0014-paper-trading-runs-on-event-time.md)
 - Date: 2026-08-25
 
 ## Context
@@ -24,6 +24,11 @@ Asynchrony is confined to the edges:
 
 Only two things differ between the modes: which `Clock` answers `now()` (`SimulatedClock` advances
 to the next event timestamp, `LiveClock` reads the wall clock) and who fills the event queue.
+
+> **Amended by [ADR-0014](0014-paper-trading-runs-on-event-time.md).** Building phase 4 showed the
+> first half of that sentence to be wrong: the kernel runs on event time in _both_ modes, and the
+> wall clock is used to measure how far behind the session is, never to decide when an order
+> becomes matchable. Who fills the queue is still the real difference.
 
 ## Alternatives considered
 

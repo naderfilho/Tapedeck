@@ -18,3 +18,4 @@ the alternatives that were rejected and why, and the consequences we accepted.
 | [0011](0011-read-only-market-data.md)                  | Read-only public market data, and no credentials anywhere       | Accepted |
 | [0012](0012-metric-conventions.md)                     | Metric conventions, and reporting nothing rather than something | Accepted |
 | [0013](0013-report-is-a-file.md)                       | A report is a file, not an application                          | Accepted |
+| [0014](0014-paper-trading-runs-on-event-time.md)       | Paper trading runs on event time, and says how far behind it is | Accepted |

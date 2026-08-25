@@ -24,9 +24,13 @@ Runtime dependency allowlist — anything else needs a discussion and an ADR:
 | Package       | Allowed in | Why                                               |
 | ------------- | ---------- | ------------------------------------------------- |
 | `zod`         | data, cli  | Validating data that crosses the process boundary |
-| `ws`          | data       | WebSocket client for live streams                 |
 | `commander`   | cli        | Argument parsing                                  |
 | `node:sqlite` | store      | Built in, no install cost                         |
+
+`ws` had a row here, reserved for the live feed. Phase 4 did not need it: Node 24 ships a global
+`WebSocket`, so `@tapedeck/data` reaches it through a four-method `StreamSocket` seam — which is
+what makes the live path testable without a network — and keeps `zod` as its only runtime
+dependency. The row is gone rather than left unused.
 
 `@tapedeck/core`, `@tapedeck/indicators` and `@tapedeck/report` have zero runtime dependencies and
 are expected to keep it that way.
