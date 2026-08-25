@@ -1,0 +1,30 @@
+{
+  "name": "@tapedeck/indicators",
+  "version": "0.1.0",
+  "description": "Incremental technical indicators for Tapedeck: O(1) per bar, never a second pass over the series",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\""
+  },
+  "dependencies": {
+    "@tapedeck/core": "workspace:*"
+  },
+  "sideEffects": false
+}
