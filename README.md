@@ -4,10 +4,11 @@ An event-driven backtesting and paper-trading engine for TypeScript. Determinist
 construction, honest about what it cannot know, and fast enough that a million bars is not a
 coffee break.
 
-> **Status: phase 2 of 6.** The kernel, the incremental indicator library, the data adapters and
-> the optional SQLite store are done — 330 tests, 97% statement coverage, and a committed year of
-> real BTCUSDT candles so that `pnpm test` measures something. Metrics, the HTML report, the CLI
-> and live paper trading are on the roadmap below. Nothing is published to npm yet.
+> **Status: phase 3 of 6.** The kernel, the indicator library, the data adapters, the SQLite store,
+> the metrics and report package and the `tapedeck` command line are done — 424 tests, 97% statement
+> coverage, and a committed year of real BTCUSDT candles so that `pnpm test` measures something.
+> Live paper trading and the B3 session calendar are on the roadmap below. Nothing is published to
+> npm yet.
 
 ## Why this exists
 
@@ -24,11 +25,82 @@ Tapedeck is built so that none of the three is expressible. An order submitted w
 bar carries an activation time strictly after that bar; ambiguity is resolved by an explicit,
 pessimistic-by-default policy and **counted in the run statistics**; money is fixed-point integers
 all the way to the ledger. When the engine cannot know something — sub-bar latency on candle data,
-which side of a bar traded first — it says so in the result rather than inventing a number.
+which side of a bar traded first — it says so in the result, above the numbers it qualifies.
 
 The second goal is that a strategy runs unchanged in backtest and in live paper trading. That is
 not a compatibility layer: both modes share one synchronous kernel, and only two things differ —
 which clock answers `now()` and who fills the event queue.
+
+## Quickstart
+
+```bash
+corepack enable pnpm && pnpm install && pnpm build && pnpm test && pnpm bench
+```
+
+Then replay a year of real hourly BTCUSDT and write a report:
+
+```bash
+node examples/sma-crossover/src/main.ts
+```
+
+That prints the summary below and leaves `out/report.html` — one self-contained page with the
+equity curve, the drawdown and the trade distribution — next to `out/metrics.json`.
+
+```text
+Modelling caveats
+  ! 139 order(s) had latency shorter than one bar, which cannot be honoured on bar data and was
+    ignored rather than invented. Feed tick data for exact latency.
+
+Result
+  initial equity        100000.00000000 USDT
+  final equity          102305.39899000 USDT
+  net profit            2305.39899000 USDT
+  CAGR                  2.31%
+
+Risk
+  Sharpe                0.30
+  Sortino               0.44
+  max drawdown          8.93% (9469.85413000 USDT, 6062 bars)
+
+Trades
+  count                 139 (51W / 88L)
+  win rate              36.7%
+  profit factor         1.07
+
+Costs
+  commission            6027.20101000 USDT
+  PnL before costs      8332.60000000 USDT
+  costs ate             72.3%
+```
+
+That last line is the point of the exercise. A 24/72 crossover on hourly BTC made 8,332 before
+costs and kept 2,305 of it; a backtester that skipped fees would have reported a strategy three and
+a half times better than the one that exists.
+
+Node 24 strips the types natively, so every file in this repository runs without a build step. If
+`corepack enable pnpm` needs administrator rights, `corepack pnpm install` works just as well.
+
+## The command line
+
+```bash
+# Replay a strategy over a tape and write everything
+tapedeck run examples/sma-crossover/src/strategy.ts \
+  --data fixtures/binance-BTCUSDT-1h.tape \
+  --preset binanceSpot --seed 20260825 \
+  --params '{"fastPeriod":24,"slowPeriod":72,"qty":25000}' \
+  --result out/run.json --json out/metrics.json --html out/report.html
+
+# Re-render a run you saved months ago, with today's metric definitions
+tapedeck report out/run.json --html out/report.html --risk-free-rate 0.05
+
+# Fetch public candles, or convert a CSV export you already have
+tapedeck data fetch --symbol BTCUSDT --timeframe 1h \
+  --from 2025-08-01T00:00:00Z --to 2026-08-01T00:00:00Z --out data/btc.tape
+tapedeck data convert exported.csv --instrument win.json --timeframe 1m --out data/win.tape
+```
+
+A strategy is a module you point at, not a name in a registry — a strategy is code, and pretending
+otherwise means inventing a plugin system nobody asked for.
 
 ## Architecture
 
@@ -54,6 +126,7 @@ flowchart LR
 
   subgraph out["Outputs"]
     result["RunResult<br/><small>equity curve · trades · fills · warnings</small>"]
+    report["Metrics + HTML report<br/><small>one file, no scripts</small>"]
     store["Store<br/><small>node:sqlite, optional</small>"]
   end
 
@@ -72,6 +145,7 @@ flowchart LR
   chunks -- "bar view" --> strat
   strat -- "submit / cancel" --> broker
   port --> result
+  result --> report
   result -.-> store
 ```
 
@@ -97,27 +171,12 @@ strategy is awake.
 | `@tapedeck/core`       | Events, clock, scheduler, tape, simulated broker, portfolio, engine | none                 |
 | `@tapedeck/indicators` | Incremental SMA, EMA, RMA, RSI, ATR, Bollinger, VWAP, MACD          | none                 |
 | `@tapedeck/data`       | CSV and Binance providers, the columnar `.tape` format              | `zod`                |
+| `@tapedeck/report`     | Metrics, JSON output, and a self-contained HTML report              | none                 |
 | `@tapedeck/store`      | Bar cache, run history and paper state on `node:sqlite`             | none                 |
+| `@tapedeck/cli`        | The `tapedeck` command                                              | `commander`, `zod`   |
 
 The dependency arrows only ever point inward: `core` declares the contracts — `Strategy`,
 `Broker`, `DataProvider`, `Indicator`, `Store` — and imports no other workspace package.
-
-## Quickstart
-
-```bash
-corepack enable pnpm && pnpm install && pnpm build && pnpm test && pnpm bench
-```
-
-Then run the example strategy on a year of real hourly BTCUSDT:
-
-```bash
-node examples/sma-crossover/src/main.ts
-```
-
-Node 24 strips the types natively, so every file in this repository runs without a build step.
-If `corepack enable pnpm` needs administrator rights on your machine, `corepack pnpm install`
-works just as well. `pnpm fixtures` re-downloads the market data through the same provider a user
-would call.
 
 ## What a strategy looks like
 
@@ -125,7 +184,7 @@ would call.
 import { type IndicatorHandle, type Strategy, asQty } from '@tapedeck/core';
 import { atr, rsi } from '@tapedeck/indicators';
 
-export function meanReversion(): Strategy<{ oversold: number }> {
+export default function meanReversion(): Strategy<{ oversold: number }> {
   let strength: IndicatorHandle;
   let volatility: IndicatorHandle;
   let threshold = 0;
@@ -162,6 +221,25 @@ export function meanReversion(): Strategy<{ oversold: number }> {
 Every hook is synchronous and returns `void`. That is deliberate: a strategy that can `await` is a
 strategy whose event ordering depends on the event-loop scheduler, and a backtest whose ordering is
 scheduler-dependent is not reproducible ([ADR-0003](docs/adr/0003-synchronous-deterministic-kernel.md)).
+
+## Metrics
+
+Return, CAGR, Sharpe, Sortino, Calmar, volatility, max drawdown with its depth _and_ its duration,
+longest drawdown, recovery factor, profit factor, win rate, expectancy, average and largest win and
+loss, exposure, and what costs took out of the pre-cost result.
+
+Two rules make those numbers checkable:
+
+- **Every convention is stated where it is computed.** Sortino divides by downside deviation over
+  _all_ periods; profit factor is measured after commission, consistent with how trades were
+  classified; bars per year comes from the _median_ spacing of the equity curve, so a market that
+  closes overnight is not defined by its gaps ([ADR-0012](docs/adr/0012-metric-conventions.md)).
+- **A metric that cannot be computed reports `null`.** A profit factor with no losses, a Sharpe
+  from one bar, a CAGR over a zero-length run. Zero is a result; nothing is not.
+
+Money never becomes a float on the way out: every monetary field in the JSON is an exact decimal
+string, and every ratio is rounded to twelve significant digits — which is what makes two runs of
+the same configuration produce byte-identical metrics on any machine, despite `Math.pow`.
 
 ## Data
 
@@ -205,11 +283,11 @@ Measured on Node 24.12 / Windows 11 / x64. A single headline figure would be mar
 bars, updating indicators, matching resting orders and actually trading are four different
 workloads, so the benchmark reports all four. The target was one million bars per second.
 
-Two of those numbers are worth reading as trade-offs rather than as achievements. Registering
-indicators through `ctx.use` costs roughly 20 nanoseconds per indicator per bar against calling a
-class directly — the price of an abstraction that makes it impossible to read a stale value.
-Development mode is half the speed of production because guarded bar views and per-chunk data
-validation are on; that is what the test suite runs at, on purpose.
+Two of those numbers are trade-offs rather than achievements. Registering indicators through
+`ctx.use` costs roughly 20 nanoseconds per indicator per bar against calling a class directly — the
+price of an abstraction that makes reading a stale value impossible. Development mode is half the
+speed of production because guarded bar views and per-chunk validation are on; that is what the
+test suite runs at, on purpose.
 
 The speed comes from decisions, not micro-optimisation: bars live in `Float64Array` columns instead
 of objects, the bar handed to a strategy is refilled rather than reallocated, the fixed-point
@@ -221,27 +299,26 @@ indicator allocates on the hot path.
 Each of these is an [ADR](docs/adr/) with the alternatives that were rejected and why.
 
 - **[Fixed-point money, float indicators](docs/adr/0002-fixed-point-money-float-indicators.md).**
-  Prices, quantities and money are scaled integers; indicators compute in `float64` because an
-  indicator produces a signal, not money. The ledger stores a **cost basis in money**, not an
-  average entry price — the first property test written against the portfolio found that a rounded
-  average makes `equity` and `realised + unrealised - commission` disagree.
+  The ledger stores a **cost basis in money**, not an average entry price — the first property test
+  written against the portfolio found that a rounded average makes `equity` and
+  `realised + unrealised - commission` disagree.
 - **[A synchronous kernel](docs/adr/0003-synchronous-deterministic-kernel.md).** Asynchrony is
   confined to the edges. The cost: a strategy cannot do I/O inside a callback.
 - **[Columnar tape and reused bar views](docs/adr/0004-columnar-tape-and-reused-bar-views.md).**
   The literal "one event object per bar" design caps out around 300k bars/s. The cost: a strategy
   must not retain the bar, which a revocable `Proxy` enforces in every test run.
 - **[Intrabar execution](docs/adr/0005-intrabar-execution-and-no-lookahead.md).** Ambiguity is
-  resolved by policy and counted. `stats.ambiguousBars` and `stats.subBarLatencyIgnored` are
-  printed above the results, on purpose.
+  resolved by policy and counted.
 - **[Determinism and its limits](docs/adr/0006-determinism-guarantees-and-limits.md).** The trade
-  list, equity curve and fill log are byte-identical across machines and chunkings. Derived metrics
-  use `Math.pow`, which is not specified to the last bit, so they are compared at a documented
-  tolerance instead. Saying so is the point.
+  list, equity curve and fill log are byte-identical across machines and chunkings; derived metrics
+  are compared at a documented tolerance instead. Saying so is the point.
 - **[A `.tape` format instead of Parquet](docs/adr/0009-tape-binary-format.md).** The engine scans
-  columns forwards, once. Parquet's strengths cost two megabytes of WebAssembly and buy nothing
-  here.
+  columns forwards, once. Parquet's strengths cost two megabytes of WebAssembly and buy nothing.
 - **[The indicator contract](docs/adr/0010-indicator-contract.md).** The engine owns the update, so
   a value read inside `onBar` always belongs to the bar being shown.
+- **[Metric conventions](docs/adr/0012-metric-conventions.md)** and
+  **[a report is a file, not an application](docs/adr/0013-report-is-a-file.md).** No `<script>`,
+  no CDN, no network: a report should still open in five years, from a USB stick.
 
 ## Determinism, precisely
 
@@ -261,14 +338,14 @@ hoped for:
 ## Testing
 
 ```bash
-pnpm test          # 330 tests
-pnpm coverage      # 97% statements, 90% branches; 85% is the floor for every package
+pnpm test          # 424 tests
+pnpm coverage      # 97% statements, 98% functions; 85% is the floor for every package
 pnpm lint          # no `any`, no `@ts-ignore`, no wall clock in the kernel
 pnpm typecheck     # strict, plus noUncheckedIndexedAccess and exactOptionalPropertyTypes
 ```
 
 Property tests (fast-check) cover the pieces where a hand-written case would only prove what the
-author already believed, and three of them changed the design rather than confirming it:
+author already believed, and four of them changed the design rather than confirming it:
 
 - the equity identity across arbitrary fill sequences, which found that deriving PnL from a rounded
   average entry price does not reconcile;
@@ -276,7 +353,9 @@ author already believed, and three of them changed the design rather than confir
   which found a signed zero leaking out of one of them;
 - the incremental indicators against a deliberately naive full recomputation, which found that a
   single outlier passing through a rolling window poisons the variance until the accumulator is
-  rebuilt.
+  rebuilt;
+- the intrabar ordering, which found that comparing a buy's "favourability" against a sell's is not
+  a comparison at all.
 
 A dedicated suite in [`lookahead.test.ts`](packages/core/test/lookahead.test.ts) is written as a
 set of attacks: strategies that try to keep a bar, reach the tape, act on a jump as it prints, or
@@ -288,15 +367,15 @@ worth stating.
 - [x] **Phase 1 — core.** Events, clock, scheduler, columnar tape, simulated broker (market, limit,
       stop, stop-limit; partial fills; TIF; slippage, commission, latency and liquidity models),
       fixed-point portfolio, trade extraction, tick support.
-- [x] **Phase 2 — indicators and data.** Incremental SMA, EMA, RMA, RSI, ATR, Bollinger, VWAP and
-      MACD behind one contract the engine drives; CSV and Binance providers; the `.tape` format;
-      the SQLite store; a committed year of real BTCUSDT.
-- [ ] **Phase 3 — metrics, report and CLI.** Return, CAGR, Sharpe, Sortino, max drawdown and
-      duration, profit factor, win rate, expectancy, exposure. JSON output, a static HTML report
-      with charts, and the `tapedeck` CLI.
+- [x] **Phase 2 — indicators and data.** Incremental indicators behind one contract the engine
+      drives; CSV and Binance providers; the `.tape` format; the SQLite store; a committed year of
+      real BTCUSDT.
+- [x] **Phase 3 — metrics, report and CLI.** Full metric set with stated conventions, JSON output,
+      a self-contained HTML report with charts, and the `tapedeck` command.
 - [ ] **Phase 4 — paper trading.** Binance WebSocket feeding the same kernel, crash-recoverable
       state, no credentials in the repository.
-- [ ] **Phase 5 — polish.** Published benchmark history, full documentation, npm release.
+- [ ] **Phase 5 — polish.** Published benchmark history, a recorded walkthrough of the report,
+      full API documentation, npm release.
 - [ ] **Phase 6 — B3.** Session calendar and holidays, continuous contracts and expiry rolls,
       real ported strategies.
 
