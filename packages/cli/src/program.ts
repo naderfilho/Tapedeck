@@ -11,12 +11,13 @@ import { TapedeckError } from '@tapedeck/core';
 import { openStore } from '@tapedeck/store';
 import type { CliIo } from './io.ts';
 import { type DataDependencies, convertCommand, fetchCommand } from './commands/data.ts';
+import { type PaperDependencies, paperCommand } from './commands/paper.ts';
 import { reportCommand } from './commands/report.ts';
 import { type RunDependencies, runCommand } from './commands/run.ts';
 
 export const VERSION = '0.1.0';
 
-export interface ProgramDependencies extends RunDependencies, DataDependencies {
+export interface ProgramDependencies extends RunDependencies, DataDependencies, PaperDependencies {
   readonly io: CliIo;
 }
 
@@ -55,6 +56,31 @@ export function createProgram(deps: ProgramDependencies): Command {
     .option('-q, --quiet', 'write files but print nothing')
     .action(async (strategy: string, options: unknown) => {
       await runCommand(strategy, options, deps);
+    });
+
+  program
+    .command('paper')
+    .description('run a strategy against a live public feed and a simulated broker')
+    .argument('<strategy>', 'module exporting a strategy factory as default or as `strategy`')
+    .requiredOption('--symbol <symbol>', 'venue symbol, e.g. BTCUSDT')
+    .option('--timeframe <tf>', 'subscribe to closed candles of this size, e.g. 1m, 1h')
+    .option('--ticks', 'subscribe to individual prints as well')
+    .option('--venue <name>', 'currently only binance', 'binance')
+    .option('-c, --cash <amount>', 'starting balance, as a decimal string', '100000')
+    .option('-s, --seed <number>', 'seed for every random stream in the session', '1')
+    .option('-p, --preset <name>', 'ideal | binanceSpot | b3Futures | b3Stocks', 'binanceSpot')
+    .option('--params <json>', 'strategy parameters as a JSON object')
+    .option('--store <file>', 'SQLite file holding the session state, for crash recovery')
+    .option('--session <id>', 'session identifier; reusing one resumes it')
+    .option('--duration <seconds>', 'stop after this long')
+    .option('--max-bars <n>', 'stop after this many market events')
+    .option('--heartbeat <seconds>', 'how often to advance time while the market is quiet', '1')
+    .option('--result <file>', 'write the full session result as JSON')
+    .option('--json <file>', 'write the metrics as JSON')
+    .option('--html <file>', 'write the HTML report')
+    .option('-q, --quiet', 'write files but print nothing')
+    .action(async (strategy: string, options: unknown) => {
+      await paperCommand(strategy, options, deps);
     });
 
   program

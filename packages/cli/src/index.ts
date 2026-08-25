@@ -21,6 +21,15 @@ export {
   resolveStrategyFactory,
   runCommand,
 } from './commands/run.ts';
+export {
+  type PaperCommandOptions,
+  type PaperDependencies,
+  type PaperRuntime,
+  type PaperStreamRequest,
+  type WaitForStop,
+  nodeWaitForStop,
+  paperCommand,
+} from './commands/paper.ts';
 export { type ReportCommandOptions, reportCommand } from './commands/report.ts';
 export {
   type DataDependencies,
