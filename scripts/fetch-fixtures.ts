@@ -72,17 +72,7 @@ async function main(): Promise<void> {
     chunkSize: 1_000,
   })) {
     pages++;
-    for (let i = 0; i < chunk.count; i++) {
-      builder.push(
-        chunk.openTs[i] ?? 0,
-        chunk.closeTs[i] ?? 0,
-        chunk.open[i] ?? 0,
-        chunk.high[i] ?? 0,
-        chunk.low[i] ?? 0,
-        chunk.close[i] ?? 0,
-        chunk.volume[i] ?? 0,
-      );
-    }
+    builder.append(chunk);
     if (pages % 3 === 0) console.log(`  ${String(builder.count)} bars...`);
   }
 

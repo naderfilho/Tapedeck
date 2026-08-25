@@ -103,3 +103,6 @@ export function smaCrossover(): Strategy<SmaCrossoverParams> {
     },
   };
 }
+
+/** Default export so the CLI can load this file with `tapedeck run`. */
+export default smaCrossover;

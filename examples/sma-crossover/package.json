@@ -13,6 +13,7 @@
   "dependencies": {
     "@tapedeck/core": "workspace:*",
     "@tapedeck/data": "workspace:*",
-    "@tapedeck/indicators": "workspace:*"
+    "@tapedeck/indicators": "workspace:*",
+    "@tapedeck/report": "workspace:*"
   }
 }
