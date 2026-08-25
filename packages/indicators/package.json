@@ -2,7 +2,23 @@
   "name": "@tapedeck/indicators",
   "version": "0.1.0",
   "description": "Incremental technical indicators for Tapedeck: O(1) per bar, never a second pass over the series",
+  "keywords": [
+    "technical-analysis",
+    "indicators",
+    "trading",
+    "incremental"
+  ],
   "license": "PolyForm-Noncommercial-1.0.0",
+  "author": "Nader Filho <ndr.dev@outlook.com>",
+  "homepage": "https://github.com/naderfilho/Tapedeck/tree/main/packages/indicators#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/naderfilho/Tapedeck.git",
+    "directory": "packages/indicators"
+  },
+  "bugs": {
+    "url": "https://github.com/naderfilho/Tapedeck/issues"
+  },
   "type": "module",
   "engines": {
     "node": ">=24.0.0"

@@ -2,7 +2,25 @@
   "name": "@tapedeck/core",
   "version": "0.1.0",
   "description": "Deterministic event-driven backtesting kernel: events, clock, tape, simulated broker, portfolio",
+  "keywords": [
+    "backtesting",
+    "trading",
+    "quantitative-finance",
+    "deterministic",
+    "event-driven",
+    "futures"
+  ],
   "license": "PolyForm-Noncommercial-1.0.0",
+  "author": "Nader Filho <ndr.dev@outlook.com>",
+  "homepage": "https://github.com/naderfilho/Tapedeck/tree/main/packages/core#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/naderfilho/Tapedeck.git",
+    "directory": "packages/core"
+  },
+  "bugs": {
+    "url": "https://github.com/naderfilho/Tapedeck/issues"
+  },
   "type": "module",
   "engines": {
     "node": ">=24.0.0"

@@ -5,6 +5,15 @@
   "type": "module",
   "description": "Event-driven backtesting and paper trading engine for TypeScript",
   "license": "PolyForm-Noncommercial-1.0.0",
+  "author": "Nader Filho <ndr.dev@outlook.com>",
+  "homepage": "https://github.com/naderfilho/Tapedeck#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/naderfilho/Tapedeck.git"
+  },
+  "bugs": {
+    "url": "https://github.com/naderfilho/Tapedeck/issues"
+  },
   "packageManager": "pnpm@10.34.5",
   "engines": {
     "node": ">=24.0.0"
@@ -24,7 +33,6 @@
     "fixtures": "node scripts/fetch-fixtures.ts"
   },
   "devDependencies": {
-    "@changesets/cli": "^2.29.7",
     "@eslint/js": "^9.39.1",
     "@tapedeck/core": "workspace:*",
     "@tapedeck/data": "workspace:*",

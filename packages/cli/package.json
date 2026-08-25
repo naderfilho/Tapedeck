@@ -2,7 +2,23 @@
   "name": "@tapedeck/cli",
   "version": "0.1.0",
   "description": "The tapedeck command line: run backtests, render reports, fetch market data",
+  "keywords": [
+    "cli",
+    "backtesting",
+    "trading",
+    "paper-trading"
+  ],
   "license": "PolyForm-Noncommercial-1.0.0",
+  "author": "Nader Filho <ndr.dev@outlook.com>",
+  "homepage": "https://github.com/naderfilho/Tapedeck/tree/main/packages/cli#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/naderfilho/Tapedeck.git",
+    "directory": "packages/cli"
+  },
+  "bugs": {
+    "url": "https://github.com/naderfilho/Tapedeck/issues"
+  },
   "type": "module",
   "engines": {
     "node": ">=24.0.0"
@@ -11,12 +27,12 @@
     "dist",
     "README.md"
   ],
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
   "bin": {
     "tapedeck": "./dist/cli.js",
     "td": "./dist/cli.js"
   },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",

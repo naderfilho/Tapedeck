@@ -2,7 +2,24 @@
   "name": "@tapedeck/report",
   "version": "0.1.0",
   "description": "Performance metrics and a self-contained HTML report for Tapedeck runs",
+  "keywords": [
+    "backtesting",
+    "metrics",
+    "sharpe",
+    "drawdown",
+    "report"
+  ],
   "license": "PolyForm-Noncommercial-1.0.0",
+  "author": "Nader Filho <ndr.dev@outlook.com>",
+  "homepage": "https://github.com/naderfilho/Tapedeck/tree/main/packages/report#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/naderfilho/Tapedeck.git",
+    "directory": "packages/report"
+  },
+  "bugs": {
+    "url": "https://github.com/naderfilho/Tapedeck/issues"
+  },
   "type": "module",
   "engines": {
     "node": ">=24.0.0"

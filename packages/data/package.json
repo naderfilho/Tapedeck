@@ -2,7 +2,25 @@
   "name": "@tapedeck/data",
   "version": "0.1.0",
   "description": "Data providers for Tapedeck: CSV, Binance, and the columnar .tape format",
+  "keywords": [
+    "market-data",
+    "binance",
+    "b3",
+    "csv",
+    "columnar",
+    "time-series"
+  ],
   "license": "PolyForm-Noncommercial-1.0.0",
+  "author": "Nader Filho <ndr.dev@outlook.com>",
+  "homepage": "https://github.com/naderfilho/Tapedeck/tree/main/packages/data#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/naderfilho/Tapedeck.git",
+    "directory": "packages/data"
+  },
+  "bugs": {
+    "url": "https://github.com/naderfilho/Tapedeck/issues"
+  },
   "type": "module",
   "engines": {
     "node": ">=24.0.0"

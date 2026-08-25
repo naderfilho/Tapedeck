@@ -103,9 +103,11 @@ again when the work actually touches them:
 3. **Which B3 contracts matter first** — index and dollar minis are assumed, but a roll calendar is
    only useful for the contracts actually traded.
 
-## What phase 4 turned out to be
+## Corrections the build forced
 
-Done. The shape it landed in, because it is not quite the shape this file predicted:
+Five things this file, or an ADR, predicted wrongly. They are here because the corrections are more
+informative than the predictions were, and because every one of them was found by something running
+rather than by someone thinking:
 
 - `LiveSession` in `packages/core/src/engine/live.ts` owns a bounded FIFO and a synchronous
   `drain()`. The socket handler enqueues and drains; nothing in the kernel changed.
@@ -124,6 +126,15 @@ Done. The shape it landed in, because it is not quite the shape this file predic
   session's warnings, and in a test that asserts the counter really does reset.
 - `tapedeck paper` wires it together. Its feed and its stop condition are injectable, which is how
   the tests drive it without a socket and without waiting on a clock.
+- **A bracket built from two orders and a `cancel` in `onFill` can execute both legs.** The cancel
+  lands after the matcher has already looked at the next candidate on the same bar. Native OCO
+  reduces siblings inside the fill instead; `oco.test.ts` keeps the old bug reproduced against the
+  old pattern so the difference stays visible.
+- **The B3 example found two bugs in itself, both from the engine being right.** Asking "how long
+  until the close" from a bar's own close answers with tomorrow's bell, because a session is
+  half-open. And an exit sent on the closing bar fills at the next session's open, because an order
+  cannot match against the bar that produced it — so being flat overnight means exiting one bar
+  early. Both are regression tests now.
 
 ## Still owed from earlier phases
 

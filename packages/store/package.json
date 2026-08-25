@@ -2,7 +2,23 @@
   "name": "@tapedeck/store",
   "version": "0.1.0",
   "description": "Optional persistence for Tapedeck on node:sqlite: bar cache, run history, paper-trading state",
+  "keywords": [
+    "sqlite",
+    "persistence",
+    "backtesting",
+    "cache"
+  ],
   "license": "PolyForm-Noncommercial-1.0.0",
+  "author": "Nader Filho <ndr.dev@outlook.com>",
+  "homepage": "https://github.com/naderfilho/Tapedeck/tree/main/packages/store#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/naderfilho/Tapedeck.git",
+    "directory": "packages/store"
+  },
+  "bugs": {
+    "url": "https://github.com/naderfilho/Tapedeck/issues"
+  },
   "type": "module",
   "engines": {
     "node": ">=24.0.0"

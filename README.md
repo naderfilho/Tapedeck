@@ -191,6 +191,41 @@ says so in its warnings every time it resumes.
 **[The API guide](docs/api.md)** covers the strategy contract, orders, execution models, the data
 adapters, calendars and futures, and the six rules a strategy cannot break.
 
+## Futures, sessions and B3
+
+Crypto never closes, one symbol means the same thing next year, and a contract never expires. B3
+breaks all three, and each break is a way for a backtest to be quietly wrong.
+
+```bash
+node examples/b3-rollover/src/main.ts
+```
+
+That runs the mini index across six contracts and five rolls. What it shows:
+
+- **A session calendar.** B3 shuts at 18:00 in São Paulo and does not open on Carnival, which moves
+  with Easter and is therefore computed rather than listed. A `day` order dies at the **session
+  close**, not at midnight UTC — the old rule kept a Friday order alive into Saturday, a day nobody
+  could have cancelled anything on.
+- **Contracts as coordinates.** `WINJ25` exists for a few months. Expiries come from B3's own rules
+  and are asserted in the tests against the dates the exchange actually used. "Front month" means
+  the contract whose **roll** has not passed, not the nearest unexpired one; those differ for a few
+  sessions before every expiry, and that window is where a backtest trades something illiquid.
+- **A continuous series that admits what it is.** Back-adjustment is the default because it
+  preserves point differences, which is what a futures PnL is made of. The stitcher warns that
+  adjusted prices never traded, and refuses to be quiet when the adjustment pushes a bar below zero.
+- **Costs that are citations.** `B3_TARIFFS` carries the exchange's published unit costs with a
+  source URL and the date they were read. WDO is priced in **dollars**, so the model demands an
+  exchange rate rather than inventing one.
+
+The example runs on generated prices and says so loudly in its own output: B3's consumption policy
+permits internal use and requires approval to redistribute, so no B3 price is committed here
+([ADR-0015](docs/adr/0015-b3-sessions-contracts-and-data.md)). Fetch your own in one command and the
+data stays on your machine:
+
+```bash
+tapedeck data fetch --venue b3 --symbol WIN --from 2025-08-01 --to 2026-08-01 -o data/win.tape
+```
+
 ## Architecture
 
 ```mermaid
@@ -200,6 +235,7 @@ flowchart LR
     tape[".tape files"]
     rest["Binance REST"]
     ws["Binance WebSocket<br/><small>live feed</small>"]
+    b3["B3 price reports<br/><small>fetched, never committed</small>"]
   end
 
   subgraph kernel["Synchronous kernel — identical in backtest and live"]
@@ -208,6 +244,7 @@ flowchart LR
     chunks["Tape<br/><small>columnar Float64Array chunks</small>"]
     sched["Scheduler<br/><small>min-heap keyed by (ts, seq)</small>"]
     clock["Clock<br/><small>event time, in both modes</small>"]
+    cal["Calendar<br/><small>sessions, holidays, contract expiries</small>"]
     broker["SimulatedBroker<br/><small>slippage · commission · latency · liquidity</small>"]
     ind["Indicators<br/><small>updated before onBar</small>"]
     strat["Strategy<br/><small>onInit · onBar · onTick · onFill · onStop</small>"]
@@ -224,9 +261,12 @@ flowchart LR
   csv --> chunks
   tape --> chunks
   rest --> chunks
+  b3 --> chunks
   ws --> queue
   chunks --> clock
   clock --> sched
+  cal --> broker
+  cal --> clock
   sched --> broker
   chunks --> broker
   chunks --> ind
@@ -257,14 +297,14 @@ strategy is awake.
 
 ## Packages
 
-| Package                | What it is                                                          | Runtime dependencies |
-| ---------------------- | ------------------------------------------------------------------- | -------------------- |
-| `@tapedeck/core`       | Events, clock, scheduler, tape, simulated broker, portfolio, engine | none                 |
-| `@tapedeck/indicators` | Incremental SMA, EMA, RMA, RSI, ATR, Bollinger, VWAP, MACD          | none                 |
-| `@tapedeck/data`       | CSV, Binance REST and WebSocket, the columnar `.tape` format        | `zod`                |
-| `@tapedeck/report`     | Metrics, JSON output, and a self-contained HTML report              | none                 |
-| `@tapedeck/store`      | Bar cache, run history and paper state on `node:sqlite`             | none                 |
-| `@tapedeck/cli`        | The `tapedeck` command                                              | `commander`, `zod`   |
+| Package                | What it is                                                           | Runtime dependencies |
+| ---------------------- | -------------------------------------------------------------------- | -------------------- |
+| `@tapedeck/core`       | Events, clock, calendar, tape, broker, contracts, portfolio, engine  | none                 |
+| `@tapedeck/indicators` | Incremental SMA, EMA, RMA, RSI, ATR, Bollinger, VWAP, MACD           | none                 |
+| `@tapedeck/data`       | CSV, Binance REST and socket, B3 reports, `.tape`, continuous series | `zod`                |
+| `@tapedeck/report`     | Metrics, JSON output, and a self-contained HTML report               | none                 |
+| `@tapedeck/store`      | Bar cache, run history and paper state on `node:sqlite`              | none                 |
+| `@tapedeck/cli`        | The `tapedeck` command                                               | `commander`, `zod`   |
 
 The dependency arrows only ever point inward: `core` declares the contracts — `Strategy`,
 `Broker`, `DataProvider`, `Indicator`, `Store` — and imports no other workspace package.
@@ -372,7 +412,12 @@ own run, dated and with the machine that produced it, at
 | + crossover trading   | 7.6 M bars/s  | 132 ns  | indicators, orders, fills, PnL                                |
 | development mode      | 4.0 M bars/s  | 250 ns  | guarded bar views and data validation, as the test suite runs |
 
-Measured on Node 24.12 / Windows 11 / x64. A single headline figure would be marketing: replaying
+Measured on Node 24.12 / Windows 11 / x64. The run CI publishes is roughly 40% of these figures,
+because a shared two-core cloud runner is not a desktop — which is exactly why the benchmark job
+reports and never gates, and why both numbers carry the machine that produced them. Compare like
+with like or not at all.
+
+A single headline figure would be marketing: replaying
 bars, updating indicators, matching resting orders and actually trading are four different
 workloads, so the benchmark reports all four. The target was one million bars per second.
 

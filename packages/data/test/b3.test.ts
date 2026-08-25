@@ -256,7 +256,7 @@ function scripted(bodies: Map<string, Buffer | number>): B3DataProvider {
 }
 
 describe('naming a session file', () => {
-  it('matches B3s PRyymmdd convention', () => {
+  it("matches B3's PRyymmdd convention", () => {
     expect(bulletinName(fromIso('2026-08-21T15:00:00Z'))).toBe('PR260821.zip');
     expect(bulletinName(fromIso('2025-01-02T15:00:00Z'))).toBe('PR250102.zip');
   });
