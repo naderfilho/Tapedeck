@@ -89,9 +89,17 @@ again when the work actually touches them:
 1. **Are the strategies this is built for bar-closed or order-flow driven?** Decides how much the
    tick path matters. `onTick`, aggressor side and per-print matching already exist for this
    reason, and are the less-exercised half of the engine.
-2. **Real B3 costs.** The figures in `PRESETS.b3Futures` and the margins in `INSTRUMENTS.WIN` /
-   `WDO` are placeholders and marked as such in the code. They need to come off a real brokerage
-   note before any B3 result means anything.
+2. ~~**Real B3 costs.**~~ Answered. `B3_TARIFFS` now carries the exchange's own published unit
+   costs with the source URL and the date they were read; brokerage is an explicit input defaulting
+   to zero, which is a real configuration on minis rather than a flattering omission. Re-read the
+   sources when a result depends on them.
+
+   The **margins** in `INSTRUMENTS.WIN` / `WDO` are a different problem and are still wrong. B3's
+   overnight margin is computed per portfolio by the CORE methodology, not per contract, and the
+   day-trade margin is a number each broker sets. There is no constant to look up, so the fields
+   stay as declared placeholders — and `marginUsed()` should be read as "what this configuration
+   would have blocked", never as what B3 would have required.
+
 3. **Which B3 contracts matter first** — index and dollar minis are assumed, but a roll calendar is
    only useful for the contracts actually traded.
 
