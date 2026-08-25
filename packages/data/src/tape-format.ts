@@ -147,7 +147,9 @@ function readHeader(bytes: Uint8Array): { header: TapeHeader; dataStart: number 
 
   let header: TapeHeader;
   try {
-    header = JSON.parse(buffer.toString('utf8', MAGIC_BYTES + LENGTH_BYTES, headerEnd)) as TapeHeader;
+    header = JSON.parse(
+      buffer.toString('utf8', MAGIC_BYTES + LENGTH_BYTES, headerEnd),
+    ) as TapeHeader;
   } catch (cause: unknown) {
     throw new MarketDataError('tape header is not valid JSON', { cause: String(cause) });
   }
@@ -183,7 +185,10 @@ export function encodeBarTape(options: EncodeBarsOptions): Uint8Array {
   ]);
 }
 
-export function decodeBarTape(bytes: Uint8Array, instrumentId = 0 as InstrumentId): TapeFile<BarChunk> {
+export function decodeBarTape(
+  bytes: Uint8Array,
+  instrumentId = 0 as InstrumentId,
+): TapeFile<BarChunk> {
   const { header, dataStart } = readHeader(bytes);
   if (header.kind !== 'bars') {
     throw new MarketDataError(`expected a bar tape, found ${header.kind}`, {
@@ -268,7 +273,8 @@ export function decodeTickTape(
   const read = (dtype: ColumnType): Float64Array | Int8Array => {
     const end = offset + count * bytesPerElement(dtype);
     if (end > bytes.byteLength) throw new MarketDataError('tape file is truncated');
-    const view = dtype === 'f64' ? viewFloat64(bytes, offset, count) : viewInt8(bytes, offset, count);
+    const view =
+      dtype === 'f64' ? viewFloat64(bytes, offset, count) : viewInt8(bytes, offset, count);
     offset = align(end);
     return view;
   };

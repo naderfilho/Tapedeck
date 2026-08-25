@@ -154,7 +154,9 @@ describe('candles', () => {
   it('converts price strings into exact fixed-point integers', async () => {
     const { instance } = provider([
       json(EXCHANGE_INFO),
-      json([[fromMs, '70000.12', '70500.99', '69000.01', '70123.45', '12.34567', fromMs + hourMs - 1]]),
+      json([
+        [fromMs, '70000.12', '70500.99', '69000.01', '70123.45', '12.34567', fromMs + hourMs - 1],
+      ]),
     ]);
     const [chunk] = await collect(
       instance.bars({
@@ -324,14 +326,20 @@ describe('rate limiting and failure', () => {
 
   it('does not retry a status that will never succeed', async () => {
     const stub = stubFetch([new Response('bad symbol', { status: 400 })]);
-    const instance = new BinanceDataProvider({ fetch: stub.doFetch, sleep: () => Promise.resolve() });
+    const instance = new BinanceDataProvider({
+      fetch: stub.doFetch,
+      sleep: () => Promise.resolve(),
+    });
     await expect(instance.describe('NOPE')).rejects.toThrow(/status 400/);
     expect(stub.calls).toHaveLength(1);
   });
 
   it('reports a non-JSON body as an upstream failure', async () => {
     const stub = stubFetch([new Response('<html>maintenance</html>', { status: 200 })]);
-    const instance = new BinanceDataProvider({ fetch: stub.doFetch, sleep: () => Promise.resolve() });
+    const instance = new BinanceDataProvider({
+      fetch: stub.doFetch,
+      sleep: () => Promise.resolve(),
+    });
     await expect(instance.describe('BTCUSDT')).rejects.toThrow(/not JSON/);
   });
 });

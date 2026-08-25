@@ -277,7 +277,8 @@ export class BinanceDataProvider implements DataProvider {
       if (!RETRYABLE.has(response.status) || attempt === this.maxAttempts) break;
 
       const retryAfter = Number(response.headers.get('retry-after') ?? '');
-      const waitMs = Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter * 1_000 : 2 ** attempt * 250;
+      const waitMs =
+        Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter * 1_000 : 2 ** attempt * 250;
       await this.sleep(waitMs);
     }
 

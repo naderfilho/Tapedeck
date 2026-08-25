@@ -24,10 +24,7 @@ export async function writeBarTapeFile(path: string, options: EncodeBarsOptions)
   await writeFile(path, encodeBarTape(options));
 }
 
-export function readBarTapeFileSync(
-  path: string,
-  instrumentId?: InstrumentId,
-): TapeFile<BarChunk> {
+export function readBarTapeFileSync(path: string, instrumentId?: InstrumentId): TapeFile<BarChunk> {
   return decodeBarTape(readFileSync(path), instrumentId);
 }
 

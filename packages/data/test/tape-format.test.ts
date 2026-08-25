@@ -22,7 +22,15 @@ function sampleBars(count: number): BarChunk {
   for (let i = 0; i < count; i++) {
     const openTs = i * MICROS_PER_HOUR;
     const base = 7_000_000 + i * 137;
-    builder.push(openTs, openTs + MICROS_PER_HOUR, base, base + 500, base - 400, base + 60, 1_000 + i);
+    builder.push(
+      openTs,
+      openTs + MICROS_PER_HOUR,
+      base,
+      base + 500,
+      base - 400,
+      base + 60,
+      1_000 + i,
+    );
   }
   return builder.build();
 }

@@ -29,11 +29,14 @@ function writeCsv(contents: string): string {
 
 const SPEC: InstrumentSpec = INSTRUMENTS.BTCUSDT;
 
-async function readAll(provider: CsvBarProvider, options: {
-  from?: number;
-  to?: number;
-  chunkSize?: number;
-}): Promise<BarChunk[]> {
+async function readAll(
+  provider: CsvBarProvider,
+  options: {
+    from?: number;
+    to?: number;
+    chunkSize?: number;
+  },
+): Promise<BarChunk[]> {
   const chunks: BarChunk[] = [];
   for await (const chunk of provider.bars({
     symbol: 'BTCUSDT',
@@ -72,7 +75,9 @@ describe('parseTimestamp', () => {
     expect(parseTimestamp('1', 's')).toBe(1_000_000);
     expect(parseTimestamp('1000', 'ms')).toBe(1_000_000);
     expect(parseTimestamp('1000000', 'us')).toBe(1_000_000);
-    expect(parseTimestamp('2026-01-01T00:00:00.000Z', 'iso')).toBe(fromIso('2026-01-01T00:00:00.000Z'));
+    expect(parseTimestamp('2026-01-01T00:00:00.000Z', 'iso')).toBe(
+      fromIso('2026-01-01T00:00:00.000Z'),
+    );
   });
 
   it('rejects something that is not a number', () => {
@@ -124,7 +129,9 @@ describe('CsvBarProvider', () => {
 
   it('reads ISO timestamps and treats them as the bar close when told to', async () => {
     const path = writeCsv(
-      ['timestamp,open,high,low,close,volume', '2026-01-01T01:00:00.000Z,1,2,0.5,1.5,10'].join('\n'),
+      ['timestamp,open,high,low,close,volume', '2026-01-01T01:00:00.000Z,1,2,0.5,1.5,10'].join(
+        '\n',
+      ),
     );
     const provider = new CsvBarProvider({
       file: path,
@@ -184,7 +191,9 @@ describe('CsvBarProvider', () => {
   });
 
   it('names the column it could not find', async () => {
-    const path = writeCsv(['timestamp,open,high,low,close', `${String(startMs)},1,2,0.5,1.5`].join('\n'));
+    const path = writeCsv(
+      ['timestamp,open,high,low,close', `${String(startMs)},1,2,0.5,1.5`].join('\n'),
+    );
     const provider = new CsvBarProvider({
       file: path,
       instrument: SPEC,
