@@ -45,6 +45,13 @@ export default tseslint.config(
       '@typescript-eslint/consistent-type-imports': ['error', { fixStyle: 'inline-type-imports' }],
       '@typescript-eslint/explicit-module-boundary-types': 'error',
       '@typescript-eslint/switch-exhaustiveness-check': 'error',
+    },
+  },
+  {
+    // The determinism rules apply to the kernel and nowhere else. Adapters read the wall clock
+    // because that is their job; the engine must not, because that is the guarantee.
+    files: ['packages/core/src/**/*.ts'],
+    rules: {
       'no-restricted-syntax': ['error', ...DETERMINISM_RULES],
     },
   },
@@ -58,7 +65,7 @@ export default tseslint.config(
   },
   {
     // Tests and benchmarks may read the wall clock and reach for looser typing.
-    files: ['**/test/**/*.ts', 'bench/**/*.ts', 'examples/**/*.ts'],
+    files: ['**/test/**/*.ts', 'bench/**/*.ts', 'examples/**/*.ts', 'scripts/**/*.ts'],
     rules: {
       'no-restricted-syntax': 'off',
       '@typescript-eslint/explicit-module-boundary-types': 'off',

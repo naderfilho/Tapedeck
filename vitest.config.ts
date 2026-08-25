@@ -8,6 +8,9 @@ export default defineConfig({
     // Tests run straight off TypeScript sources: no build step, no stale dist.
     alias: {
       '@tapedeck/core': src('./packages/core/src/index.ts'),
+      '@tapedeck/indicators': src('./packages/indicators/src/index.ts'),
+      '@tapedeck/data': src('./packages/data/src/index.ts'),
+      '@tapedeck/store': src('./packages/store/src/index.ts'),
     },
   },
   test: {
@@ -27,13 +30,13 @@ export default defineConfig({
         'packages/core/src/strategy.ts',
         'packages/core/src/util/brand.ts',
       ],
+      // Every published package carries the same floor. A package that cannot meet it is a
+      // package whose behaviour nobody has pinned down.
       thresholds: {
-        'packages/core/src/**': {
-          statements: 85,
-          branches: 85,
-          functions: 85,
-          lines: 85,
-        },
+        'packages/core/src/**': { statements: 85, branches: 85, functions: 85, lines: 85 },
+        'packages/indicators/src/**': { statements: 85, branches: 85, functions: 85, lines: 85 },
+        'packages/data/src/**': { statements: 85, branches: 85, functions: 85, lines: 85 },
+        'packages/store/src/**': { statements: 85, branches: 85, functions: 85, lines: 85 },
       },
     },
   },

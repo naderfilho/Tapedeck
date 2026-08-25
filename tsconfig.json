@@ -5,7 +5,10 @@
     "baseUrl": ".",
     "paths": {
       "@tapedeck/core": ["packages/core/src/index.ts"],
-      "@tapedeck/core/*": ["packages/core/src/*"]
+      "@tapedeck/core/*": ["packages/core/src/*"],
+      "@tapedeck/indicators": ["packages/indicators/src/index.ts"],
+      "@tapedeck/data": ["packages/data/src/index.ts"],
+      "@tapedeck/store": ["packages/store/src/index.ts"]
     }
   },
   "include": [
@@ -14,6 +17,7 @@
     "examples/*/src/**/*.ts",
     "examples/*/test/**/*.ts",
     "bench/**/*.ts",
+    "scripts/**/*.ts",
     "*.ts"
   ]
 }

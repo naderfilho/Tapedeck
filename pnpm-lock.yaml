@@ -17,6 +17,12 @@ importers:
       '@tapedeck/core':
         specifier: workspace:*
         version: link:packages/core
+      '@tapedeck/data':
+        specifier: workspace:*
+        version: link:packages/data
+      '@tapedeck/indicators':
+        specifier: workspace:*
+        version: link:packages/indicators
       '@types/node':
         specifier: ^24.10.1
         version: 24.13.3
@@ -50,8 +56,38 @@ importers:
       '@tapedeck/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@tapedeck/data':
+        specifier: workspace:*
+        version: link:../../packages/data
+      '@tapedeck/indicators':
+        specifier: workspace:*
+        version: link:../../packages/indicators
 
   packages/core: {}
+
+  packages/data:
+    dependencies:
+      '@tapedeck/core':
+        specifier: workspace:*
+        version: link:../core
+      zod:
+        specifier: ^4.1.13
+        version: 4.4.3
+
+  packages/indicators:
+    dependencies:
+      '@tapedeck/core':
+        specifier: workspace:*
+        version: link:../core
+
+  packages/store:
+    dependencies:
+      '@tapedeck/core':
+        specifier: workspace:*
+        version: link:../core
+      '@tapedeck/data':
+        specifier: workspace:*
+        version: link:../data
 
 packages:
 
@@ -1542,6 +1578,9 @@ packages:
     resolution: {integrity: sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==}
     engines: {node: '>=10'}
 
+  zod@4.4.3:
+    resolution: {integrity: sha512-ytENFjIJFl2UwYglde2jchW2Hwm4GJFLDiSXWdTrJQBIN9Fcyp7n4DhxJEiWNAJMV1/BqWfW/kkg71UDcHJyTQ==}
+
 snapshots:
 
   '@ampproject/remapping@2.3.0':
@@ -3010,3 +3049,5 @@ snapshots:
       strip-ansi: 7.2.0
 
   yocto-queue@0.1.0: {}
+
+  zod@4.4.3: {}
