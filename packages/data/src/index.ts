@@ -71,3 +71,15 @@ export {
   type StitchOptions,
   stitchContinuous,
 } from './continuous.ts';
+
+export {
+  type B3BarRequest,
+  type B3PriceRecord,
+  type B3ProviderOptions,
+  B3DataProvider,
+  bulletinName,
+  scanPriceReport,
+  tradingSessionsBetween,
+} from './b3.ts';
+
+export { type ZipEntry, extractFromZip, readZipEntries, readZipEntry } from './zip.ts';
