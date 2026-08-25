@@ -1,0 +1,38 @@
+{
+  "name": "@tapedeck/cli",
+  "version": "0.1.0",
+  "description": "The tapedeck command line: run backtests, render reports, fetch market data",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "tapedeck": "./dist/cli.js",
+    "td": "./dist/cli.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\""
+  },
+  "dependencies": {
+    "@tapedeck/core": "workspace:*",
+    "@tapedeck/data": "workspace:*",
+    "@tapedeck/report": "workspace:*",
+    "@tapedeck/store": "workspace:*",
+    "commander": "^14.0.2",
+    "zod": "^4.1.13"
+  }
+}
