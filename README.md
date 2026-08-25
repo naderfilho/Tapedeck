@@ -21,11 +21,16 @@ of the whole project: **what this run could not know, printed above the numbers 
 in a footnote. Below the fold sit the drawdown, the trade distribution, the exact execution
 configuration and every trade.
 
-> **Status: five of six phases done.** The kernel, the indicator library, the data adapters, the
-> SQLite store, the metrics and report package, the `tapedeck` command line, live paper trading and
-> the B3 layer — session calendar, contract expiries, continuous series — are all in. 604 tests, 97%
+> **Status: all six phases done.** The kernel, the indicator library, the data adapters, the SQLite
+> store, the metrics and report package, the `tapedeck` command line, live paper trading and the B3
+> layer — session calendar, contract expiries, continuous series — are all in. 610 tests, 97%
 > statement coverage, and a committed year of real BTCUSDT candles so that `pnpm test` measures
-> something. Polish is what is left. Nothing is published to npm, deliberately — see the roadmap.
+> something. Nothing is published to npm, deliberately — see the roadmap.
+
+Built in pair with an AI assistant. Every decision that shaped it is argued in
+[fifteen ADRs](docs/adr/), each with the alternatives that were rejected — including
+[one that amends an earlier one](docs/adr/0014-paper-trading-runs-on-event-time.md) after the first
+live connection to a real exchange proved it wrong.
 
 ## Why this exists
 
