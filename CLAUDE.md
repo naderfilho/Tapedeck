@@ -5,13 +5,13 @@ explains it to whoever is about to change it.
 
 ## Where things stand
 
-Phases 1, 2, 3, 4 and 6 are done and committed: the deterministic kernel, the incremental indicator library,
+All six phases are done and committed: the deterministic kernel, the incremental indicator library,
 the data adapters and `.tape` format, the SQLite store, the metrics and HTML report, the `tapedeck`
 CLI, live paper trading, and the B3 layer. 610 tests, 97% statement coverage, a committed year of real hourly
 BTCUSDT.
 
-Phase 5 — polish — is what is left. The roadmap at the end of the README is the authority on what
-it contains.
+The roadmap at the end of the README is the authority on what each phase contained. What is left is
+in "Still owed" at the bottom of this file.
 
 ## How to work here
 
@@ -141,9 +141,10 @@ Done. The shape it landed in, because it is not quite the shape this file predic
   Regenerate it whenever the report's layout changes, or the README will be showing a page the
   code no longer produces.
 
-- `OrderAmended` event: `broker.replace()` currently amends silently, documented as a gap.
-- OCO orders: a bracket is two orders and a cancel in `onFill` today, which works but is not the
-  same as the venue doing it.
+- ~~`OrderAmended` event~~ and ~~OCO orders~~: both done. `NewOrder.oco` groups legs and a fill
+  reduces its siblings before the next candidate on the same bar is considered, which is the window
+  the old two-orders-and-a-cancel pattern left open. `oco.test.ts` reproduces the old bug against
+  the old pattern so the difference stays visible.
 - A paper session's report reuses the backtest metrics unchanged. Some of them — a CAGR of -92%
   extrapolated from nineteen seconds of wall time, which is what the first real session printed —
   say nothing at all about a session that short. Phase 5 should decide which metrics a live

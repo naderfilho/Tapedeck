@@ -53,6 +53,11 @@ jobs:
       - name: Run the example on the committed year of BTCUSDT
         run: node examples/sma-crossover/src/main.ts
 
+      - name: Run the benchmark
+        # Reported, never gated. A shared CI runner is the wrong place to assert on throughput —
+        # what makes this worth publishing is that it is dated and says which machine produced it.
+        run: pnpm bench | tee bench.txt
+
       - name: Assemble the site
         # The report is one self-contained file with no scripts and no external requests, so the
         # whole site is that file under the name a web server looks for.
@@ -60,6 +65,14 @@ jobs:
           mkdir -p site
           cp out/report.html site/index.html
           cp out/metrics.json site/metrics.json
+          {
+            echo "Tapedeck benchmark"
+            echo "run    $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            echo "commit ${GITHUB_SHA}"
+            echo "runner $(uname -sm), $(nproc) cores, node $(node --version)"
+            echo
+            cat bench.txt
+          } > site/bench.txt
 
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3

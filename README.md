@@ -183,6 +183,9 @@ is gone, and `bar.index` restarts because it counts this run's bars. A strategy 
 restart derives its state from event time, from its fills and from `ctx.portfolio`. The session
 says so in its warnings every time it resumes.
 
+**[The API guide](docs/api.md)** covers the strategy contract, orders, execution models, the data
+adapters, calendars and futures, and the six rules a strategy cannot break.
+
 ## Architecture
 
 ```mermaid
@@ -352,7 +355,9 @@ points at a file you fetched yourself ([ADR-0011](docs/adr/0011-read-only-market
 
 ## Benchmark
 
-One million bars, five runs each, median reported. Reproduce with `pnpm bench`.
+One million bars, five runs each, median reported. Reproduce with `pnpm bench`; CI publishes its
+own run, dated and with the machine that produced it, at
+<https://naderfilho.github.io/Tapedeck/bench.txt>.
 
 | Scenario              | Throughput    | Per bar | What runs                                                     |
 | --------------------- | ------------- | ------- | ------------------------------------------------------------- |
@@ -472,10 +477,11 @@ worth stating.
 - [x] **Phase 4 — paper trading.** Binance WebSocket feeding the same kernel through a queue whose
       depth and lag are reported, heartbeats so a quiet market still moves time, crash-recoverable
       sessions, and `tapedeck paper`. No credentials, anywhere.
-- [ ] **Phase 5 — polish.** Published benchmark history, a recorded walkthrough of the report,
-      full API documentation. Not an npm release: the licence is noncommercial, and a package on a
-      registry that most consumers cannot legally use commercially is a trap rather than a
-      convenience. Clone it.
+- [x] **Phase 5 — polish.** [The API guide](docs/api.md), a benchmark CI publishes with each push,
+      and the report itself served live rather than recorded — a page you can scroll beats a video
+      of someone else scrolling. Deliberately not an npm release: the licence is noncommercial, and
+      a package on a registry most consumers cannot legally use commercially is a trap rather than
+      a convenience. Clone it.
 - [x] **Phase 6 — B3.** Session calendar with computed holidays, contract expiries on B3's own
       rules, a roll measured from volume rather than assumed, back-adjusted continuous series, the
       published tariffs, and a fetcher for the exchange's daily price reports. B3 data is fetched,
