@@ -265,3 +265,19 @@ export {
 export { type LogEntry, type LogLevel, type Logger, BufferedLogger } from './util/logger.ts';
 export { type Rng, Xoshiro128, createRng } from './util/rng.ts';
 export { STRICT } from './util/assert.ts';
+
+// Futures contracts
+export {
+  type Contract,
+  type ContractSeries,
+  type ExpiryRule,
+  B3_SERIES,
+  MONTH_CODES,
+  contractOf,
+  contractSymbol,
+  contractsBetween,
+  frontContract,
+  monthCode,
+  monthOfCode,
+  parseContractSymbol,
+} from './contract.ts';

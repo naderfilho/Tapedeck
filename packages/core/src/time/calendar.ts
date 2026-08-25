@@ -197,6 +197,17 @@ export class TradingCalendar {
     return Math.floor((ts + this.offsetMicros) / MICROS_PER_DAY);
   }
 
+  /**
+   * The UTC instant of a local minute on a given local day.
+   *
+   * The inverse of {@link localDayIndex} plus {@link localMinuteOfDay}, and the only sanctioned way
+   * to turn a day index back into an instant — the arithmetic is short enough to inline and
+   * exactly wrong often enough to be worth having in one place.
+   */
+  atLocalMinute(dayIndex: number, minute: number): Timestamp {
+    return asTimestamp(dayIndex * MICROS_PER_DAY - this.offsetMicros + minute * MICROS_PER_MINUTE);
+  }
+
   /** Minutes since local midnight. */
   localMinuteOfDay(ts: Timestamp): number {
     const local = ts + this.offsetMicros;
