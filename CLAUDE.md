@@ -68,32 +68,32 @@ add the shrunk counterexample as a named regression test.
 Tests assert invariants that hold for any strategy on any data — reconciliation, no lookahead,
 reproducibility — never a particular PnL, because the fixtures are real prices.
 
-## The working agreement with Nader
+## Conventions
 
-- **Do not ask for approval at the end of each phase.** He said so explicitly: summarise what was
-  done, show the full suite result, and continue. The original prompt is the authority.
-- He is a senior full-stack developer who built NTSL (Profit) and Tryd Script (Lua) strategies and
-  HFT systems for B3 futures, equities, options and crypto between 2021 and 2025. Write for that
-  reader: no hand-holding, no explaining what a stop order is.
-- All code, comments, commits and documentation in **English**. Conversation with him in
-  **Portuguese**.
-- Conventional Commits, small and focused. Commit messages explain _why_, including the mistakes
-  found along the way — several commits here record a bug a test caught and how the design changed.
-- He asked to be corrected when a decision of his looks wrong. He has accepted every argued
-  pushback so far; make the argument rather than silently complying.
+- **English everywhere** — code, comments, commit messages, documentation, ADRs.
+- **Conventional Commits, small and focused.** A message explains _why_, not what the diff already
+  shows. Several commits here record a bug a test caught and how the design changed because of it;
+  that is the standard, not an exception.
+- **Write for someone who trades.** No hand-holding, no explaining what a stop order is. The reader
+  knows the domain and is here for the engineering decisions.
+- **Argue rather than comply.** If a decision recorded here looks wrong, make the case for changing
+  it — in an ADR if it touches a non-negotiable. Silently working around one is the failure mode
+  this file exists to prevent.
+- **Finished means green.** Format, lint, typecheck, build and coverage, in that order.
 
-## Questions he has not answered yet
+## Open questions
 
-Do not block on these — proceed with the stated assumption and flag it — but ask again when the
-work touches them:
+Do not block on these — proceed with the stated assumption, flag it in the output, and raise it
+again when the work actually touches them:
 
-1. **Are his real strategies bar-closed or order-flow driven?** This decides how much the tick path
-   matters. `onTick`, aggressor side and per-print matching already exist for this reason.
+1. **Are the strategies this is built for bar-closed or order-flow driven?** Decides how much the
+   tick path matters. `onTick`, aggressor side and per-print matching already exist for this
+   reason, and are the less-exercised half of the engine.
 2. **Real B3 costs.** The figures in `PRESETS.b3Futures` and the margins in `INSTRUMENTS.WIN` /
-   `WDO` are placeholders, marked as such. He has his brokerage note.
-3. **Expiry rolls and the B3 session calendar** are currently phase 6. He may want them sooner.
-
-He owes nothing else: instruments, data source and phase ordering were all settled.
+   `WDO` are placeholders and marked as such in the code. They need to come off a real brokerage
+   note before any B3 result means anything.
+3. **Which B3 contracts matter first** — index and dollar minis are assumed, but a roll calendar is
+   only useful for the contracts actually traded.
 
 ## What phase 4 turned out to be
 
