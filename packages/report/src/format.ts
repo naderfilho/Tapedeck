@@ -80,6 +80,9 @@ export interface MetricsJson {
   readonly costs: {
     readonly commissionPaid: string;
     readonly shareOfGross: number | null;
+    readonly unitsTraded: number;
+    readonly commissionPerUnit: string;
+    readonly breakEvenCommissionPerUnit: string | null;
   };
   readonly modelling: {
     readonly ambiguousBars: number;
@@ -141,6 +144,12 @@ export function metricsToJson(metrics: Metrics): MetricsJson {
     costs: {
       commissionPaid: money(metrics.commissionPaid),
       shareOfGross: roundSignificant(metrics.commissionShareOfGross),
+      unitsTraded: metrics.unitsTraded,
+      commissionPerUnit: money(metrics.commissionPerUnit),
+      breakEvenCommissionPerUnit:
+        metrics.breakEvenCommissionPerUnit === null
+          ? null
+          : money(metrics.breakEvenCommissionPerUnit),
     },
     modelling: {
       ambiguousBars: metrics.ambiguousBars,
@@ -235,6 +244,19 @@ export function formatMetrics(metrics: Metrics, currency = ''): string {
   lines.push(row('commission', money(metrics.commissionPaid) + suffix));
   lines.push(row('PnL before costs', money(metrics.preCostPnl) + suffix));
   lines.push(row('costs ate', percent(metrics.commissionShareOfGross, 1)));
+  if (metrics.unitsTraded > 0) {
+    lines.push(row('charged per unit', money(metrics.commissionPerUnit) + suffix));
+    // The figure that does not depend on knowing the real tariff: compare it against what the
+    // broker charges and the answer is immediate.
+    lines.push(
+      row(
+        'break-even per unit',
+        metrics.breakEvenCommissionPerUnit === null
+          ? 'n/a — it lost before commission'
+          : money(metrics.breakEvenCommissionPerUnit) + suffix,
+      ),
+    );
+  }
 
   return lines.join('\n');
 }

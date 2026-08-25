@@ -35,6 +35,11 @@ export interface MetricsOptions {
    * — pass this explicitly for B3.
    */
   readonly periodsPerYear?: number | undefined;
+  /**
+   * Decimals carried by a quantity, so per-unit costs are reported per contract or per share
+   * rather than per fixed-point integer. Defaults to 0, which is right for futures.
+   */
+  readonly qtyExp?: number | undefined;
 }
 
 export interface DrawdownEpisode {
@@ -107,6 +112,28 @@ export interface Metrics {
   readonly commissionPaid: MoneyInt;
   /** What costs took out of the pre-cost result. Null when there was no pre-cost result. */
   readonly commissionShareOfGross: number | null;
+  /**
+   * Total quantity across every fill, both sides, in the instrument's own units.
+   *
+   * A plain number and not a `QtyInt`: forty contracts is forty, but forty fills of a hundredth of
+   * a bitcoin is 0.4, and a fixed-point quantity cannot hold that. This is a figure for a reader,
+   * not a value for the ledger.
+   */
+  readonly unitsTraded: number;
+  /** Commission actually charged, per unit traded. */
+  readonly commissionPerUnit: MoneyInt;
+  /**
+   * The per-unit commission at which this run's net profit would be exactly zero.
+   *
+   * The most useful cost number when the real tariff is not known, because it does not depend on
+   * knowing it: compare it against what your broker charges and the answer is immediate. Null when
+   * the strategy lost money before commission, in which case no tariff makes it work.
+   *
+   * It holds the fills fixed. Charging a different commission changes equity, and a strategy that
+   * sizes off equity would have traded differently — exact for one that does not, an approximation
+   * for one that does. Slippage is not in it either: that is already inside the fill prices.
+   */
+  readonly breakEvenCommissionPerUnit: MoneyInt | null;
 
   /** Carried through from the run so a reader sees them next to the numbers they qualify. */
   readonly ambiguousBars: number;
@@ -332,6 +359,12 @@ function ratio(numerator: number, denominator: number): number | null {
 export function computeMetrics(result: RunResult, options: MetricsOptions = {}): Metrics {
   const { equityCurve, trades, stats } = result;
   const length = equityCurve.length;
+  // Every fill, both sides: commission is charged on entries and exits alike. When a run was
+  // configured not to record fills there is nothing to count, and the per-unit figures below say
+  // so by being zero and null rather than by guessing from the trade list.
+  let filledQty = 0;
+  for (const fill of result.fills) filledQty += fill.qty;
+  const unitsTraded = filledQty / 10 ** (options.qtyExp ?? 0);
   const initialEquity = result.initialCash;
   const finalEquity = result.finalEquity;
   const netProfit = asMoney(finalEquity - initialEquity);
@@ -414,6 +447,14 @@ export function computeMetrics(result: RunResult, options: MetricsOptions = {}):
     // Against the pre-cost result: dividing by the *net* result would say costs were 260% of a
     // number costs had already been subtracted from.
     commissionShareOfGross: ratio(result.commissionPaid, Math.abs(trade.preCostPnl)),
+    unitsTraded,
+    commissionPerUnit: asMoney(
+      unitsTraded === 0 ? 0 : Math.round(result.commissionPaid / unitsTraded),
+    ),
+    breakEvenCommissionPerUnit:
+      unitsTraded === 0 || trade.preCostPnl <= 0
+        ? null
+        : asMoney(Math.floor(trade.preCostPnl / unitsTraded)),
 
     ambiguousBars: stats.ambiguousBars,
     subBarLatencyIgnored: stats.subBarLatencyIgnored,

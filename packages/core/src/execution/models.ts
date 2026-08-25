@@ -224,9 +224,16 @@ export interface B3FuturesCostOptions {
 /**
  * B3 futures costs, kept as three separate line items.
  *
- * Splitting them costs nothing and means the numbers can be updated from the exchange's own fee
- * table without re-deriving an aggregate. The defaults in {@link PRESETS} are placeholders and are
- * expected to be replaced with the figures on your own brokerage note.
+ * Splitting them costs nothing and means each can be updated from its own source: the exchange
+ * publishes emoluments and registration, and brokerage is whatever your broker charges — for mini
+ * contracts on a day trade, several Brazilian brokers charge nothing at all.
+ *
+ * The figures in {@link B3_COST_SCENARIOS} are **scenarios, not quotes**. Nobody should read a
+ * number out of this file and believe it: B3's fees vary by contract, by investor category and by
+ * volume band, and they change. What the engine guarantees instead is that whatever you charged is
+ * printed with the result — the model's `name` carries the three components into every report —
+ * and that `breakEvenCostPerUnit` in `@tapedeck/report` tells you the only figure that does not
+ * depend on knowing the real one: the cost per contract at which this strategy stops making money.
  */
 export function b3FuturesCommission(options: B3FuturesCostOptions): CommissionModel {
   const perContract =
@@ -239,6 +246,27 @@ export function b3FuturesCommission(options: B3FuturesCostOptions): CommissionMo
     charge: (ctx) => asMoney(mulDiv(perContract, ctx.qty, 10 ** ctx.instrument.qtyExp, 'half-up')),
   };
 }
+
+/**
+ * Cost scenarios for B3 mini futures, per contract per side, in BRL.
+ *
+ * Three shapes rather than one number, because the honest answer to "what does it cost" is "it
+ * depends on your broker, and here is how much that matters". Run the same strategy under two of
+ * these and the difference between the results *is* the answer to how cost-sensitive it is.
+ *
+ * None of these is a quote. `zeroBrokerage` is the configuration a day trader on minis at a
+ * zero-brokerage broker is closest to; `retail` adds a per-contract charge of the order several
+ * brokers publish; `heavy` exists to be obviously pessimistic, which is the most useful scenario a
+ * strategy can survive.
+ */
+export const B3_COST_SCENARIOS = {
+  /** Exchange charges only. The lower bound anyone actually trades at. */
+  zeroBrokerage: { emoluments: '0.25', registration: '0.10', brokerage: '0' },
+  /** Exchange charges plus a per-contract brokerage. */
+  retail: { emoluments: '0.25', registration: '0.10', brokerage: '0.50' },
+  /** Deliberately punitive. A strategy that survives this one is not a cost illusion. */
+  heavy: { emoluments: '0.25', registration: '0.10', brokerage: '2.00' },
+} as const satisfies Readonly<Record<string, B3FuturesCostOptions>>;
 
 export function noLatency(): LatencyModel {
   return { name: 'none', delayMicros: () => 0 };
@@ -318,8 +346,10 @@ export function priceDeltaToMoney(instrument: Instrument, delta: number, qty: Qt
  * Venue presets. Each is a composition of the four models above, so any single part can be
  * swapped without inheriting the rest.
  *
- * The B3 figures are placeholders taken from a typical retail brokerage note. Replace them with
- * yours before drawing conclusions from a currency amount.
+ * The B3 costs come from {@link B3_COST_SCENARIOS}, which are scenarios rather than quotes. A
+ * currency amount produced under one of them is an answer to "what would this have made at these
+ * costs", never to "what would this have made". `b3Futures` uses the retail scenario because a
+ * middle assumption is the least misleading default; the sweep in the B3 example runs all three.
  */
 export const PRESETS = {
   /** No costs at all. Useful only for testing engine mechanics. */
@@ -340,14 +370,10 @@ export const PRESETS = {
     intrabar: 'pessimistic',
   }),
 
-  /** B3 mini futures: one tick of slippage on takers, costs split into their three line items. */
+  /** B3 mini futures under the `retail` cost scenario. */
   b3Futures: (): ExecutionConfig => ({
     slippage: fixedTicksSlippage(1),
-    commission: b3FuturesCommission({
-      emoluments: '0.24',
-      registration: '0.06',
-      brokerage: '0.50',
-    }),
+    commission: b3FuturesCommission(B3_COST_SCENARIOS.retail),
     latency: uniformLatency(5_000, 25_000),
     liquidity: volumeParticipation(500),
     intrabar: 'pessimistic',

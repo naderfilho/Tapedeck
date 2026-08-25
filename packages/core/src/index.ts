@@ -160,6 +160,7 @@ export {
   type LiquidityModel,
   type SlippageContext,
   type SlippageModel,
+  B3_COST_SCENARIOS,
   PRESETS,
   b3FuturesCommission,
   bpsCommission,
