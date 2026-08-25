@@ -16,13 +16,25 @@ import {
   type InstrumentSpec,
   type Store,
   BarChunkBuilder,
+  B3,
+  type ContractSeries,
+  B3_SERIES,
   ConfigError,
+  TradingCalendar,
   asTimestamp,
+  contractsBetween,
   fromIso,
   parseTimeframe,
   toIso,
 } from '@tapedeck/core';
-import { BinanceDataProvider, CsvBarProvider, encodeBarTape } from '@tapedeck/data';
+import {
+  type ContractBars,
+  B3DataProvider,
+  BinanceDataProvider,
+  CsvBarProvider,
+  encodeBarTape,
+  stitchContinuous,
+} from '@tapedeck/data';
 import type { CliIo } from '../io.ts';
 
 const FetchSchema = z.object({
@@ -31,7 +43,7 @@ const FetchSchema = z.object({
   from: z.string().min(1),
   to: z.string().min(1),
   out: z.string().min(1),
-  venue: z.enum(['binance']).optional(),
+  venue: z.enum(['binance', 'b3']).optional(),
   store: z.string().optional(),
   quiet: z.boolean().optional(),
 });
@@ -69,6 +81,8 @@ export interface DataDependencies {
   readonly openStore?: ((path: string) => Store) | undefined;
   /** Injected so the fetch tests never touch a network. */
   readonly createProvider?: (() => BinanceDataProvider) | undefined;
+  /** Injected so the B3 tests never touch a network. */
+  readonly createB3Provider?: (() => B3DataProvider) | undefined;
 }
 
 function describeRange(chunk: BarChunk): string {
@@ -92,21 +106,12 @@ export async function fetchCommand(rawOptions: unknown, deps: DataDependencies):
   if (to <= from)
     throw new ConfigError('--to must be after --from', { from: options.from, to: options.to });
 
-  const provider = deps.createProvider?.() ?? new BinanceDataProvider();
-  const instrument = await provider.describe(options.symbol);
-  const builder = new BarChunkBuilder(0 as never, timeframe, 16_384);
-
-  for await (const chunk of provider.bars({
-    symbol: options.symbol,
-    timeframe,
-    from,
-    to,
-    chunkSize: 1_000,
-  })) {
-    builder.append(chunk);
-  }
-
-  const bars = builder.build();
+  const venue = options.venue ?? 'binance';
+  const fetched =
+    venue === 'b3'
+      ? await fetchB3(options, from, to, timeframe, deps)
+      : await fetchBinance(options, from, to, timeframe, deps);
+  const { instrument, bars } = fetched;
   if (bars.count === 0) {
     throw new ConfigError('the venue returned no candles for that range', {
       symbol: options.symbol,
@@ -115,11 +120,12 @@ export async function fetchCommand(rawOptions: unknown, deps: DataDependencies):
     });
   }
 
-  const source = `binance:${options.symbol}:${options.timeframe}:${toIso(from)}..${toIso(to)}`;
+  const source = `${venue}:${options.symbol}:${options.timeframe}:${toIso(from)}..${toIso(to)}`;
   const bytes = encodeBarTape({ instrument, chunk: bars, source, createdBy: 'tapedeck-cli' });
   io.writeFile(resolve(options.out), bytes);
 
   if (options.quiet !== true) {
+    for (const note of fetched.notes) io.log(`  ! ${note}`);
     io.log(`${String(bars.count)} bars  ${describeRange(bars)}`);
     io.log(`${options.out}  ${(bytes.byteLength / 1024).toFixed(0)} KiB`);
   }
@@ -205,4 +211,100 @@ export async function convertCommand(
     io.log(`${String(bars.count)} bars  ${describeRange(bars)}`);
     io.log(`${options.out}  ${(bytes.byteLength / 1024).toFixed(0)} KiB`);
   }
+}
+
+interface Fetched {
+  readonly instrument: InstrumentSpec;
+  readonly bars: BarChunk;
+  /** Things the fetch had to assume or could not do. Printed above the counts. */
+  readonly notes: readonly string[];
+}
+
+async function fetchBinance(
+  options: z.infer<typeof FetchSchema>,
+  from: ReturnType<typeof fromIso>,
+  to: ReturnType<typeof fromIso>,
+  timeframe: ReturnType<typeof parseTimeframe>,
+  deps: DataDependencies,
+): Promise<Fetched> {
+  const provider = deps.createProvider?.() ?? new BinanceDataProvider();
+  const instrument = await provider.describe(options.symbol);
+  const builder = new BarChunkBuilder(0 as never, timeframe, 16_384);
+  for await (const chunk of provider.bars({
+    symbol: options.symbol,
+    timeframe,
+    from,
+    to,
+    chunkSize: 1_000,
+  })) {
+    builder.append(chunk);
+  }
+  return { instrument, bars: builder.build(), notes: [] };
+}
+
+/**
+ * B3 futures: fetch every contract that traded in the window, then stitch them.
+ *
+ * The two steps are one command because they are one decision. A tape of "WIN" that quietly
+ * concatenated six contracts would have five jumps in it that no strategy could tell from a move,
+ * so the stitch is not optional and the assumptions it made are printed with the result.
+ */
+async function fetchB3(
+  options: z.infer<typeof FetchSchema>,
+  from: ReturnType<typeof fromIso>,
+  to: ReturnType<typeof fromIso>,
+  timeframe: ReturnType<typeof parseTimeframe>,
+  deps: DataDependencies,
+): Promise<Fetched> {
+  const root = options.symbol.toUpperCase();
+  const series: ContractSeries | undefined = (
+    B3_SERIES as Readonly<Record<string, ContractSeries>>
+  )[root];
+  if (series === undefined) {
+    throw new ConfigError(`no B3 contract series named ${root}`, {
+      symbol: options.symbol,
+      known: Object.keys(B3_SERIES),
+    });
+  }
+
+  const calendar = new TradingCalendar(B3);
+  const provider = deps.createB3Provider?.() ?? new B3DataProvider();
+  const instrument = await provider.describe(root);
+  // A year either side of the window: the contract trading in January expired in February.
+  const contracts = contractsBetween(
+    series,
+    calendar,
+    asTimestamp(from - 400 * 86_400_000_000),
+    asTimestamp(to + 400 * 86_400_000_000),
+  );
+
+  const perContract: ContractBars[] = [];
+  for (const contract of contracts) {
+    const builder = new BarChunkBuilder(0 as never, timeframe, 1_024);
+    for await (const chunk of provider.bars({
+      symbol: root,
+      timeframe,
+      from,
+      to,
+      contracts: [contract.symbol],
+      calendar,
+    })) {
+      builder.append(chunk);
+    }
+    if (builder.count > 0) perContract.push({ contract, chunk: builder.build() });
+  }
+
+  if (perContract.length === 0) {
+    return { instrument, bars: new BarChunkBuilder(0 as never, timeframe, 1).build(), notes: [] };
+  }
+
+  const stitched = stitchContinuous({ contracts: perContract, rollOn: 'volume' });
+  return {
+    instrument,
+    bars: stitched.chunk,
+    notes: [
+      `${String(perContract.length)} contract(s) stitched, ${String(stitched.rolls.length)} roll(s)`,
+      ...stitched.warnings,
+    ],
+  };
 }

@@ -1,7 +1,7 @@
 # Tapedeck
 
 [![CI](https://github.com/naderfilho/Tapedeck/actions/workflows/ci.yml/badge.svg)](https://github.com/naderfilho/Tapedeck/actions/workflows/ci.yml)
-![tests](https://img.shields.io/badge/tests-575-brightgreen)
+![tests](https://img.shields.io/badge/tests-604-brightgreen)
 ![coverage](https://img.shields.io/badge/coverage-97%25-brightgreen)
 ![node](https://img.shields.io/badge/node-%E2%89%A524-informational)
 [![licence](https://img.shields.io/badge/licence-PolyForm%20Noncommercial-blue)](LICENSE.md)
@@ -21,11 +21,11 @@ of the whole project: **what this run could not know, printed above the numbers 
 in a footnote. Below the fold sit the drawdown, the trade distribution, the exact execution
 configuration and every trade.
 
-> **Status: phase 4 of 6.** The kernel, the indicator library, the data adapters, the SQLite store,
-> the metrics and report package, the `tapedeck` command line and live paper trading are done —
-> 575 tests, 97% statement coverage, and a committed year of real BTCUSDT candles so that
-> `pnpm test` measures something. Polish and the B3 session calendar are on the roadmap below.
-> Nothing is published to npm, deliberately — see the roadmap.
+> **Status: five of six phases done.** The kernel, the indicator library, the data adapters, the
+> SQLite store, the metrics and report package, the `tapedeck` command line, live paper trading and
+> the B3 layer — session calendar, contract expiries, continuous series — are all in. 604 tests, 97%
+> statement coverage, and a committed year of real BTCUSDT candles so that `pnpm test` measures
+> something. Polish is what is left. Nothing is published to npm, deliberately — see the roadmap.
 
 ## Why this exists
 
@@ -387,6 +387,10 @@ Each of these is an [ADR](docs/adr/) with the alternatives that were rejected an
   `realised + unrealised - commission` disagree.
 - **[A synchronous kernel](docs/adr/0003-synchronous-deterministic-kernel.md).** Asynchrony is
   confined to the edges. The cost: a strategy cannot do I/O inside a callback.
+- **[B3 sessions, contracts and data](docs/adr/0015-b3-sessions-contracts-and-data.md).** A fixed
+  UTC offset rather than a time zone, because session boundaries that move with a Node upgrade are
+  not reproducible — and the calendar refuses dates from before Brazil abolished daylight saving
+  rather than shifting them by an hour in silence.
 - **[Paper trading on event time](docs/adr/0014-paper-trading-runs-on-event-time.md).** The wall
   clock measures lag; it never decides when an order becomes matchable. Building this amended
   ADR-0003, which had claimed the live clock drives the kernel — it cannot, or the same events
@@ -425,7 +429,7 @@ hoped for:
 ## Testing
 
 ```bash
-pnpm test          # 575 tests
+pnpm test          # 604 tests
 pnpm coverage      # 97% statements, 97% functions; 85% is the floor for every package
 pnpm lint          # no `any`, no `@ts-ignore`, no wall clock in the kernel
 pnpm typecheck     # strict, plus noUncheckedIndexedAccess and exactOptionalPropertyTypes
@@ -472,8 +476,11 @@ worth stating.
       full API documentation. Not an npm release: the licence is noncommercial, and a package on a
       registry that most consumers cannot legally use commercially is a trap rather than a
       convenience. Clone it.
-- [ ] **Phase 6 — B3.** Session calendar and holidays, continuous contracts and expiry rolls,
-      real ported strategies.
+- [x] **Phase 6 — B3.** Session calendar with computed holidays, contract expiries on B3's own
+      rules, a roll measured from volume rather than assumed, back-adjusted continuous series, the
+      published tariffs, and a fetcher for the exchange's daily price reports. B3 data is fetched,
+      never committed — its consumption policy permits internal use and requires approval to
+      redistribute (ADR-0015).
 
 Not planned, and deliberately so: a strategy DSL, a GUI, or a "no-code" layer. This is a library.
 

@@ -1,0 +1,19 @@
+{
+  "name": "@tapedeck/example-b3-rollover",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "B3 mini index futures: session calendar, contract expiries, a measured roll and a continuous series",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "scripts": {
+    "start": "node src/main.ts"
+  },
+  "dependencies": {
+    "@tapedeck/core": "workspace:*",
+    "@tapedeck/data": "workspace:*",
+    "@tapedeck/indicators": "workspace:*",
+    "@tapedeck/report": "workspace:*"
+  }
+}

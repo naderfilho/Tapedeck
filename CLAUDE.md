@@ -5,13 +5,13 @@ explains it to whoever is about to change it.
 
 ## Where things stand
 
-Phases 1 to 4 are done and committed: the deterministic kernel, the incremental indicator library,
+Phases 1, 2, 3, 4 and 6 are done and committed: the deterministic kernel, the incremental indicator library,
 the data adapters and `.tape` format, the SQLite store, the metrics and HTML report, the `tapedeck`
-CLI, and live paper trading. 575 tests, 97% statement coverage, a committed year of real hourly
+CLI, live paper trading, and the B3 layer. 604 tests, 97% statement coverage, a committed year of real hourly
 BTCUSDT.
 
-Phase 5 is polish. Phase 6 is B3. The roadmap at the end of the README is the authority on what
-each contains.
+Phase 5 — polish — is what is left. The roadmap at the end of the README is the authority on what
+it contains.
 
 ## How to work here
 
@@ -55,7 +55,7 @@ needs to, write an ADR arguing for it first.
 6. **No `any`, no `@ts-ignore`.** `noUncheckedIndexedAccess` and `exactOptionalPropertyTypes` are on.
 7. **Core has zero runtime dependencies** and imports no other workspace package. The allowlist for
    everything else is in ADR-0007.
-8. **Read the ADRs before arguing with the code.** `docs/adr/` — fourteen of them, each with the
+8. **Read the ADRs before arguing with the code.** `docs/adr/` — fifteen of them, each with the
    alternatives that were rejected. ADR-0014 amends ADR-0003; read them together.
 
 ## Testing style

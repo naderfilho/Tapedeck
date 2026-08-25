@@ -107,7 +107,11 @@ export function createProgram(deps: ProgramDependencies): Command {
     .requiredOption('--from <iso>', 'inclusive start, ISO-8601')
     .requiredOption('--to <iso>', 'exclusive end, ISO-8601')
     .requiredOption('-o, --out <file>', 'destination .tape file')
-    .option('--venue <name>', 'currently only binance', 'binance')
+    .option(
+      '--venue <name>',
+      'binance | b3 (B3 fetches every contract and stitches them)',
+      'binance',
+    )
     .option('--store <file>', 'also cache the range in a SQLite store')
     .option('-q, --quiet', 'write files but print nothing')
     .action(async (options: unknown) => {

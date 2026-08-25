@@ -51,6 +51,21 @@ importers:
         specifier: ^3.2.4
         version: 3.2.7(@types/node@24.13.3)
 
+  examples/b3-rollover:
+    dependencies:
+      '@tapedeck/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@tapedeck/data':
+        specifier: workspace:*
+        version: link:../../packages/data
+      '@tapedeck/indicators':
+        specifier: workspace:*
+        version: link:../../packages/indicators
+      '@tapedeck/report':
+        specifier: workspace:*
+        version: link:../../packages/report
+
   examples/sma-crossover:
     dependencies:
       '@tapedeck/core':

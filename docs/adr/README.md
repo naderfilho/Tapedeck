@@ -19,3 +19,4 @@ the alternatives that were rejected and why, and the consequences we accepted.
 | [0012](0012-metric-conventions.md)                     | Metric conventions, and reporting nothing rather than something | Accepted |
 | [0013](0013-report-is-a-file.md)                       | A report is a file, not an application                          | Accepted |
 | [0014](0014-paper-trading-runs-on-event-time.md)       | Paper trading runs on event time, and says how far behind it is | Accepted |
+| [0015](0015-b3-sessions-contracts-and-data.md)         | B3: sessions, contracts, and where the data may live            | Accepted |
