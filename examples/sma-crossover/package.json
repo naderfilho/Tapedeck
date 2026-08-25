@@ -11,6 +11,8 @@
     "start": "node src/main.ts"
   },
   "dependencies": {
-    "@tapedeck/core": "workspace:*"
+    "@tapedeck/core": "workspace:*",
+    "@tapedeck/data": "workspace:*",
+    "@tapedeck/indicators": "workspace:*"
   }
 }

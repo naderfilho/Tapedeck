@@ -6,8 +6,10 @@
  * real orders, hold real positions and produce a real equity curve, so that every part of the
  * engine is exercised end to end by something a reader already understands.
  *
- * Two things in it are worth copying into a serious strategy:
+ * Three things in it are worth copying into a serious strategy:
  *
+ * - indicators are registered once in `onInit` and read through a handle; the engine updates them
+ *   before `onBar`, so there is no way to forget an update or to read a stale value;
  * - state lives in the closure, created per run, so a parameter sweep cannot leak state between
  *   runs;
  * - the strategy computes a *target position* and orders the difference, rather than tracking
@@ -16,12 +18,14 @@
 
 import {
   type BarEvent,
+  type IndicatorHandle,
   type InstrumentId,
   type Strategy,
   type StrategyContext,
   ConfigError,
   asQty,
 } from '@tapedeck/core';
+import { sma } from '@tapedeck/indicators';
 
 export interface SmaCrossoverParams {
   readonly fastPeriod: number;
@@ -32,50 +36,9 @@ export interface SmaCrossoverParams {
   readonly allowShort?: boolean;
 }
 
-/**
- * Fixed-window mean over a ring buffer: O(1) per bar, no reallocation, no re-summing.
- *
- * Replaced by `@tapedeck/indicators` in phase 2. It lives here so that phase 1 has no dependency
- * outside the core, and so the incremental-update contract is stated once in the simplest possible
- * form: `update()` is called exactly once per bar and never sees the series again.
- */
-class RollingMean {
-  private readonly window: Float64Array;
-  private readonly period: number;
-  private cursor = 0;
-  private filled = 0;
-  private sum = 0;
-
-  constructor(period: number) {
-    if (!Number.isInteger(period) || period < 1) {
-      throw new ConfigError(`period must be a positive integer, got ${String(period)}`, { period });
-    }
-    this.period = period;
-    this.window = new Float64Array(period);
-  }
-
-  get ready(): boolean {
-    return this.filled === this.period;
-  }
-
-  /** Feeds one value and returns the current mean, or `null` until the window is full. */
-  update(value: number): number | null {
-    const outgoing = this.window[this.cursor] ?? 0;
-    this.window[this.cursor] = value;
-    this.cursor = (this.cursor + 1) % this.period;
-    if (this.filled < this.period) {
-      this.filled++;
-      this.sum += value;
-    } else {
-      this.sum += value - outgoing;
-    }
-    return this.ready ? this.sum / this.period : null;
-  }
-}
-
 export function smaCrossover(): Strategy<SmaCrossoverParams> {
-  let fast: RollingMean;
-  let slow: RollingMean;
+  let fast: IndicatorHandle;
+  let slow: IndicatorHandle;
   let instrumentId: InstrumentId;
   let qty: number;
   let allowShort: boolean;
@@ -108,24 +71,26 @@ export function smaCrossover(): Strategy<SmaCrossoverParams> {
       if (!Number.isInteger(params.qty) || params.qty <= 0) {
         throw new ConfigError('qty must be a positive integer', { qty: params.qty });
       }
-      fast = new RollingMean(params.fastPeriod);
-      slow = new RollingMean(params.slowPeriod);
+
+      instrumentId = 0 as InstrumentId;
       qty = params.qty;
       allowShort = params.allowShort ?? true;
-      instrumentId = 0 as InstrumentId;
+      fast = ctx.use(sma({ period: params.fastPeriod }), { instrumentId });
+      slow = ctx.use(sma({ period: params.slowPeriod }), { instrumentId });
+
       ctx.log.info('sma-crossover initialised', {
-        fastPeriod: params.fastPeriod,
-        slowPeriod: params.slowPeriod,
+        fast: fast.name,
+        slow: slow.name,
         qty,
         allowShort,
       });
     },
 
-    onBar(bar: BarEvent, ctx: StrategyContext): void {
-      // Indicators take the close of a *closed* bar. The engine guarantees this callback cannot
-      // see a price that had not printed yet (ADR-0005), so nothing here needs to be careful.
-      const fastValue = fast.update(bar.close);
-      const slowValue = slow.update(bar.close);
+    onBar(_bar: BarEvent, ctx: StrategyContext): void {
+      // The engine has already fed this bar to both averages, and the no-lookahead invariant means
+      // the bar itself closed before any of this ran (ADR-0005). Nothing here needs to be careful.
+      const fastValue = fast.value;
+      const slowValue = slow.value;
       if (fastValue === null || slowValue === null) return;
 
       const side = fastValue > slowValue ? 1 : fastValue < slowValue ? -1 : previousSide;

@@ -1,51 +1,55 @@
 /**
- * The smoke test: one strategy, the whole pipeline, from bars to trades.
+ * The smoke test: one strategy, the whole pipeline, from a real tape to a trade list.
  *
  * It asserts behaviour that must hold for *any* strategy — no lookahead, reconciling accounts,
- * reproducibility — rather than a particular PnL on invented data.
+ * reproducibility — rather than a particular PnL. The data is the committed year of hourly
+ * BTCUSDT, so these are real prices; the numbers still say nothing about the strategy.
  */
 
 import { describe, expect, it } from 'vitest';
+import { fileURLToPath } from 'node:url';
 import {
   type RunResult,
   ConfigError,
   Engine,
-  INSTRUMENTS,
   PRESETS,
+  parseFixed,
   serializeRunResult,
 } from '@tapedeck/core';
+import { readBarTapeFileSync } from '@tapedeck/data';
 import { type SmaCrossoverParams, smaCrossover } from '../src/strategy.ts';
-import { syntheticSeries } from '../src/series.ts';
 
-const PARAMS: SmaCrossoverParams = { fastPeriod: 10, slowPeriod: 30, qty: 1, allowShort: true };
+const TAPE = fileURLToPath(new URL('../../../fixtures/binance-BTCUSDT-1h.tape', import.meta.url));
+const tape = readBarTapeFileSync(TAPE);
+const SIZE = parseFixed('0.25', tape.instrument.qtyExp);
 
-function run(overrides: Partial<SmaCrossoverParams> = {}, seed = 1, bars = 2_000): RunResult {
+const PARAMS: SmaCrossoverParams = {
+  fastPeriod: 24,
+  slowPeriod: 72,
+  qty: SIZE,
+  allowShort: true,
+};
+
+function run(overrides: Partial<SmaCrossoverParams> = {}, seed = 1): RunResult {
   const engine = new Engine<SmaCrossoverParams>({
-    instruments: [INSTRUMENTS.WIN],
+    instruments: [tape.instrument],
     strategy: smaCrossover,
     params: { ...PARAMS, ...overrides },
     initialCash: '100000',
     seed,
-    execution: PRESETS.b3Futures(),
+    execution: PRESETS.binanceSpot(),
     flattenAtEnd: true,
   });
-  engine.feedBars(
-    syntheticSeries({
-      instrument: engine.registry.byId(0 as never),
-      bars,
-      startPrice: 130_000,
-      seed,
-    }),
-  );
+  engine.feedBars(tape.chunk);
   return engine.finish();
 }
 
-describe('sma crossover', () => {
+describe('sma crossover on a year of hourly BTCUSDT', () => {
   const result = run();
 
-  it('trades, and every trade closes', () => {
-    expect(result.stats.bars).toBe(2_000);
-    expect(result.trades.length).toBeGreaterThan(5);
+  it('replays the whole tape and closes every trade', () => {
+    expect(result.stats.bars).toBe(tape.chunk.count);
+    expect(result.trades.length).toBeGreaterThan(20);
     expect(result.openPositions).toHaveLength(0);
   });
 
@@ -69,31 +73,35 @@ describe('sma crossover', () => {
       position += fill.side === 'buy' ? fill.qty : -fill.qty;
       peak = Math.max(peak, Math.abs(position));
     }
-    expect(peak).toBe(1);
+    expect(peak).toBe(SIZE);
     expect(position).toBe(0);
   });
 
-  it('pays commission on every fill, because B3 does', () => {
+  it('pays a fee on every fill, because the venue does', () => {
     expect(result.fills.every((fill) => fill.commission > 0)).toBe(true);
     expect(result.commissionPaid).toBeGreaterThan(0);
   });
 
-  it('publishes one signal per position change', () => {
-    expect(result.stats.signals).toBeGreaterThan(0);
-    expect(result.signals.every((signal) => signal.direction !== 'flat')).toBe(true);
+  it('shows costs large enough to matter, which is the point of modelling them', () => {
+    // On hourly bars a crossover trades often, and ten basis points a side is not a rounding
+    // error. A backtester that omitted fees would report a materially different result.
+    expect(result.commissionPaid).toBeGreaterThan(Math.abs(result.realizedPnl) * 0.1);
   });
 
-  it('is reproducible byte for byte', () => {
-    expect(serializeRunResult(run())).toBe(serializeRunResult(run()));
+  it('publishes one signal per position change', () => {
+    expect(result.stats.signals).toBe(result.trades.length);
+    expect(result.signals.every((signal) => signal.direction !== 'flat')).toBe(true);
   });
 
   it('stays flat until the slow average has enough history', () => {
     const firstFill = result.fills[0];
-    expect(firstFill).toBeDefined();
-    // The slow window is 30 bars, so nothing can be submitted before bar 30 or filled before 31.
-    expect(firstFill?.ts).toBeGreaterThanOrEqual(
-      31 * 60 * 1_000_000 + Number(result.startTs) - 60_000_000,
-    );
+    const firstBarClose = tape.chunk.closeTs[0] ?? 0;
+    // The slow window is 72 bars, so nothing is submitted before bar 72 or filled before bar 73.
+    expect(firstFill?.ts).toBeGreaterThanOrEqual(firstBarClose + 72 * 3_600_000_000);
+  });
+
+  it('is reproducible byte for byte', () => {
+    expect(serializeRunResult(run())).toBe(serializeRunResult(run()));
   });
 
   it('holds no short position when shorting is disabled', () => {
@@ -103,10 +111,11 @@ describe('sma crossover', () => {
       position += fill.side === 'buy' ? fill.qty : -fill.qty;
       expect(position).toBeGreaterThanOrEqual(0);
     }
+    expect(longOnly.trades.length).toBeLessThan(result.trades.length);
   });
 
   it('rejects parameters that cannot produce a crossover', () => {
-    expect(() => run({ fastPeriod: 30, slowPeriod: 30 })).toThrow(ConfigError);
+    expect(() => run({ fastPeriod: 72, slowPeriod: 72 })).toThrow(ConfigError);
     expect(() => run({ qty: 0 })).toThrow(ConfigError);
   });
 });
