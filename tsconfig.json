@@ -1,0 +1,19 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "baseUrl": ".",
+    "paths": {
+      "@tapedeck/core": ["packages/core/src/index.ts"],
+      "@tapedeck/core/*": ["packages/core/src/*"]
+    }
+  },
+  "include": [
+    "packages/*/src/**/*.ts",
+    "packages/*/test/**/*.ts",
+    "examples/*/src/**/*.ts",
+    "examples/*/test/**/*.ts",
+    "bench/**/*.ts",
+    "*.ts"
+  ]
+}
