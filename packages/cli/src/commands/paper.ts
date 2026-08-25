@@ -271,9 +271,15 @@ export async function paperCommand(
       `events  ${String(stats.processed)} processed, ${String(stats.rejected)} refused, ` +
         `queue peaked at ${String(stats.maxQueueDepth)}`,
     );
+    // Both ends of the range, over market events only. A single "worst" number cannot say whether
+    // this machine's clock disagrees with the venue's, and that is the first thing to check
+    // before reading any of it.
+    const seconds = (micros: number): string => `${(micros / MICROS_PER_SECOND).toFixed(3)}s`;
     log(
-      `lag     worst ${(stats.maxLagMicros / MICROS_PER_SECOND).toFixed(3)}s, ` +
-        `last ${(stats.lastLagMicros / MICROS_PER_SECOND).toFixed(3)}s\n`,
+      stats.lagSamples === 0
+        ? 'lag     no market events to measure\n'
+        : `lag     ${seconds(stats.minLagMicros)} .. ${seconds(stats.maxLagMicros)} over ` +
+            `${String(stats.lagSamples)} event(s), last ${seconds(stats.lastLagMicros)}\n`,
     );
     log(formatMetrics(metrics, instrument.currency));
 

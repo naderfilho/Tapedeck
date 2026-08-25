@@ -192,7 +192,8 @@ describe('paper', () => {
     expect(output).toContain('feed    connected wss://replay');
     expect(output).toContain('stopped: the replay ended');
     expect(output).toContain('events  60 processed, 0 refused');
-    expect(output).toContain('lag     worst');
+    expect(output).toContain('lag     ');
+    expect(output).toContain('over 60 event(s)');
     expect(output).toContain('net profit');
     // Warnings sit above the numbers, never below them.
     const warned = output.indexOf('what this session could not know');

@@ -70,9 +70,22 @@ export interface LiveStats {
   fills: number;
   queueDepth: number;
   maxQueueDepth: number;
-  /** Wall time minus event time for the most recent event, in microseconds. */
+  /**
+   * Wall time minus event time for the most recent market event, in microseconds.
+   *
+   * Market events only. A heartbeat's timestamp *is* a reading of this clock, so its lag is zero
+   * by construction and averaging it in would quietly drag the statistic towards zero — which is
+   * exactly what the first real session against Binance did before this was noticed.
+   */
   lastLagMicros: number;
   maxLagMicros: number;
+  /**
+   * The most negative lag seen, which is a measurement of clock disagreement rather than of
+   * delay: an event cannot really arrive before it happened. Kept because hiding it behind a
+   * `max(0, …)` would turn "your clock is half a second behind the venue's" into "no lag".
+   */
+  minLagMicros: number;
+  lagSamples: number;
   snapshots: number;
   /** Reconnections that admitted to having missed something. */
   gaps: number;
@@ -117,6 +130,8 @@ export class LiveSession<P extends object> {
     maxQueueDepth: 0,
     lastLagMicros: 0,
     maxLagMicros: 0,
+    minLagMicros: 0,
+    lagSamples: 0,
     snapshots: 0,
     gaps: 0,
     gapMicros: 0,
@@ -344,6 +359,15 @@ export class LiveSession<P extends object> {
           `inside it.`,
       );
     }
+    if (stats.minLagMicros < 0) {
+      out.push(
+        `${String(stats.lagSamples)} event(s) arrived stamped up to ` +
+          `${(-stats.minLagMicros / MICROS_PER_SECOND).toFixed(3)}s in the future of this ` +
+          `machine's clock, which they cannot be: this clock is behind the venue's by at least ` +
+          `that much. Every lag number here is off by the same amount, so read them as a ` +
+          `diagnostic and fix the local clock before believing them.`,
+      );
+    }
     return out;
   }
 
@@ -353,6 +377,7 @@ export class LiveSession<P extends object> {
 
   private apply(event: LiveEvent): void {
     const ts = eventTs(event);
+    let fromTheMarket = true;
     switch (event.kind) {
       case 'bars':
         this.engine.feedBars(event.chunk);
@@ -363,16 +388,28 @@ export class LiveSession<P extends object> {
       case 'heartbeat':
         this.engine.advanceTo(event.ts);
         this.stats.heartbeats++;
+        fromTheMarket = false;
         break;
     }
 
     this.stats.processed++;
     this.sinceSnapshot++;
+    if (!fromTheMarket) return;
+
     // Measured after the work, so the number includes this session's own processing time and not
     // only the venue's. Clock skew is in here too; there is no way to separate it from a single
-    // side of the connection, and pretending otherwise would be inventing a number.
+    // side of the connection, and pretending otherwise would be inventing a number — so a
+    // negative reading is kept as a negative reading rather than clamped away.
     const lag = this.wallClock.now() - ts;
-    this.stats.lastLagMicros = lag;
-    if (lag > this.stats.maxLagMicros) this.stats.maxLagMicros = lag;
+    const stats = this.stats;
+    stats.lastLagMicros = lag;
+    if (stats.lagSamples === 0) {
+      stats.maxLagMicros = lag;
+      stats.minLagMicros = lag;
+    } else {
+      if (lag > stats.maxLagMicros) stats.maxLagMicros = lag;
+      if (lag < stats.minLagMicros) stats.minLagMicros = lag;
+    }
+    stats.lagSamples++;
   }
 }

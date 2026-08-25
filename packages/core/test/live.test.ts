@@ -383,6 +383,40 @@ describe('time between events', () => {
     await session.stop();
   });
 
+  it('measures lag on market events only, never on its own heartbeats', async () => {
+    const clock = new FakeWallClock();
+    const session = new LiveSession(runOptions(), { sessionId: 'beats', wallClock: clock });
+    await session.start();
+    const events = perBarEvents(bars(ROWS));
+
+    clock.current = asTimestamp(MICROS_PER_MINUTE + 3 * MICROS_PER_SECOND);
+    session.receive(events[0]!);
+    // A heartbeat's timestamp is a reading of this very clock, so its lag is zero by construction.
+    // Letting it in would drag the statistic to zero on any quiet market.
+    session.receive({ kind: 'heartbeat', ts: clock.current });
+
+    expect(session.stats.lagSamples).toBe(1);
+    expect(session.stats.lastLagMicros).toBe(3 * MICROS_PER_SECOND);
+    expect(session.stats.maxLagMicros).toBe(3 * MICROS_PER_SECOND);
+    await session.stop();
+  });
+
+  it('keeps a negative lag, because it means the clocks disagree', async () => {
+    const clock = new FakeWallClock();
+    const session = new LiveSession(runOptions(), { sessionId: 'skew', wallClock: clock });
+    await session.start();
+
+    // The venue stamps an event half a second ahead of this machine, which cannot happen: the
+    // machine is behind. Clamping that to zero would report "no lag" for a badly set clock.
+    clock.current = asTimestamp(MICROS_PER_MINUTE - MICROS_PER_SECOND / 2);
+    session.receive(perBarEvents(bars(ROWS))[0]!);
+
+    expect(session.stats.minLagMicros).toBe(-MICROS_PER_SECOND / 2);
+    expect(session.stats.maxLagMicros).toBe(-MICROS_PER_SECOND / 2);
+    expect(session.warnings().join(' ')).toContain('0.500s in the future of this');
+    await session.stop();
+  });
+
   it('counts what a reconnection missed', async () => {
     const session = new LiveSession(runOptions(), {
       sessionId: 'gap',

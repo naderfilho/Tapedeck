@@ -121,20 +121,31 @@ same synchronous `drain()` a backtest calls. The kernel runs on **event time** i
 ([ADR-0014](docs/adr/0014-paper-trading-runs-on-event-time.md)); the wall clock is used to measure
 how far behind the session is, and that number is reported rather than folded into execution.
 
+Here is a real fifteen-second session against the live Binance socket, unedited:
+
 ```text
-paper   BINANCE:BTCUSDT  bar
-session btc-sma  (resumed from the store)
-feed    connected wss://stream.binance.com:9443/stream?streams=btcusdt@kline_1m
+paper   BINANCE:BTCUSDT  tick
+session BTCUSDT-binanceSpot
+feed    connecting (attempt 1)
+feed    connected wss://stream.binance.com:9443/stream?streams=btcusdt@aggTrade
+feed    feed closed
 
 stopped: duration elapsed
 
 what this session could not know
-  - the feed reconnected 1 time(s), leaving 4.2s of tape unseen. Fills that would have
-    happened in those windows did not happen here.
+  - 117 event(s) arrived stamped up to 0.466s in the future of this machine's clock, which
+    they cannot be: this clock is behind the venue's by at least that much. Every lag number
+    here is off by the same amount, so read them as a diagnostic and fix the local clock
+    before believing them.
 
-events  61 processed, 0 refused, queue peaked at 2
-lag     worst 0.412s, last 0.180s
+events  131 processed, 0 refused, queue peaked at 1
+lag     -0.466s .. -0.405s over 117 event(s), last -0.462s
 ```
+
+That warning is the first real connection paying for itself. A lag statistic that clamped negative
+readings to zero would have reported a comfortable `0.000s` and hidden a machine whose clock is
+half a second out; the 61 ms spread between the two ends of the range is the jitter that is
+actually measurable, and the offset is not lag at all.
 
 Three things it will not do quietly:
 

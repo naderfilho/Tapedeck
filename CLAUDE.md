@@ -32,6 +32,12 @@ coverage are all green — not before.
 **Writing files:** heredocs above roughly 8 KB get truncated by the shell here, and template
 literals inside `node -e` get eaten. Use the Write and Edit tools for source files.
 
+**Running the CLI by hand:** `node packages/cli/src/cli.ts …` runs the CLI from source but resolves
+`@tapedeck/core` through `node_modules` to that package's **`dist`**. Vitest aliases the workspace
+to `src` and does not. So a change to core that you are testing through the CLI needs
+`corepack pnpm -r build` first, or you will be debugging the previous build — which happened while
+phase 4's live session was being smoke-tested, and looked exactly like a bug in the new code.
+
 ## Non-negotiables
 
 These are the decisions the project exists to demonstrate. Do not quietly relax one; if a change
@@ -118,10 +124,11 @@ Done. The shape it landed in, because it is not quite the shape this file predic
 - `OrderAmended` event: `broker.replace()` currently amends silently, documented as a gap.
 - OCO orders: a bracket is two orders and a cancel in `onFill` today, which works but is not the
   same as the venue doing it.
-- Phase 4 owes one thing: nobody has run `tapedeck paper` against the real Binance socket. Every
-  path is covered by a fake driving the same code, and the end-to-end test replays a real year of
-  BTCUSDT through the parser and the queue, but the first real connection has not happened. It
-  needs a network and a few minutes of someone's attention, not more code.
-- A paper session's report reuses the backtest metrics unchanged. Some of them — CAGR over an hour
-  of wall time, for instance — say very little about a session that short. Phase 5 should decide
-  which metrics a live session should print at all.
+- A paper session's report reuses the backtest metrics unchanged. Some of them — a CAGR of -92%
+  extrapolated from nineteen seconds of wall time, which is what the first real session printed —
+  say nothing at all about a session that short. Phase 5 should decide which metrics a live
+  session should print, and which it should refuse to.
+- The live session has been run against the real Binance socket (aggTrade, fifteen seconds, 131
+  events, a real fill) and the output is in the README. It has **not** been run long enough to see
+  a reconnection, a full candle stream, or a crash and resume in anger. The code paths are tested
+  against a fake; the weather has not been.
