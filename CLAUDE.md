@@ -119,9 +119,10 @@ Done. The shape it landed in, because it is not quite the shape this file predic
 
 ## Still owed from earlier phases
 
-- ~~A screenshot of `out/report.html` for the README.~~ Done: `docs/images/report.png` (hero, cut
-  after the equity chart) and `report-full.png`. The browser pane is still unavailable here, so
-  they are captured with headless Chrome, which is also what makes them reproducible:
+- ~~A screenshot of `out/report.html` for the README.~~ Done: `docs/images/report.png`, cut after
+  the equity chart, linking to the page CI publishes at
+  <https://naderfilho.github.io/Tapedeck/>. The browser pane is still unavailable here, so it is
+  captured with headless Chrome, which is also what makes it reproducible:
 
   ```bash
   node examples/sma-crossover/src/main.ts
@@ -129,7 +130,7 @@ Done. The shape it landed in, because it is not quite the shape this file predic
     --window-size=1280,985 --screenshot=docs/images/report.png out/report.html
   ```
 
-  Regenerate them whenever the report's layout changes, or the README will be showing a page the
+  Regenerate it whenever the report's layout changes, or the README will be showing a page the
   code no longer produces.
 
 - `OrderAmended` event: `broker.replace()` currently amends silently, documented as a gap.
