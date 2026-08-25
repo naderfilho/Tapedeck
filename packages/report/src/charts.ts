@@ -41,12 +41,16 @@ export function downsample(
 
   const outX = new Float64Array(buckets * 2);
   const outY = new Float64Array(buckets * 2);
-  const size = length / buckets;
   let written = 0;
 
   for (let bucket = 0; bucket < buckets; bucket++) {
-    const start = Math.floor(bucket * size);
-    const end = Math.min(length, Math.floor((bucket + 1) * size));
+    // Boundaries are computed as `bucket * length / buckets` and not as `bucket * (length /
+    // buckets)`. The two are the same in arithmetic and not in floating point: for 52 points in
+    // 23 buckets, `23 * (52 / 23)` is 51.99999999999999, so the last bucket ended one short and
+    // the final point of the series was never examined. Multiplying first keeps the numerator an
+    // exact integer, and the last bucket's end is then exactly `length`.
+    const start = Math.floor((bucket * length) / buckets);
+    const end = Math.floor(((bucket + 1) * length) / buckets);
     if (end <= start) continue;
 
     let minIndex = start;

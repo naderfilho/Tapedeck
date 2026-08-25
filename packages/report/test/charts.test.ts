@@ -31,6 +31,42 @@ describe('downsampling', () => {
     expect(Array.from(reduced.ys)).toContain(999);
   });
 
+  it('keeps an extreme sitting on the very last point (52 points, 23 buckets)', () => {
+    // The shrunk counterexample from the property below, which CI found on a run the author's
+    // machine had never produced. `size = 52 / 23` and `23 * size` is 51.99999999999999, so the
+    // last bucket ended at 51 and the minimum — alone in the final position — was dropped.
+    const values = Array.from({ length: 52 }, () => 0);
+    values[51] = -1;
+    const { xs, ys } = series(values);
+    const reduced = downsample(xs, ys, values.length, 23);
+
+    expect(Math.min(...Array.from(reduced.ys))).toBe(-1);
+  });
+
+  it('visits every point exactly once, for any length and bucket count', () => {
+    fc.assert(
+      fc.property(
+        fc.integer({ min: 1, max: 5_000 }),
+        fc.integer({ min: 2, max: 200 }),
+        (length, buckets) => {
+          // The bug above was a gap between two bucket boundaries. Asserting that the boundaries
+          // tile the range exactly is what makes a whole class of them impossible, rather than
+          // just the one shape the counterexample happened to have.
+          let cursor = 0;
+          for (let bucket = 0; bucket < buckets; bucket++) {
+            const start = Math.floor((bucket * length) / buckets);
+            const end = Math.floor(((bucket + 1) * length) / buckets);
+            expect(start).toBe(cursor);
+            expect(end).toBeGreaterThanOrEqual(start);
+            cursor = end;
+          }
+          expect(cursor).toBe(length);
+        },
+      ),
+      { numRuns: 200 },
+    );
+  });
+
   it('preserves the overall minimum and maximum for any series', () => {
     fc.assert(
       fc.property(

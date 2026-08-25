@@ -1,7 +1,7 @@
 # Tapedeck
 
 [![CI](https://github.com/naderfilho/Tapedeck/actions/workflows/ci.yml/badge.svg)](https://github.com/naderfilho/Tapedeck/actions/workflows/ci.yml)
-![tests](https://img.shields.io/badge/tests-476-brightgreen)
+![tests](https://img.shields.io/badge/tests-478-brightgreen)
 ![coverage](https://img.shields.io/badge/coverage-97%25-brightgreen)
 ![node](https://img.shields.io/badge/node-%E2%89%A524-informational)
 [![licence](https://img.shields.io/badge/licence-MIT-blue)](LICENSE)
@@ -20,7 +20,7 @@ distribution, the exact execution configuration and every trade.
 
 > **Status: phase 4 of 6.** The kernel, the indicator library, the data adapters, the SQLite store,
 > the metrics and report package, the `tapedeck` command line and live paper trading are done —
-> 476 tests, 97% statement coverage, and a committed year of real BTCUSDT candles so that
+> 478 tests, 97% statement coverage, and a committed year of real BTCUSDT candles so that
 > `pnpm test` measures something. Polish and the B3 session calendar are on the roadmap below.
 > Nothing is published to npm yet.
 
@@ -422,14 +422,14 @@ hoped for:
 ## Testing
 
 ```bash
-pnpm test          # 476 tests
+pnpm test          # 478 tests
 pnpm coverage      # 97% statements, 97% functions; 85% is the floor for every package
 pnpm lint          # no `any`, no `@ts-ignore`, no wall clock in the kernel
 pnpm typecheck     # strict, plus noUncheckedIndexedAccess and exactOptionalPropertyTypes
 ```
 
 Property tests (fast-check) cover the pieces where a hand-written case would only prove what the
-author already believed, and four of them changed the design rather than confirming it:
+author already believed, and five of them changed the code rather than confirming it:
 
 - the equity identity across arbitrary fill sequences, which found that deriving PnL from a rounded
   average entry price does not reconcile;
@@ -439,7 +439,13 @@ author already believed, and four of them changed the design rather than confirm
   single outlier passing through a rolling window poisons the variance until the accumulator is
   rebuilt;
 - the intrabar ordering, which found that comparing a buy's "favourability" against a sell's is not
-  a comparison at all.
+  a comparison at all;
+- the chart downsampler, which found that `bucket * (length / buckets)` and
+  `bucket * length / buckets` are the same in arithmetic and not in floating point — for 52 points
+  in 23 buckets the first is `51.99999999999999`, so the last bucket ended one short and an extreme
+  sitting on the final point of a series was silently deleted from the chart. This one was found by
+  CI rather than by the author: fast-check draws different cases every run, and the shape it needed
+  had never come up locally.
 
 A dedicated suite in [`lookahead.test.ts`](packages/core/test/lookahead.test.ts) is written as a
 set of attacks: strategies that try to keep a bar, reach the tape, act on a jump as it prints, or

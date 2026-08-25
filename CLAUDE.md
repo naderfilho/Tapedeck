@@ -7,7 +7,7 @@ explains it to whoever is about to change it.
 
 Phases 1 to 4 are done and committed: the deterministic kernel, the incremental indicator library,
 the data adapters and `.tape` format, the SQLite store, the metrics and HTML report, the `tapedeck`
-CLI, and live paper trading. 476 tests, 97% statement coverage, a committed year of real hourly
+CLI, and live paper trading. 478 tests, 97% statement coverage, a committed year of real hourly
 BTCUSDT.
 
 Phase 5 is polish. Phase 6 is B3. The roadmap at the end of the README is the authority on what
@@ -60,7 +60,7 @@ needs to, write an ADR arguing for it first.
 
 ## Testing style
 
-Property tests (fast-check) are not decoration here: four of them changed the design rather than
+Property tests (fast-check) are not decoration here: five of them changed the code rather than
 confirming it. When adding behaviour that has an invariant, assert the invariant over generated
 input, not one hand-picked case. When a property test finds something, fix the implementation and
 add the shrunk counterexample as a named regression test.
