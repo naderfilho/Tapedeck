@@ -212,61 +212,144 @@ export function bpsCommission(options: BpsCommissionOptions): CommissionModel {
   };
 }
 
-export interface B3FuturesCostOptions {
-  /** Exchange fee per contract, decimal string in BRL. */
-  readonly emoluments: string;
-  /** Registration fee per contract. */
-  readonly registration: string;
-  /** Broker commission per contract. */
-  readonly brokerage: string;
+/**
+ * A B3 tariff as the exchange publishes it.
+ *
+ * B3 charges **one unit cost per contract** and apportions it internally between emoluments and
+ * the registration fee; the split is an invoice detail and the sum is what reaches the ledger, so
+ * this models the sum. Two structural facts that a flat number in reais cannot express:
+ *
+ * - **The dollar contracts are priced in dollars.** WDO costs US$0.12 per contract, not a fixed
+ *   amount of reais, so its cost in BRL moves with the exchange rate. {@link B3FuturesCostOptions}
+ *   therefore demands a rate for those contracts and refuses to guess one.
+ * - **The day-trade reduction is a volume band, not a number.** It runs 35% to 75% on the index
+ *   family and 16% to 65% on the dollar family, by the trader's own average daily volume. The
+ *   figure here is the *lowest* band — the smallest discount, the highest cost — because that is
+ *   the retail case and the pessimistic one.
+ *
+ * The published prices already include PIS, COFINS and ISS.
+ */
+export interface B3Tariff {
+  readonly contract: string;
+  /** Unit cost per contract, as a decimal string in {@link currency}. */
+  readonly unitCost: string;
+  readonly currency: 'BRL' | 'USD';
+  /** Reduction applied to the unit cost on a day trade, in basis points of the cost. */
+  readonly dayTradeReductionBps: number;
+  /** Where the figure came from, so it can be re-checked rather than trusted. */
+  readonly source: string;
+  /** The day it was transcribed. B3 revises these without notice; treat it as a reading, not a law. */
+  readonly readOn: string;
 }
 
 /**
- * B3 futures costs, kept as three separate line items.
+ * B3 futures tariffs, transcribed from the exchange's own published tables.
  *
- * Splitting them costs nothing and means each can be updated from its own source: the exchange
- * publishes emoluments and registration, and brokerage is whatever your broker charges — for mini
- * contracts on a day trade, several Brazilian brokers charge nothing at all.
+ * These are citations, not invention — but a citation with a date on it, and B3 changes them. The
+ * volume bands are collapsed to the retail end on purpose (see {@link B3Tariff}), so a desk trading
+ * size pays less than this says. If the numbers matter to your conclusion, open the source URL and
+ * check them; if they have moved, `breakEvenCommissionPerUnit` in `@tapedeck/report` tells you
+ * whether the move is large enough to change the answer.
+ */
+export const B3_TARIFFS = {
+  /** Ibovespa mini future. */
+  WIN: {
+    contract: 'WIN',
+    unitCost: '0.30',
+    currency: 'BRL',
+    dayTradeReductionBps: 3_500,
+    source:
+      'https://www.b3.com.br/pt_br/produtos-e-servicos/tarifas/listados-a-vista-e-derivativos/renda-variavel/tarifas-de-ibovespa-e-indice-brasil-50/futuros-e-estruturadas/',
+    readOn: '2026-08-25',
+  },
+  /** Ibovespa full-size future. */
+  IND: {
+    contract: 'IND',
+    unitCost: '1.52',
+    currency: 'BRL',
+    dayTradeReductionBps: 3_500,
+    source:
+      'https://www.b3.com.br/pt_br/produtos-e-servicos/tarifas/listados-a-vista-e-derivativos/renda-variavel/tarifas-de-ibovespa-e-indice-brasil-50/futuros-e-estruturadas/',
+    readOn: '2026-08-25',
+  },
+  /** US dollar mini future. Priced in dollars: the cost in reais moves with the rate. */
+  WDO: {
+    contract: 'WDO',
+    unitCost: '0.12',
+    currency: 'USD',
+    dayTradeReductionBps: 1_600,
+    source:
+      'https://www.b3.com.br/pt_br/produtos-e-servicos/tarifas/listados-a-vista-e-derivativos/moedas/tarifas-de-dolar-dos-estados-unidos/futuros-de-dolar/',
+    readOn: '2026-08-25',
+  },
+  /** US dollar full-size future. */
+  DOL: {
+    contract: 'DOL',
+    unitCost: '0.60',
+    currency: 'USD',
+    dayTradeReductionBps: 1_600,
+    source:
+      'https://www.b3.com.br/pt_br/produtos-e-servicos/tarifas/listados-a-vista-e-derivativos/moedas/tarifas-de-dolar-dos-estados-unidos/futuros-de-dolar/',
+    readOn: '2026-08-25',
+  },
+} as const satisfies Readonly<Record<string, B3Tariff>>;
+
+export interface B3FuturesCostOptions {
+  readonly tariff: B3Tariff;
+  /** Applies the day-trade reduction. Defaults to false, which is the more expensive case. */
+  readonly dayTrade?: boolean | undefined;
+  /**
+   * Broker commission per contract, as a decimal string in BRL. Defaults to `'0'`, which is what
+   * several Brazilian brokers charge on minis — and unlike a zero *exchange* fee, it is a real
+   * configuration rather than a flattering omission.
+   */
+  readonly brokerage?: string | undefined;
+  /** BRL per USD. Required for a dollar-denominated tariff, refused for a real-denominated one. */
+  readonly usdBrl?: string | undefined;
+}
+
+/**
+ * B3 futures costs: the exchange's unit cost, the day-trade reduction, and your broker's charge.
  *
- * The figures in {@link B3_COST_SCENARIOS} are **scenarios, not quotes**. Nobody should read a
- * number out of this file and believe it: B3's fees vary by contract, by investor category and by
- * volume band, and they change. What the engine guarantees instead is that whatever you charged is
- * printed with the result — the model's `name` carries the three components into every report —
- * and that `breakEvenCostPerUnit` in `@tapedeck/report` tells you the only figure that does not
- * depend on knowing the real one: the cost per contract at which this strategy stops making money.
+ * The model's `name` carries every input, so a report always says which tariff, which discount and
+ * which exchange rate produced a currency amount.
  */
 export function b3FuturesCommission(options: B3FuturesCostOptions): CommissionModel {
-  const perContract =
-    parseFixed(options.emoluments, MONEY_EXP) +
-    parseFixed(options.registration, MONEY_EXP) +
-    parseFixed(options.brokerage, MONEY_EXP);
+  const { tariff } = options;
+  const dayTrade = options.dayTrade ?? false;
+  const brokerage = options.brokerage ?? '0';
+
+  let exchange = parseFixed(tariff.unitCost, MONEY_EXP);
+  if (tariff.currency === 'USD') {
+    if (options.usdBrl === undefined) {
+      throw new ConfigError(
+        `${tariff.contract} is priced in USD (US$${tariff.unitCost} per contract), so its cost in ` +
+          `reais depends on the exchange rate. Pass usdBrl rather than letting the engine invent one.`,
+        { contract: tariff.contract },
+      );
+    }
+    exchange = mulDiv(exchange, parseFixed(options.usdBrl, MONEY_EXP), 10 ** MONEY_EXP, 'half-up');
+  } else if (options.usdBrl !== undefined) {
+    throw new ConfigError(`${tariff.contract} is priced in BRL; usdBrl does not apply to it`, {
+      contract: tariff.contract,
+    });
+  }
+
+  if (dayTrade) {
+    exchange = exchange - mulDiv(exchange, tariff.dayTradeReductionBps, BPS_DIVISOR, 'half-up');
+  }
+
+  const perContract = exchange + parseFixed(brokerage, MONEY_EXP);
   if (perContract < 0) throw new ConfigError('B3 cost components must not be negative');
+
+  const rate = options.usdBrl === undefined ? '' : `@${options.usdBrl}`;
   return {
-    name: `b3-futures(${options.emoluments}+${options.registration}+${options.brokerage})`,
+    name:
+      `b3(${tariff.contract} ${tariff.unitCost}${tariff.currency}${rate}` +
+      `${dayTrade ? ' dt' : ''}+brokerage ${brokerage})`,
     charge: (ctx) => asMoney(mulDiv(perContract, ctx.qty, 10 ** ctx.instrument.qtyExp, 'half-up')),
   };
 }
-
-/**
- * Cost scenarios for B3 mini futures, per contract per side, in BRL.
- *
- * Three shapes rather than one number, because the honest answer to "what does it cost" is "it
- * depends on your broker, and here is how much that matters". Run the same strategy under two of
- * these and the difference between the results *is* the answer to how cost-sensitive it is.
- *
- * None of these is a quote. `zeroBrokerage` is the configuration a day trader on minis at a
- * zero-brokerage broker is closest to; `retail` adds a per-contract charge of the order several
- * brokers publish; `heavy` exists to be obviously pessimistic, which is the most useful scenario a
- * strategy can survive.
- */
-export const B3_COST_SCENARIOS = {
-  /** Exchange charges only. The lower bound anyone actually trades at. */
-  zeroBrokerage: { emoluments: '0.25', registration: '0.10', brokerage: '0' },
-  /** Exchange charges plus a per-contract brokerage. */
-  retail: { emoluments: '0.25', registration: '0.10', brokerage: '0.50' },
-  /** Deliberately punitive. A strategy that survives this one is not a cost illusion. */
-  heavy: { emoluments: '0.25', registration: '0.10', brokerage: '2.00' },
-} as const satisfies Readonly<Record<string, B3FuturesCostOptions>>;
 
 export function noLatency(): LatencyModel {
   return { name: 'none', delayMicros: () => 0 };
@@ -346,10 +429,10 @@ export function priceDeltaToMoney(instrument: Instrument, delta: number, qty: Qt
  * Venue presets. Each is a composition of the four models above, so any single part can be
  * swapped without inheriting the rest.
  *
- * The B3 costs come from {@link B3_COST_SCENARIOS}, which are scenarios rather than quotes. A
- * currency amount produced under one of them is an answer to "what would this have made at these
- * costs", never to "what would this have made". `b3Futures` uses the retail scenario because a
- * middle assumption is the least misleading default; the sweep in the B3 example runs all three.
+ * The B3 costs come from {@link B3_TARIFFS}, transcribed from the exchange's own tables. `b3Futures`
+ * assumes a day trade on the mini index with no brokerage, which is the configuration a retail day
+ * trader at a zero-brokerage broker is closest to. Any other assumption is one line: build the
+ * commission model yourself and pass it in.
  */
 export const PRESETS = {
   /** No costs at all. Useful only for testing engine mechanics. */
@@ -373,7 +456,7 @@ export const PRESETS = {
   /** B3 mini futures under the `retail` cost scenario. */
   b3Futures: (): ExecutionConfig => ({
     slippage: fixedTicksSlippage(1),
-    commission: b3FuturesCommission(B3_COST_SCENARIOS.retail),
+    commission: b3FuturesCommission({ tariff: B3_TARIFFS.WIN, dayTrade: true }),
     latency: uniformLatency(5_000, 25_000),
     liquidity: volumeParticipation(500),
     intrabar: 'pessimistic',

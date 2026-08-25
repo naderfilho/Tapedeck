@@ -150,6 +150,7 @@ export {
 } from './execution/order.ts';
 export {
   type B3FuturesCostOptions,
+  type B3Tariff,
   type BpsCommissionOptions,
   type CommissionContext,
   type CommissionModel,
@@ -160,7 +161,7 @@ export {
   type LiquidityModel,
   type SlippageContext,
   type SlippageModel,
-  B3_COST_SCENARIOS,
+  B3_TARIFFS,
   PRESETS,
   b3FuturesCommission,
   bpsCommission,

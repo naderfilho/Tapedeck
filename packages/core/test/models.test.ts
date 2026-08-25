@@ -11,6 +11,7 @@ import {
   PRESETS,
   asPrice,
   asQty,
+  B3_TARIFFS,
   b3FuturesCommission,
   bpsCommission,
   bpsSlippage,
@@ -148,14 +149,46 @@ describe('commission models', () => {
     expect(model.charge(context(10, 1_000, 'maker'))).toBe(5 * MONEY);
   });
 
-  it('sums the three B3 line items per contract', () => {
+  it('charges the exchange tariff plus brokerage, per contract', () => {
+    // WIN is published at R$0.30 per contract; add fifty centavos of brokerage and two contracts
+    // cost 2 x 0.80.
+    const model = b3FuturesCommission({ tariff: B3_TARIFFS.WIN, brokerage: '0.50' });
+    expect(model.charge(context(2, 130_000))).toBe(1.6 * MONEY);
+    expect(model.name).toContain('WIN 0.30BRL');
+  });
+
+  it('applies the day-trade reduction to the exchange half only', () => {
+    // 35% off R$0.30 is R$0.195; brokerage is the broker's business and is not discounted.
     const model = b3FuturesCommission({
-      emoluments: '0.24',
-      registration: '0.06',
+      tariff: B3_TARIFFS.WIN,
+      dayTrade: true,
       brokerage: '0.50',
     });
-    expect(model.charge(context(2, 130_000))).toBe(1.6 * MONEY);
-    expect(model.name).toContain('0.24');
+    expect(model.charge(context(1, 130_000))).toBe(0.695 * MONEY);
+    expect(model.name).toContain('dt');
+  });
+
+  it('refuses to invent an exchange rate for a dollar-denominated tariff', () => {
+    // WDO is published at US$0.12 per contract, so its cost in reais is not knowable without a
+    // rate. Guessing one would put an invented number into every fill.
+    expect(() => b3FuturesCommission({ tariff: B3_TARIFFS.WDO })).toThrow(/priced in USD/);
+    const model = b3FuturesCommission({ tariff: B3_TARIFFS.WDO, usdBrl: '5.40' });
+    // 0.12 x 5.40 = 0.648
+    expect(model.charge(context(1, 54_000))).toBe(0.648 * MONEY);
+    expect(model.name).toContain('@5.40');
+  });
+
+  it('refuses a rate for a tariff that is already in reais', () => {
+    expect(() => b3FuturesCommission({ tariff: B3_TARIFFS.WIN, usdBrl: '5.40' })).toThrow(
+      /does not apply/,
+    );
+  });
+
+  it('carries the source and the date it was read, so a stale figure is visible', () => {
+    for (const tariff of Object.values(B3_TARIFFS)) {
+      expect(tariff.source).toContain('b3.com.br');
+      expect(tariff.readOn).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    }
   });
 
   it('rejects negative costs', () => {
