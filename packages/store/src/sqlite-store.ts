@@ -285,6 +285,9 @@ export class SqliteStore implements Store {
         if (row === undefined) return Promise.resolve(null);
         return Promise.resolve(JSON.parse(row.state) as PaperState);
       },
+
+      fills: (sessionId: string): Promise<readonly OrderFilledEvent[]> =>
+        Promise.resolve(this.fillsFor(sessionId)),
     };
   }
 

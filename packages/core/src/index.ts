@@ -194,6 +194,12 @@ export type { PortfolioView, Strategy, StrategyContext, StrategyFactory } from '
 // Engine
 export { type RunOptions, Engine, runBacktest, runBacktestAsync } from './engine/engine.ts';
 export {
+  type LiveEvent,
+  type LiveSessionOptions,
+  type LiveStats,
+  LiveSession,
+} from './engine/live.ts';
+export {
   type EquityCurve,
   type EquityPoint,
   type RunConfigSummary,
@@ -205,12 +211,21 @@ export {
 } from './engine/result.ts';
 
 // Contracts implemented outside the core
-export type { BarRequest, DataProvider, StreamRequest, TickRequest } from './data.ts';
+export type {
+  BarRequest,
+  DataProvider,
+  MarketStream,
+  MarketStreamHandler,
+  StreamRequest,
+  StreamStatus,
+  TickRequest,
+} from './data.ts';
 export {
   type BarCache,
   type BarCacheEntry,
   type CachedBars,
   type BarQuery,
+  type PaperCounters,
   type PaperRepository,
   type PaperState,
   type RunRepository,

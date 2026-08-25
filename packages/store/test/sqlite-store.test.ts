@@ -232,10 +232,14 @@ describe('run history', () => {
 describe('paper-trading state', () => {
   const state: PaperState = {
     sessionId: 'session-1',
+    strategyId: 'paper-test',
     instruments: [SPEC],
     openOrders: [],
     positions: [],
+    cash: asMoney(100_000 * 100_000_000),
+    initialCash: asMoney(100_000 * 100_000_000),
     lastEventTs: asTimestamp(42),
+    counters: { nextOrderId: 1, nextFillId: 1, seq: 0 },
   };
 
   function fill(id: number): OrderFilledEvent {

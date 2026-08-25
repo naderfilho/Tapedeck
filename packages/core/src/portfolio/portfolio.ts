@@ -185,6 +185,35 @@ export class Portfolio {
     };
   }
 
+  /**
+   * Rebuilds the ledger from a snapshot, for a paper session coming back after a crash.
+   *
+   * The cost basis is restored, never the average entry price. Reconstructing the basis from a
+   * rounded average is exactly the leak this class exists to avoid, and a restart is the worst
+   * place to introduce it — the error would then compound across every later fill (ADR-0002).
+   *
+   * `unrealizedPnl` and `avgEntry` in the view are derived and therefore ignored here: they are
+   * recomputed from the basis and the mark.
+   */
+  restore(cash: MoneyInt, positions: readonly PositionView[]): void {
+    this.cashBalance = cash;
+    for (const position of this.positions) {
+      position.qty = asQty(0);
+      position.costBasis = asMoney(0);
+      position.lastPrice = asPrice(0);
+      position.realizedPnl = asMoney(0);
+      position.commissionPaid = asMoney(0);
+    }
+    for (const view of positions) {
+      const state = this.positionState(view.instrumentId);
+      state.qty = view.qty;
+      state.costBasis = view.costBasis;
+      state.lastPrice = view.lastPrice;
+      state.realizedPnl = view.realizedPnl;
+      state.commissionPaid = view.commissionPaid;
+    }
+  }
+
   /** Records the latest traded price for an instrument. Called once per bar. */
   mark(instrumentId: InstrumentId, price: PriceInt): void {
     this.positionState(instrumentId).lastPrice = price;

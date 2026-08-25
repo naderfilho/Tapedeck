@@ -27,6 +27,7 @@ import { type Timestamp, utcDayIndex } from '../time/timestamp.ts';
 import type { BarEvent, TickEvent } from '../events/events.ts';
 import { EventKind } from '../events/events.ts';
 import type { Rng } from '../util/rng.ts';
+import { IllegalStateError } from '../util/errors.ts';
 import type { ExecutionConfig, IntrabarPolicy } from './models.ts';
 import { notionalOf } from './models.ts';
 import {
@@ -215,6 +216,65 @@ export class SimulatedBroker implements Broker {
     if (order === undefined || !isOrderStatusLive(order.status)) return false;
     this.finishCancel(order, 'requested');
     return true;
+  }
+
+  /** Where the id counters stand, so a restarted session continues them instead of reusing them. */
+  counters(): { readonly nextOrderId: number; readonly nextFillId: number } {
+    return { nextOrderId: this.nextOrderId, nextFillId: this.nextFillId };
+  }
+
+  /**
+   * Rebuilds the book from a snapshot, for a paper session restarting after a crash.
+   *
+   * No acceptance event is emitted and no strategy hook fires: these orders were accepted before
+   * the crash, and telling the strategy about them again would be telling it something happened
+   * twice. An order still waiting out its latency gets its activation timer re-armed, because the
+   * scheduler died with the process while `activeFrom` did not.
+   */
+  restore(
+    orders: readonly OrderSnapshot[],
+    counters: { readonly nextOrderId: number; readonly nextFillId: number },
+  ): void {
+    if (this.orders.size > 0) {
+      throw new IllegalStateError('cannot restore a broker that has already accepted orders');
+    }
+    this.nextOrderId = counters.nextOrderId;
+    this.nextFillId = counters.nextFillId;
+
+    for (const snapshot of orders) {
+      const order: OrderState = {
+        id: snapshot.id,
+        instrumentId: snapshot.instrumentId,
+        side: snapshot.side,
+        type: snapshot.type,
+        tif: snapshot.tif,
+        tag: snapshot.tag,
+        submittedTs: snapshot.submittedTs,
+        submitSeq: this.submitSeq++,
+        submitDay: utcDayIndex(snapshot.submittedTs),
+        qty: snapshot.qty,
+        limitPrice: snapshot.limitPrice,
+        stopPrice: snapshot.stopPrice,
+        status: snapshot.status,
+        filledQty: snapshot.filledQty,
+        avgFillPrice: snapshot.avgFillPrice,
+        activeFrom: snapshot.activeFrom,
+        triggered: snapshot.triggered,
+        latencyCounted: true,
+      };
+      this.orders.set(order.id, order);
+      if (!isOrderStatusLive(order.status)) continue;
+
+      if (order.status === 'pending') {
+        this.scheduler.at(order.activeFrom, () => {
+          if (order.status !== 'pending') return;
+          order.status = 'working';
+          this.bookOf(order.instrumentId).push(order);
+        });
+      } else {
+        this.bookOf(order.instrumentId).push(order);
+      }
+    }
   }
 
   /**

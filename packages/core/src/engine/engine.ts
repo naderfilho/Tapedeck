@@ -53,6 +53,7 @@ import type { NewOrder, OrderAmend, OrderId } from '../execution/types.ts';
 import { Portfolio } from '../portfolio/portfolio.ts';
 import { TradeLog } from '../portfolio/trades.ts';
 import type { PortfolioView, Strategy, StrategyContext, StrategyFactory } from '../strategy.ts';
+import type { PaperState } from '../store.ts';
 import { BufferedLogger, type BufferedLoggerOptions } from '../util/logger.ts';
 import { createRng } from '../util/rng.ts';
 import { ConfigError, IllegalStateError } from '../util/errors.ts';
@@ -79,6 +80,13 @@ export interface RunOptions<P extends object> {
   /** Validate every incoming chunk. Defaults to {@link STRICT}. */
   readonly validateData?: boolean | undefined;
   readonly logging?: BufferedLoggerOptions | undefined;
+  /**
+   * Called for every fill, after the ledger has applied it and before the strategy is told.
+   *
+   * This is how paper trading persists a fill the instant it happens without the kernel learning
+   * what a database is: the observer buffers, and the asynchronous edge writes (ADR-0008).
+   */
+  readonly onFill?: ((fill: OrderFilledEvent) => void) | undefined;
 }
 
 const MAX_RECORDED_SIGNALS = 100_000;
@@ -167,6 +175,7 @@ export class Engine<P extends object> {
           const effect = this.portfolio.applyFill(event);
           this.tradeLog.onFill(effect);
           if (this.recordFills) this.fills.push(event);
+          options.onFill?.(event);
           this.strategy.onFill?.(event, this.context);
         },
         onCancelled: (event) => {
@@ -307,6 +316,80 @@ export class Engine<P extends object> {
         }
       }
     }
+  }
+
+  /**
+   * Moves simulated time forward without any market data.
+   *
+   * A backtest never needs this: the data is the clock. A paper session does, because a quiet
+   * market must not hold an order hostage — an order whose latency elapsed at 10:00:01 should be
+   * working at 10:00:01, not at whenever the next print happens to arrive.
+   *
+   * It cannot produce a fill. Matching is driven by market events and there is none here; all this
+   * does is fire the timers that were already due.
+   */
+  advanceTo(ts: Timestamp): void {
+    if (this.finished) throw new IllegalStateError('cannot advance time after finish()');
+    if (ts < this.clock.now()) return;
+    this.scheduler.drainUpTo(ts);
+    this.clock.advanceTo(ts);
+  }
+
+  /**
+   * Rebuilds the account from a snapshot taken by an earlier session.
+   *
+   * Called after construction and before the first event, which is the only moment at which it is
+   * meaningful: `onInit` has run, so the strategy's own state exists, and no market data has been
+   * seen, so nothing has to be undone. The strategy is not told — from its point of view it is
+   * being started, and the orders it finds through `ctx.openOrders()` are simply there, exactly as
+   * they would be after a restart against a real venue.
+   */
+  restore(state: PaperState): void {
+    if (this.barIndex > 0 || this.tickIndex > 0) {
+      throw new IllegalStateError('restore() must be called before any market data');
+    }
+    const expected = this.registry.all().map((instrument) => instrument.key);
+    const found = state.instruments.map((spec) => `${spec.venue}:${spec.symbol}`);
+    if (expected.length !== found.length || expected.some((key, i) => key !== found[i])) {
+      throw new ConfigError(
+        'the stored session traded a different set of instruments, in a different order',
+        { expected, found },
+      );
+    }
+    if (state.initialCash !== this.portfolio.initialCash) {
+      throw new ConfigError('the stored session started from a different balance', {
+        stored: state.initialCash,
+        configured: this.portfolio.initialCash,
+      });
+    }
+
+    this.portfolio.restore(state.cash, state.positions);
+    this.broker.restore(state.openOrders, state.counters);
+    this.seq = state.counters.seq;
+    this.clock.advanceTo(state.lastEventTs);
+    // Data older than the snapshot is data the session has already acted on. Carrying the
+    // watermark across the restart is what makes replaying it a loud failure rather than a
+    // second set of fills.
+    this.lastCloseTs = state.lastEventTs;
+  }
+
+  /**
+   * Everything a restarted session needs to continue as if it had not stopped.
+   *
+   * Written by the paper session on a schedule and at shutdown; consumed by {@link restore}.
+   */
+  paperState(sessionId: string): PaperState {
+    return {
+      sessionId,
+      strategyId: this.strategy.id,
+      instruments: this.options.instruments,
+      openOrders: this.broker.openOrders(),
+      positions: this.portfolio.openPositions(),
+      cash: this.portfolio.cash,
+      initialCash: this.portfolio.initialCash,
+      lastEventTs: this.clock.now(),
+      counters: { ...this.broker.counters(), seq: this.seq },
+    };
   }
 
   /** Ends the run: cancels resting orders, optionally flattens, and assembles the result. */

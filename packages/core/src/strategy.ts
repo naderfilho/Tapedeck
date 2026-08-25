@@ -90,7 +90,15 @@ export interface Strategy<P extends object = Record<string, never>> {
   /** Stable identifier, used in reports and stored runs. */
   readonly id: string;
 
-  /** Called once, before any market data. Validate parameters and build state here. */
+  /**
+   * Called once, before any market data. Validate parameters and build state here.
+   *
+   * A paper session that restarts after a crash restores the *account* — cash, cost basis, resting
+   * orders — and calls this hook on a fresh instance. Nothing a strategy kept in a field comes
+   * back, and `bar.index` counts this run's bars, so it restarts at zero too. A strategy that must
+   * survive a restart derives its state from event time, from its fills, and from
+   * `ctx.portfolio` / `ctx.openOrders()`, all of which do come back.
+   */
   onInit(ctx: StrategyContext, params: P): void;
 
   /** A closed bar. Runs after resting orders have been matched against it. */
