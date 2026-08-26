@@ -66,6 +66,36 @@ importers:
         specifier: workspace:*
         version: link:../../packages/report
 
+  examples/breakout:
+    dependencies:
+      '@tapedeck/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@tapedeck/data':
+        specifier: workspace:*
+        version: link:../../packages/data
+      '@tapedeck/indicators':
+        specifier: workspace:*
+        version: link:../../packages/indicators
+      '@tapedeck/report':
+        specifier: workspace:*
+        version: link:../../packages/report
+
+  examples/mean-reversion:
+    dependencies:
+      '@tapedeck/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@tapedeck/data':
+        specifier: workspace:*
+        version: link:../../packages/data
+      '@tapedeck/indicators':
+        specifier: workspace:*
+        version: link:../../packages/indicators
+      '@tapedeck/report':
+        specifier: workspace:*
+        version: link:../../packages/report
+
   examples/sma-crossover:
     dependencies:
       '@tapedeck/core':

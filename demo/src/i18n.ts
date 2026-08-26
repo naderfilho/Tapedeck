@@ -118,6 +118,52 @@ const PT: Readonly<Record<string, string>> = {
   'demo.hint':
     'Toda mudança roda o backtest de novo. O capital inicial é de 100.000&nbsp;USDT, e os padrões são a configuração exata por trás do <a href="../report/">report publicado</a>.',
 
+  'strategy.sma-crossover': 'Cruzamento de médias',
+  'strategy.breakout': 'Rompimento com bracket',
+  'strategy.mean-reversion': 'Reversão à média (RSI)',
+  'blurb.sma-crossover':
+    'Comprado enquanto a média rápida está acima da lenta. Seguir tendência: acerta pouco e acerta grande, então leia o profit factor, não o win rate.',
+  'blurb.breakout':
+    'Compra um fechamento acima da máxima das últimas N barras, com volume acima da média, e deixa stop e alvo descansando juntos. É esta que faz o motor reportar barras que ele não conseguiu resolver.',
+  'blurb.mean-reversion':
+    'Compra fraqueza e vende o repique, com stop no tempo para que uma posição que nunca reverte não sequestre a execução. Acerta muito e erra grande, o inverso do cruzamento.',
+  'param.fastPeriod': 'média rápida',
+  'param.slowPeriod': 'média lenta',
+  'param.allowShort': 'permitir shorts',
+  'param.lookback': 'tamanho do canal',
+  'param.atrPeriod': 'período do ATR',
+  'param.stopAtr': 'stop (ATRs)',
+  'param.targetAtr': 'alvo (ATRs)',
+  'param.volumeFactor': 'filtro de volume',
+  'param.rsiPeriod': 'período do RSI',
+  'param.entryLevel': 'comprar abaixo de',
+  'param.exitLevel': 'vender acima de',
+  'param.maxBarsHeld': 'stop no tempo (barras)',
+  'helpp.sma-crossover.fastPeriod':
+    'Candles na média móvel curta. Ela reage antes, então cruza mais vezes e paga mais taxa.',
+  'helpp.sma-crossover.slowPeriod':
+    'Candles na média móvel longa. O cruzamento das duas é o sinal inteiro: rápida acima da lenta é comprado, abaixo é vendido.',
+  'helpp.sma-crossover.allowShort':
+    'Ligado, um cruzamento de baixa abre um short. Desligado, ele apenas zera a posição, que é o que uma conta spot sem margem consegue fazer.',
+  'helpp.breakout.lookback':
+    'Quantas barras o canal de máximas lembra. A entrada exige um fechamento acima da maior máxima das N anteriores, medida antes desta barra entrar na janela.',
+  'helpp.breakout.atrPeriod':
+    'Barras no Average True Range, que dimensiona o stop e o alvo para acompanharem o quanto o ativo está de fato se movendo.',
+  'helpp.breakout.stopAtr':
+    'Distância da entrada até o stop, em ATRs. Stop mais curto é acionado mais vezes, que é de onde vêm as barras ambíguas.',
+  'helpp.breakout.targetAtr':
+    'Distância da entrada até o alvo, em ATRs. Quando uma única barra contém este e o stop, a ordem de execução não pode ser sabida a partir de dados de barra, e o motor diz isso em vez de chutar a seu favor.',
+  'helpp.breakout.volumeFactor':
+    'O volume precisa superar este múltiplo da própria média móvel para o rompimento valer. Em 0, todo rompimento entra.',
+  'helpp.mean-reversion.rsiPeriod':
+    'Barras no Índice de Força Relativa. Mais curto reage mais rápido e dispara mais vezes.',
+  'helpp.mean-reversion.entryLevel':
+    'Nível de RSI que conta como sobrevendido o suficiente para comprar. Mais baixo significa entradas mais raras e mais extremas.',
+  'helpp.mean-reversion.exitLevel':
+    'Nível de RSI que conta como recuperado. Precisa ficar acima do nível de entrada, senão não haveria trade para segurar.',
+  'helpp.mean-reversion.maxBarsHeld':
+    'Barras a esperar pela reversão antes de desistir. Sem isso, uma posição que nunca reverte é carregada até o fim da execução e a curva de equity descreve aquele trade, não a regra.',
+
   'warn.title': 'O que esta execução não podia saber',
   'chart.equity': 'Equity',
   'chart.drawdown': 'Drawdown',

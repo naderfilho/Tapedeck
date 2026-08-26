@@ -41,6 +41,13 @@ import {
   loadTape,
   quantityFor,
   toQuery,
+  DEFAULT_STRATEGY,
+  type ParamSpec,
+  type ParamValue,
+  STRATEGIES,
+  type StrategySpec,
+  type Values,
+  strategyById,
 } from './run.ts';
 import { type CursorState, attachCursor, readoutFor } from './cursor.ts';
 import { setup, t } from './i18n.ts';
@@ -265,16 +272,24 @@ function renderMetrics(metrics: Metrics, elapsed: number, bars: number): void {
 
 const tapes = new Map<MarketSymbol, Tape>();
 let active: MarketSymbol = EXAMPLE_SYMBOL;
+let activeStrategy = DEFAULT_STRATEGY;
 let sizeInitialised = false;
 
+/** Reads the form back into the shape the engine takes, per the selected strategy's own spec. */
 function readConfig(): RunConfig {
+  const spec = strategyById(activeStrategy);
+  const params: Record<string, ParamValue> = {};
+  for (const param of spec?.params ?? []) {
+    const input = document.getElementById(`p-${param.key}`) as HTMLInputElement | null;
+    if (input === null) continue;
+    params[param.key] = param.kind === 'bool' ? input.checked : Number(input.value);
+  }
   return {
     symbol: active,
-    fastPeriod: Number(field('fast').value),
-    slowPeriod: Number(field('slow').value),
+    strategy: activeStrategy,
+    params,
     notional: Number(field('notional').value),
     preset: field('preset').value as RunConfig['preset'],
-    allowShort: field('short').checked,
   };
 }
 
@@ -283,10 +298,6 @@ function run(): void {
   if (tape === undefined) return;
 
   const config = readConfig();
-  if (config.fastPeriod >= config.slowPeriod) {
-    el('error').textContent = 'The fast average has to be shorter than the slow one.';
-    return;
-  }
   if (!Number.isFinite(config.notional) || config.notional <= 0) {
     el('error').textContent = 'Position size has to be a positive number of USDT.';
     return;
@@ -414,7 +425,9 @@ async function boot(): Promise<void> {
     attachCursor(el(id), () => chartStates.get(id) ?? null);
   }
 
-  for (const id of ['fast', 'slow', 'notional', 'preset', 'short']) {
+  renderStrategies();
+  renderParams(strategyById(activeStrategy)?.defaults ?? {});
+  for (const id of ['notional', 'preset']) {
     el(id).addEventListener('change', run);
   }
   el('run').addEventListener('click', run);
@@ -451,11 +464,11 @@ function rememberInUrl(config: RunConfig): void {
 }
 
 function applyConfig(config: RunConfig): void {
-  field('fast').value = String(config.fastPeriod);
-  field('slow').value = String(config.slowPeriod);
+  activeStrategy = config.strategy;
+  renderStrategies();
+  renderParams(config.params);
   field('notional').value = String(config.notional);
   field('preset').value = config.preset;
-  field('short').checked = config.allowShort;
   sizeInitialised = true;
 }
 
@@ -471,4 +484,73 @@ async function wireSharing(): Promise<void> {
     });
   });
   await Promise.resolve();
+}
+
+// -------------------------------------------------------------- the strategy picker and its form
+
+/**
+ * Draws the strategy chips and the blurb under them.
+ *
+ * The blurb is not decoration. Three strategies with no explanation is three buttons; three
+ * strategies each saying what shape of result to expect is the point of having three.
+ */
+function renderStrategies(): void {
+  el('strategies').innerHTML = STRATEGIES.map(
+    (spec) =>
+      `<button class="strategy" type="button" data-strategy="${spec.id}" aria-pressed="${
+        spec.id === activeStrategy ? 'true' : 'false'
+      }">${t(`strategy.${spec.id}`, spec.name)}</button>`,
+  ).join('');
+
+  const spec = strategyById(activeStrategy);
+  el('strategy-blurb').textContent = spec === undefined ? '' : t(`blurb.${spec.id}`, spec.blurb);
+
+  for (const button of Array.from(document.querySelectorAll('.strategy'))) {
+    button.addEventListener('click', () => {
+      const id = button.getAttribute('data-strategy');
+      if (id === null || id === activeStrategy || strategyById(id) === undefined) return;
+      activeStrategy = id;
+      renderStrategies();
+      renderParams(strategyById(id)?.defaults ?? {});
+      run();
+    });
+  }
+}
+
+function paramMarkup(spec: StrategySpec, param: ParamSpec, value: ParamValue): string {
+  const label =
+    `<span><span>${t(`param.${param.key}`, param.label)}</span>` +
+    `<button class="help" type="button" aria-label="What ${param.label} does">?` +
+    `<span class="help__bubble" role="tooltip">${t(`helpp.${spec.id}.${param.key}`, param.help)}</span>` +
+    `</button></span>`;
+
+  if (param.kind === 'bool') {
+    return (
+      `<label class="switch"><input id="p-${param.key}" type="checkbox"${value === true ? ' checked' : ''} />` +
+      `${label}</label>`
+    );
+  }
+  const step = param.step ?? (param.kind === 'int' ? 1 : 0.1);
+  return (
+    `<label class="field">${label}` +
+    `<input id="p-${param.key}" type="number" value="${String(value)}"` +
+    (param.min === undefined ? '' : ` min="${String(param.min)}"`) +
+    (param.max === undefined ? '' : ` max="${String(param.max)}"`) +
+    ` step="${String(step)}" /></label>`
+  );
+}
+
+/** Rebuilds the parameter controls for whichever strategy is selected. */
+function renderParams(values: Values): void {
+  const spec = strategyById(activeStrategy);
+  if (spec === undefined) return;
+  el('params').innerHTML = spec.params
+    .map((param) => paramMarkup(spec, param, values[param.key] ?? spec.defaults[param.key] ?? 0))
+    .join('');
+
+  // Re-bound every render, because the inputs are new nodes. Cheap, and it keeps the listener and
+  // the element it reads from being separate concerns that can fall out of step.
+  for (const param of spec.params) {
+    document.getElementById(`p-${param.key}`)?.addEventListener('change', run);
+  }
 }

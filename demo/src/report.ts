@@ -120,7 +120,7 @@ function offerDownload(html: string, config: RunConfig): void {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `tapedeck-${tickerFor(config.symbol).toLowerCase()}-${String(config.fastPeriod)}-${String(config.slowPeriod)}.html`;
+    link.download = `tapedeck-${tickerFor(config.symbol).toLowerCase()}-${config.strategy}.html`;
     link.click();
     // Revoked on the next turn of the loop: revoking synchronously races the download in Safari.
     setTimeout(() => {

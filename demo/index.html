@@ -47,31 +47,11 @@
 
       <div class="markets" id="markets" role="group" aria-label="Market"></div>
 
+      <div class="strategies" id="strategies" role="group" aria-label="Strategy"></div>
+      <p class="strategy-blurb" id="strategy-blurb"></p>
+
       <form class="toolbar" onsubmit="return false;">
-        <label class="field">
-          <span
-            ><span data-i18n="field.fast">fast average</span>
-            <button class="help" type="button" aria-label="What this does">
-              ?<span class="help__bubble" role="tooltip" data-i18n="help.fast"
-                >Bars in the shorter moving average. It reacts sooner, so it crosses more often and
-                pays more commission.</span
-              >
-            </button></span
-          >
-          <input id="fast" type="number" min="2" max="200" value="24" />
-        </label>
-        <label class="field">
-          <span
-            ><span data-i18n="field.slow">slow average</span>
-            <button class="help" type="button" aria-label="What this does">
-              ?<span class="help__bubble" role="tooltip" data-i18n="help.slow"
-                >Bars in the longer moving average. The pair crossing is the entire signal: fast
-                above slow is long, below is short.</span
-              >
-            </button></span
-          >
-          <input id="slow" type="number" min="3" max="400" value="72" />
-        </label>
+        <div class="params" id="params"></div>
         <label class="field">
           <span
             ><span data-i18n="field.size">position size (USDT)</span>
@@ -102,18 +82,6 @@
             </option>
             <option value="ideal" data-i18n="costs.ideal">none, the flattering one</option>
           </select>
-        </label>
-        <label class="switch">
-          <input id="short" type="checkbox" checked />
-          <span
-            ><span data-i18n="field.short">allow shorts</span>
-            <button class="help" type="button" aria-label="What this does">
-              ?<span class="help__bubble" role="tooltip" data-i18n="help.short"
-                >When on, a bearish cross opens a short. When off, it exits to flat instead, which
-                is what a spot account without margin can actually do.</span
-              >
-            </button></span
-          >
         </label>
         <button id="run" class="btn btn--primary" type="button" data-i18n="field.run">Run</button>
         <p class="toolbar__hint" data-i18n="demo.hint">

@@ -1,7 +1,7 @@
 # Tapedeck
 
 [![CI](https://github.com/naderfilho/Tapedeck/actions/workflows/ci.yml/badge.svg)](https://github.com/naderfilho/Tapedeck/actions/workflows/ci.yml)
-![tests](https://img.shields.io/badge/tests-610-brightgreen)
+![tests](https://img.shields.io/badge/tests-630-brightgreen)
 ![coverage](https://img.shields.io/badge/coverage-97%25-brightgreen)
 ![node](https://img.shields.io/badge/node-%E2%89%A524-informational)
 [![licence](https://img.shields.io/badge/licence-PolyForm%20Noncommercial-blue)](LICENSE.md)
@@ -108,6 +108,25 @@ one: trend following pays for a few large wins with many small losses, so the nu
 whether it works is the profit factor. Sweep the periods across a 5&times;5 grid and thirteen of the
 nineteen combinations lose money outright, which is the more useful lesson, and the reason the
 example ships the parameters it started with rather than the ones that flattered it afterwards.
+
+### Three strategies, on purpose
+
+`examples/` ships three, chosen so that no two exercise the same part of the engine:
+
+|                                              | What it does                                                                    | What it demonstrates                                                     |
+| -------------------------------------------- | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| [`sma-crossover`](examples/sma-crossover/)   | Long while the fast average is above the slow one                               | The baseline. One position, no resting orders.                           |
+| [`breakout`](examples/breakout/)             | Channel breakout on above-average volume, bracketed with an ATR stop and target | Two resting orders on one bar, so `stats.ambiguousBars` stops being zero |
+| [`mean-reversion`](examples/mean-reversion/) | Buys oversold, sells the bounce, with a time stop                               | Wins often and loses large, the crossover in reverse                     |
+
+The last two are worth running side by side. On the committed year of BTCUSDT the breakout wins
+37.8% of its trades and the reversion wins 56.2%, and both have a profit factor under one. A reader
+who ranks strategies by win rate ranks those two backwards, which is why the demo puts them one
+click apart.
+
+The breakout is the one that earns its place in the test suite: its bracket is an OCO group, and
+`examples/breakout/test` asserts that a bar containing both legs never executes both, and that the
+run reports the bars whose fill order could not be known from bar data.
 
 Node 24 strips the types natively, so every file in this repository runs without a build step. If
 `corepack enable pnpm` needs administrator rights, `corepack pnpm install` works just as well.

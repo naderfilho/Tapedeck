@@ -1,0 +1,19 @@
+{
+  "name": "@tapedeck/example-mean-reversion",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "RSI mean reversion with a time stop, the counterweight to the crossover",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "scripts": {
+    "start": "node src/main.ts"
+  },
+  "dependencies": {
+    "@tapedeck/core": "workspace:*",
+    "@tapedeck/data": "workspace:*",
+    "@tapedeck/indicators": "workspace:*",
+    "@tapedeck/report": "workspace:*"
+  }
+}

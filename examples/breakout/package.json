@@ -1,0 +1,19 @@
+{
+  "name": "@tapedeck/example-breakout",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Channel breakout with a volume filter and an ATR bracket, which is what puts two resting orders on one bar",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "scripts": {
+    "start": "node src/main.ts"
+  },
+  "dependencies": {
+    "@tapedeck/core": "workspace:*",
+    "@tapedeck/data": "workspace:*",
+    "@tapedeck/indicators": "workspace:*",
+    "@tapedeck/report": "workspace:*"
+  }
+}

@@ -1225,3 +1225,63 @@ body.is-loading .market[aria-pressed='true'] {
   margin: 0 auto 4px;
   color: var(--ink);
 }
+
+/* ---------------------------------------------------------------- strategy picker */
+
+.strategies {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 22px 0 10px;
+}
+
+.strategy {
+  padding: 9px 15px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--panel);
+  color: var(--ink-dim);
+  font: 600 14px/1.2 var(--sans);
+  cursor: pointer;
+  transition:
+    border-color 0.16s ease,
+    color 0.16s ease,
+    background 0.16s ease,
+    transform 0.16s ease;
+}
+
+.strategy:hover {
+  border-color: var(--line-strong);
+  color: var(--ink);
+  transform: translateY(-1px);
+}
+
+.strategy[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--ink);
+}
+
+/* One line saying what shape of result to expect. Three unlabelled buttons would be three buttons;
+   this is what makes them three arguments. */
+.strategy-blurb {
+  margin: 0 0 16px;
+  max-width: 78ch;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--ink-faint);
+}
+
+.strategy-blurb:empty {
+  display: none;
+}
+
+/* The parameters are rebuilt per strategy, so they carry their own row rather than sitting loose
+   in the toolbar's flex flow. */
+.params {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 22px 18px;
+  flex: 1 1 100%;
+}
