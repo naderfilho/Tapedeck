@@ -150,6 +150,18 @@ const PT: Readonly<Record<string, string>> = {
   'helpm.costsAte':
     'Taxas como fração do lucro bruto. É o número que um backtester que ignora custos nunca precisa te mostrar.',
 
+  'account.guest': 'Convidado',
+  'account.signout': 'Sair',
+  'action.share': 'Copiar link desta execução',
+  'action.shareCopied': 'Link copiado.',
+  'action.shareNote':
+    'A barra de endereços já carrega esta configuração. Quem abrir recalcula os mesmos números, sem conta e sem nada guardado.',
+  'saved.title': 'Suas execuções salvas',
+  'saved.placeholder': 'Dê um nome a esta execução',
+  'saved.save': 'Salvar',
+  'saved.empty': 'Nada salvo ainda. Nomeie a configuração atual acima.',
+  'saved.load': 'Carregar',
+  'saved.delete': 'Apagar',
   'demo.more.cta': 'Abrir o report completo desta execução',
   'demo.more.note':
     'Lista de trades, abertura dos custos e parâmetros da execução, gerados pela mesma função que a linha de comando chama. O link carrega a configuração, então ele abre nesta execução e pode ser compartilhado.',

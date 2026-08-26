@@ -1345,3 +1345,142 @@ body.is-loading .market[aria-pressed='true'] {
   color: var(--ink);
   text-decoration: none;
 }
+
+/* ------------------------------------------------------------- account and saving */
+
+.whoami {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px 5px 11px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  color: var(--ink-dim);
+  white-space: nowrap;
+}
+
+.whoami__out {
+  border: 0;
+  background: transparent;
+  color: var(--ink-faint);
+  font: 600 12px/1 var(--mono);
+  cursor: pointer;
+  padding: 3px 5px;
+  border-radius: 5px;
+}
+
+.whoami__out:hover {
+  color: var(--down);
+  background: var(--panel-2);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+  margin: 26px 0 0;
+}
+
+.actions__note {
+  flex: 1;
+  min-width: 240px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--ink-faint);
+}
+
+.saved {
+  margin-top: 20px;
+  padding: 18px 20px;
+}
+
+.saved__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.saved__head h3 {
+  margin: 0;
+  font-size: 14.5px;
+}
+
+.saved__form {
+  display: flex;
+  gap: 8px;
+}
+
+.saved__form input {
+  font: 13.5px/1.4 var(--sans);
+  padding: 8px 11px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg-soft);
+  color: var(--ink);
+  min-width: 190px;
+}
+
+.saved__form input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.saved__error {
+  margin: 0 0 10px;
+  font-size: 13px;
+  color: var(--down);
+}
+
+.saved__error:empty {
+  display: none;
+}
+
+.saved__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.saved__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--bg-soft);
+}
+
+.saved__name {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.saved__meta {
+  flex: 1;
+  min-width: 180px;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--ink-faint);
+}
+
+.saved__empty {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--ink-faint);
+}
+
+@media (max-width: 600px) {
+  .saved__form input {
+    min-width: 0;
+    flex: 1;
+  }
+}

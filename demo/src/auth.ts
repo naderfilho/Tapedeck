@@ -38,6 +38,8 @@ export interface GuestSession {
 export interface UserSession {
   readonly kind: 'user';
   readonly email: string;
+  /** Supabase's id for the reader. The insert policy compares it against `auth.uid()`. */
+  readonly userId: string;
   readonly accessToken: string;
   /** Epoch milliseconds. A token past this is treated as no session at all. */
   readonly expiresAt: number;
@@ -69,6 +71,7 @@ function readUserSession(): UserSession | null {
     if (
       parsed.kind !== 'user' ||
       typeof parsed.email !== 'string' ||
+      typeof parsed.userId !== 'string' ||
       typeof parsed.accessToken !== 'string' ||
       typeof parsed.expiresAt !== 'number'
     ) {
@@ -146,13 +149,14 @@ export async function completeSignInFromUrl(): Promise<UserSession | null> {
     headers: { apikey: settings.supabaseAnonKey, authorization: `Bearer ${accessToken}` },
   });
   if (!response.ok) return null;
-  const user = (await response.json()) as { email?: string };
-  if (typeof user.email !== 'string') return null;
+  const user = (await response.json()) as { email?: string; id?: string };
+  if (typeof user.email !== 'string' || typeof user.id !== 'string') return null;
 
   const expiresIn = Number(params.get('expires_in') ?? '3600');
   const stored: UserSession = {
     kind: 'user',
     email: user.email,
+    userId: user.id,
     accessToken,
     expiresAt: Date.now() + expiresIn * 1000,
   };
