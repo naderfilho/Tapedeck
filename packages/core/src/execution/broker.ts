@@ -416,7 +416,11 @@ export class SimulatedBroker implements Broker {
         this.finishCancel(order, 'expired');
         continue;
       }
-      if (order.activeFrom > bar.closeTs) continue;
+      // `>=`, because a bar's interval is half-open: `closeTs` is the instant the bar became
+      // knowable and belongs to the next one. With `>`, an order becoming matchable at exactly a
+      // bar's close matched that bar — at its open, a price up to a whole bar older than the order
+      // — which a latency of an exact multiple of the bar size hits every time.
+      if (order.activeFrom >= bar.closeTs) continue;
       if (order.activeFrom > bar.openTs && !order.latencyCounted) {
         // The order became matchable somewhere inside this bar. Where exactly is unknowable from
         // OHLCV, so the sub-bar part of the latency is dropped and counted rather than invented.
