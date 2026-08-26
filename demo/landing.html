@@ -148,7 +148,7 @@
         <div class="wrap">
           <div class="section__head">
             <p class="eyebrow">What that buys you</p>
-            <h2>Costs ate 72% of this strategy</h2>
+            <h2>Costs ate {{costShare}}% of this strategy</h2>
             <p class="muted">
               A 24/72 moving-average crossover on a year of hourly BTCUSDT, with real Binance fees.
             </p>
@@ -156,17 +156,17 @@
 
           <div class="stats" style="margin-bottom: 18px">
             <div class="stat">
-              <b style="color: var(--ink-dim)">8,332.60</b><span>PnL before costs, USDT</span>
+              <b style="color: var(--ink-dim)">{{grossPnl}}</b><span>PnL before costs, USDT</span>
             </div>
             <div class="stat">
-              <b style="color: var(--down)">−6,027.20</b><span>commission paid, USDT</span>
+              <b style="color: var(--down)">−{{commission}}</b><span>commission paid, USDT</span>
             </div>
             <div class="stat">
-              <b style="color: var(--up)">2,305.40</b><span>net profit, USDT</span>
+              <b style="color: var(--up)">{{netProfit}}</b><span>net profit, USDT</span>
             </div>
           </div>
 
-          <div class="meter" aria-hidden="true"><i style="width: 72.3%"></i></div>
+          <div class="meter" aria-hidden="true"><i style="width: {{costSharePrecise}}%"></i></div>
           <p class="small muted" style="margin-top: 12px">
             A backtester that skipped fees would have reported a strategy three and a half times
             better than the one that exists.

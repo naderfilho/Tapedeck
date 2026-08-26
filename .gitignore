@@ -8,3 +8,5 @@ out/
 /data/
 !fixtures/**
 site/
+/bench.txt
+.vercel/

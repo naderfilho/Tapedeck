@@ -38,12 +38,22 @@ to `src` and does not. So a change to core that you are testing through the CLI 
 `corepack pnpm -r build` first, or you will be debugging the previous build — which happened while
 phase 4's live session was being smoke-tested, and looked exactly like a bug in the new code.
 
-**The site.** `site/` is a build output and is gitignored — editing it changes nothing. The sources
-are `demo/`: `landing.html` (with `{{placeholders}}` the build substitutes), `index.html` for the
-demo, `site.css` for all of it, and `build.ts`, which also grafts the site header onto a copy of
-`out/report.html`. So `corepack pnpm site` needs the example to have run first, and **a change to
-the site is not published until it is pushed** — the Pages workflow rebuilds on push to `main` and
-nothing else. Check the deployed URL, not `site:serve`, before calling it done.
+**The site.** `site/` is a build output, gitignored, and wiped at the start of every build — editing
+it changes nothing. The sources are `demo/`: `landing.html` (with `{{placeholders}}` the build
+substitutes), `index.html` for the demo, `site.css` for all of it, and `build.ts`, which also grafts
+the site header onto a copy of `out/report.html`.
+
+`corepack pnpm site:build` is the whole thing — compile, replay the example, run the benchmark,
+assemble — and it is the single command **both** Vercel (`vercel.json`) and the Pages workflow run,
+so the two deployments cannot drift. `pnpm site` alone is the last step and needs `out/report.html`
+to exist already.
+
+The landing page's result figures are substituted from `out/metrics.json`, not typed in. They were
+hardcoded once and that is precisely the failure this project complains about: a published number
+with no link to the run behind it, which survives the run that stops producing it.
+
+**A change to the site is not published until it is pushed.** Check the deployed URL, not
+`site:serve`, before calling it done.
 
 Dark by default and light under `prefers-color-scheme`, in `demo/site.css` for the two hand-written
 pages and in `renderHtmlReport`'s inlined `STYLE` for the report, which carries the same token

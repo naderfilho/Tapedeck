@@ -46,12 +46,14 @@
         <p class="eyebrow">Live demo</p>
         <h1>The engine, running in your browser</h1>
         <p class="lede">
-          Change any parameter and the backtest re-runs in this tab, on the same deterministic
-          kernel the command line uses. Nothing is sent anywhere — the page loads a committed year
-          of real BTCUSDT and replays it locally.
+          Pick a market, change any parameter, and the backtest re-runs in this tab on the same
+          deterministic kernel the command line uses. Nothing is sent anywhere — the page replays a
+          committed year of real Binance data locally.
         </p>
         <p class="small muted" id="source">loading the tape…</p>
       </section>
+
+      <div class="markets" id="markets" role="group" aria-label="Market"></div>
 
       <form class="toolbar" onsubmit="return false;">
         <label class="field">
@@ -63,8 +65,9 @@
           <input id="slow" type="number" min="3" max="400" value="72" />
         </label>
         <label class="field">
-          <span>size</span>
-          <input id="qty" type="number" min="1000" step="1000" value="25000" />
+          <span>position size (USDT)</span>
+          <input id="notional" type="number" min="100" step="1000" value="25000" />
+          <small class="field__hint" id="derived"></small>
         </label>
         <label class="field field--wide">
           <span>costs</span>
@@ -78,7 +81,10 @@
           <span>allow shorts</span>
         </label>
         <button id="run" class="btn btn--primary" type="button">Run</button>
-        <p class="toolbar__hint">Every change re-runs the backtest.</p>
+        <p class="toolbar__hint">
+          Every change re-runs the backtest. Starting equity is 100,000&nbsp;USDT, and the defaults
+          are the exact configuration behind <a href="../report/">the published report</a>.
+        </p>
       </form>
 
       <p id="error" class="error"></p>
@@ -89,14 +95,20 @@
 
       <p id="timing" class="small muted"></p>
 
-      <div id="headline" class="metrics metrics--lead"></div>
-      <div id="cards" class="metrics"></div>
+      <div id="results">
+        <div id="headline" class="metrics metrics--lead"></div>
+        <div id="cards" class="metrics"></div>
 
-      <h2 class="chart-title">Equity</h2>
-      <div class="panel chart-panel" id="equity"></div>
+        <h2 class="chart-title">
+          Equity <span class="chart-title__hint">hover to read a date</span>
+        </h2>
+        <div class="panel chart-panel" id="equity"></div>
 
-      <h2 class="chart-title">Drawdown</h2>
-      <div class="panel chart-panel" id="drawdown"></div>
+        <h2 class="chart-title">
+          Drawdown <span class="chart-title__hint">hover to read a date</span>
+        </h2>
+        <div class="panel chart-panel" id="drawdown"></div>
+      </div>
 
       <section class="section">
         <div class="section__head">

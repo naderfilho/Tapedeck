@@ -48,35 +48,17 @@ jobs:
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
-      - run: pnpm build
-
-      - name: Run the example on the committed year of BTCUSDT
-        run: node examples/sma-crossover/src/main.ts
-
-      - name: Run the benchmark
-        # Reported, never gated. A shared CI runner is the wrong place to assert on throughput —
-        # what makes this worth publishing is that it is dated and says which machine produced it.
-        run: pnpm bench | tee bench.txt
 
       - name: Build the site
+        # One command, the same one Vercel runs, so the two deployments cannot drift: it compiles
+        # the packages, replays the committed year of BTCUSDT to regenerate the report, runs the
+        # benchmark, and assembles `site/`.
+        #
         # The demo bundles the kernel for the browser. That it can be bundled at all is the point:
         # core, indicators and report import nothing from `node:`, so they were already portable.
-        #
-        # This also places the report, which is why it runs after the example. `out/report.html`
-        # stays the self-contained file ADR-0013 describes; the copy under `/report/` gets a
-        # navigation bar, because a page on a site needs a way back and a downloaded file does not.
-        run: pnpm site
-
-      - name: Publish the benchmark
-        run: |
-          {
-            echo "Tapedeck benchmark"
-            echo "run    $(date -u +%Y-%m-%dT%H:%M:%SZ)"
-            echo "commit ${GITHUB_SHA}"
-            echo "runner $(uname -sm), $(nproc) cores, node $(node --version)"
-            echo
-            cat bench.txt
-          } > site/bench.txt
+        # `out/report.html` stays the self-contained file ADR-0013 describes; the copy under
+        # `/report/` gets a header, because a page on a site needs a way back and a file does not.
+        run: pnpm site:build
 
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3

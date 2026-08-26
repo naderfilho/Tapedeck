@@ -28,7 +28,19 @@ import {
 } from '@tapedeck/core';
 import { BinanceDataProvider, encodeBarTape } from '@tapedeck/data';
 
-const SYMBOL = 'BTCUSDT';
+/**
+ * The demo lets a visitor pick an instrument, so the fixtures cover more than one.
+ *
+ * These five are liquid enough over the whole window that the tape has no gaps to explain, and
+ * they differ enough in price and lot size to be worth switching between: a strategy that looks
+ * like an edge on one of them rarely survives the next. `BTCUSDT` stays first because it is the
+ * one the README, the example and every test already talk about.
+ */
+const SYMBOLS = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'XRPUSDT'] as const;
+
+/** The CSV sample exists for the CSV provider's tests, which only ever read this one. */
+const CSV_SAMPLE_FOR = 'BTCUSDT';
+
 const FROM = fromIso('2025-08-01T00:00:00.000Z');
 const TO = fromIso('2026-08-01T00:00:00.000Z');
 const TIMEFRAME = asDuration(MICROS_PER_HOUR);
@@ -54,18 +66,17 @@ function toCsv(chunk: BarChunk, priceExp: number, qtyExp: number, rows: number):
   return `${lines.join('\n')}\n`;
 }
 
-async function main(): Promise<void> {
-  const provider = new BinanceDataProvider({ requestDelayMs: 400 });
-  const instrument = await provider.describe(SYMBOL);
+async function fetchOne(provider: BinanceDataProvider, symbol: string): Promise<void> {
+  const instrument = await provider.describe(symbol);
   console.log(
-    `${SYMBOL}: priceExp=${String(instrument.priceExp)} qtyExp=${String(instrument.qtyExp)} ` +
+    `${symbol}: priceExp=${String(instrument.priceExp)} qtyExp=${String(instrument.qtyExp)} ` +
       `tick=${instrument.tickSize} lot=${instrument.lotSize}`,
   );
 
   const builder = new BarChunkBuilder(0 as never, TIMEFRAME, 16_384);
   let pages = 0;
   for await (const chunk of provider.bars({
-    symbol: SYMBOL,
+    symbol,
     timeframe: TIMEFRAME,
     from: FROM,
     to: TO,
@@ -77,27 +88,46 @@ async function main(): Promise<void> {
   }
 
   const bars = builder.build();
-  if (bars.count === 0) throw new Error('the venue returned no candles for the requested range');
+  if (bars.count === 0) {
+    throw new Error(`the venue returned no candles for ${symbol} in the requested range`);
+  }
 
-  mkdirSync(fixtures, { recursive: true });
-  const tapePath = `${fixtures}binance-${SYMBOL}-1h.tape`;
+  const tapePath = `${fixtures}binance-${symbol}-1h.tape`;
   const bytes = encodeBarTape({
     instrument,
     chunk: bars,
-    source: `binance:${SYMBOL}:1h:${toIso(FROM)}..${toIso(TO)}`,
+    source: `binance:${symbol}:1h:${toIso(FROM)}..${toIso(TO)}`,
     createdBy: 'tapedeck/scripts/fetch-fixtures',
   });
   writeFileSync(tapePath, bytes);
 
-  const csvPath = `${fixtures}binance-${SYMBOL}-1h-sample.csv`;
-  writeFileSync(csvPath, toCsv(bars, instrument.priceExp, instrument.qtyExp, SAMPLE_ROWS), 'utf8');
-
-  console.log(`\n${String(bars.count)} bars written`);
+  console.log(`  ${String(bars.count)} bars`);
   console.log(
     `  ${toIso((bars.openTs[0] ?? 0) as never)} .. ${toIso((bars.closeTs[bars.count - 1] ?? 0) as never)}`,
   );
   console.log(`  ${tapePath}  ${(bytes.byteLength / 1024).toFixed(0)} KiB`);
-  console.log(`  ${csvPath}  first ${String(SAMPLE_ROWS)} bars, for the CSV provider`);
+
+  if (symbol === CSV_SAMPLE_FOR) {
+    const csvPath = `${fixtures}binance-${symbol}-1h-sample.csv`;
+    writeFileSync(
+      csvPath,
+      toCsv(bars, instrument.priceExp, instrument.qtyExp, SAMPLE_ROWS),
+      'utf8',
+    );
+    console.log(`  ${csvPath}  first ${String(SAMPLE_ROWS)} bars, for the CSV provider`);
+  }
+}
+
+async function main(): Promise<void> {
+  // One provider for all of them: it carries the request delay, and hammering the venue with five
+  // concurrent paginations is how a fixture script earns a rate-limit ban.
+  const provider = new BinanceDataProvider({ requestDelayMs: 400 });
+  mkdirSync(fixtures, { recursive: true });
+
+  for (const symbol of SYMBOLS) {
+    await fetchOne(provider, symbol);
+    console.log('');
+  }
 }
 
 await main();
