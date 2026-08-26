@@ -1,7 +1,7 @@
 # Tapedeck
 
 [![CI](https://github.com/naderfilho/Tapedeck/actions/workflows/ci.yml/badge.svg)](https://github.com/naderfilho/Tapedeck/actions/workflows/ci.yml)
-![tests](https://img.shields.io/badge/tests-685-brightgreen)
+![tests](https://img.shields.io/badge/tests-694-brightgreen)
 ![coverage](https://img.shields.io/badge/coverage-96%25-brightgreen)
 ![node](https://img.shields.io/badge/node-%E2%89%A524-informational)
 [![licence](https://img.shields.io/badge/licence-PolyForm%20Noncommercial-blue)](LICENSE.md)
@@ -32,7 +32,7 @@ configuration and every trade.
 > **Status: seven phases done.** The kernel, the indicator library, the data adapters, the SQLite
 > store, the metrics and report package, the `tapedeck` command line, paper trading against a live
 > feed, the B3 layer and a second exchange are all in.
-> 685 tests, 96% statement coverage, and a committed year of real candles from two exchanges so that
+> 694 tests, 96% statement coverage, and a committed year of real candles from two exchanges so that
 > `pnpm test` measures something. Not published to npm, deliberately; see
 > [what this is for](#what-this-is-for).
 
@@ -603,14 +603,14 @@ hoped for:
 ## Testing
 
 ```bash
-pnpm test          # 685 tests
+pnpm test          # 694 tests
 pnpm coverage      # 96% statements, 97% functions; 85% is the floor for every package
 pnpm lint          # no `any`, no `@ts-ignore`, no wall clock in the kernel
 pnpm typecheck     # strict, plus noUncheckedIndexedAccess and exactOptionalPropertyTypes
 ```
 
 Property tests (fast-check) cover the pieces where a hand-written case would only prove what the
-author already believed, and five of them changed the code rather than confirming it:
+author already believed, and six of them changed the code rather than confirming it:
 
 - the equity identity across arbitrary fill sequences, which found that deriving PnL from a rounded
   average entry price does not reconcile;
@@ -628,10 +628,26 @@ author already believed, and five of them changed the code rather than confirmin
   CI rather than by the author: fast-check draws different cases every run, and the shape it needed
   had never come up locally.
 
+- the latency boundary, which found that an order becoming matchable at exactly a bar's close
+  matched **that** bar, at its open — a price up to a whole bar older than the order. A bar's
+  interval is half-open, so the gate wanted `>=` and had `>`. Any latency that is a whole multiple
+  of the bar size lands on that boundary every time.
+
+The last one is the one worth reading about, because of how it was found. The attack that should
+have caught it could not: the fixture had the bar after the jump open at the jump's own close, so a
+correct engine and one filling at the current bar's close produced the same number and the test
+passed for both. Repairing the fixture so the prices differ made the assertion able to fail, and it
+failed — on a case nobody had suspected. The property tests that now guard it were written
+afterwards, and both of them fail if the gate is put back.
+
 A dedicated suite in [`lookahead.test.ts`](packages/core/test/lookahead.test.ts) is written as a
-set of attacks: strategies that try to keep a bar, reach the tape, act on a jump as it prints, or
-chain an order from inside `onFill`. A no-lookahead guarantee that nobody tried to break is not
-worth stating.
+set of attacks: strategies that try to keep a bar, read a price only the current bar traded through
+an immediate-or-cancel order, trigger a stop on a level only the current bar reached, reprice an
+order into the bar it is on, reach the tape through the context or an order snapshot, or chain an
+order from inside `onFill`. Two property tests generalise it: fills over a prefix of a tape are
+identical to fills over the whole of it — nothing consulted a bar it had not reached — and no fill
+lands on a bar that had already closed when its order became matchable. A no-lookahead guarantee
+that nobody tried to break is not worth stating.
 
 ## Roadmap
 

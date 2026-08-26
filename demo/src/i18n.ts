@@ -116,7 +116,7 @@ const PT: Readonly<Record<string, string>> = {
     'Sem instalar, sem conta, sem container. O core não tem dependências de runtime e não importa nada do Node, então esta página roda o mesmo motor que a linha de comando.',
   'home.peers.c.title': 'É pequeno o bastante para ler',
   'home.peers.c.body':
-    'Seis pacotes, um ADR para cada decisão que poderia ter ido para o outro lado, e uma suíte onde cinco testes de propriedade mudaram o código em vez de confirmá-lo.',
+    'Seis pacotes, um ADR para cada decisão que poderia ter ido para o outro lado, e uma suíte onde seis testes mudaram o motor em vez de confirmá-lo — o último deles um bug de lookahead achado ao consertar uma fixture que não conseguia falhar.',
 
   // ----------------------------------------------------------------------- demo page
   'demo.eyebrow': 'Demo ao vivo',

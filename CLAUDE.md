@@ -8,7 +8,7 @@ explains it to whoever is about to change it.
 All six phases are done and committed: the deterministic kernel, the incremental indicator library,
 the data adapters and `.tape` format, the SQLite store, the metrics and HTML report, the `tapedeck`
 CLI, live paper trading, and the B3 layer. A seventh landed after them: a second venue, venue-bound
-fee schedules and timeframe aggregation (ADR-0017, ADR-0018). 685 tests, 96% statement coverage, a
+fee schedules and timeframe aggregation (ADR-0017, ADR-0018). 694 tests, 96% statement coverage, a
 committed year of real hourly candles for twelve markets across two exchanges.
 
 The roadmap at the end of the README is the authority on what each phase contained. What is left is
@@ -199,6 +199,13 @@ rather than by someone thinking:
   charts now use the report's `CHART_BOX`, `SMALL_BOX` and `axes`, and `charts.test.ts` asserts
   that a shipped box leaves a plot area inside its canvas.
 
+- **A fixture that cannot fail is not a test.** `lookahead.test.ts` asserted a fill price of 200
+  on a jump bar closing at 200 whose successor also opened at 200, so the correct behaviour and the
+  one the README calls failure number one produced the same number. Repairing the fixture found a
+  real boundary bug: the broker admitted a bar whose `closeTs` equalled an order's `activeFrom`,
+  filling it at that bar's open — a price up to a whole bar older than the order. The gate is `>=`
+  now, and two property tests plus a named case fail if it goes back. When an assertion pins a
+  number, check that a wrong implementation would produce a different one.
 - **Coinbase publishes candles as JSON numbers, not strings.** By the time `JSON.parse` has run the
   decimal is already a double, so the string discipline the Binance provider keeps is not available.
   `decimalString` converts without adding a second error — `String(n)` is the shortest decimal that
