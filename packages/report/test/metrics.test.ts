@@ -25,6 +25,69 @@ describe('inferPeriodsPerYear', () => {
   });
 });
 
+describe('refusing to annualise what the run cannot support', () => {
+  /** Daily bars, so a given number of points is a given number of days. */
+  const daily = (count: number, step = 1.001): number[] =>
+    Array.from({ length: count }, (_, i) => 100 * step ** i);
+
+  it('withholds CAGR and Calmar from a window too short to extrapolate', () => {
+    // Nineteen seconds of a paper session, which is what produced the -92% CAGR this rule exists
+    // for. The window is real; the year it would be stretched into is not.
+    const metrics = computeMetrics(makeResult({ equity: [100, 99.9, 99.8], spacing: 6_000_000 }));
+
+    expect(metrics.cagr).toBeNull();
+    expect(metrics.calmar).toBeNull();
+    // What was actually observed is untouched.
+    expect(metrics.totalReturn).toBeCloseTo(-0.002, 6);
+    expect(metrics.maxDrawdown).toBeGreaterThan(0);
+    expect(metrics.warnings.some((w) => w.includes('compound annual figure'))).toBe(true);
+  });
+
+  it('withholds Sharpe, Sortino and volatility from a sample too small to measure dispersion', () => {
+    // A year and a half of monthly-sized steps: long enough for CAGR, far too few observations for
+    // a dispersion scaled by the square root of a year.
+    const metrics = computeMetrics(
+      makeResult({ equity: daily(18, 1.01), spacing: MICROS_PER_DAY * 30 }),
+    );
+
+    expect(metrics.cagr).not.toBeNull();
+    expect(metrics.sharpe).toBeNull();
+    expect(metrics.sortino).toBeNull();
+    expect(metrics.volatility).toBeNull();
+    expect(metrics.downsideVolatility).toBeNull();
+    expect(metrics.warnings.some((w) => w.includes('annualised dispersion'))).toBe(true);
+  });
+
+  it('reports both once the run is long enough and dense enough', () => {
+    const metrics = computeMetrics(makeResult({ equity: daily(120), spacing: MICROS_PER_DAY }));
+
+    expect(metrics.cagr).not.toBeNull();
+    expect(metrics.sharpe).not.toBeNull();
+    expect(metrics.volatility).not.toBeNull();
+    expect(metrics.warnings).toHaveLength(0);
+  });
+
+  it('holds the two rules apart: a long window with two points still states its annual return', () => {
+    // The count of observations is not what CAGR needs. Two points a year apart are an exact
+    // annual return, and withholding it would be as wrong as extrapolating from nineteen seconds.
+    const metrics = computeMetrics(
+      makeResult({ equity: [100, 150], spacing: 365.25 * MICROS_PER_DAY }),
+    );
+
+    expect(metrics.cagr).toBeCloseTo(0.5, 6);
+    expect(metrics.sharpe).toBeNull();
+  });
+
+  it('says what it withheld and that the observed figures are unaffected', () => {
+    const metrics = computeMetrics(makeResult({ equity: [100, 101], spacing: MICROS_PER_HOUR }));
+    const notes = metrics.warnings.join(' ');
+
+    expect(notes).toContain('CAGR');
+    expect(notes).toContain('Sharpe');
+    expect(notes).toContain('describe the window as it was observed');
+  });
+});
+
 describe('drawdown analysis', () => {
   const ts = (n: number): Float64Array =>
     Float64Array.from({ length: n }, (_, i) => (i + 1) * MICROS_PER_HOUR);
@@ -211,7 +274,8 @@ describe('modelling caveats', () => {
       }),
     );
     expect(metrics.ambiguousBars).toBe(3);
-    expect(metrics.warnings).toHaveLength(1);
+    // Carried through, not replaced: the metrics add their own notes about what they withheld.
+    expect(metrics.warnings).toContain('3 bar(s) could have filled more than one resting order.');
   });
 
   it('reports what costs took out of the gross result', () => {

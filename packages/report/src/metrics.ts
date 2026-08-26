@@ -356,6 +356,66 @@ function ratio(numerator: number, denominator: number): number | null {
   return denominator === 0 ? null : numerator / denominator;
 }
 
+/**
+ * The two things an annualised figure needs, and they are not the same thing.
+ *
+ * The first real paper session this repository ran printed a **CAGR of -92%** from nineteen seconds
+ * of wall clock. That is not a wrong calculation; it is an answer to a question the run could not
+ * be asked. But the two families of annualised metric fail for different reasons, so they are held
+ * to different rules rather than to one convenient one:
+ *
+ * - **CAGR, and Calmar through it, need a span.** They raise a total return to the power of
+ *   `1 / years`, so a short window is extrapolated by however many of it fit in a year — 19 seconds
+ *   is a factor of 1.6 million. A run covering a whole year needs only two points to state its
+ *   annual return exactly, so the count of observations is not what matters here.
+ * - **Sharpe, Sortino and volatility need observations.** They scale a sample's dispersion by
+ *   `sqrt(periodsPerYear)`, and a dozen returns do not measure dispersion no matter how long they
+ *   are spread over.
+ *
+ * Thirty of each is a convention rather than a theorem, which is why both are named, exported and
+ * stated in the run's warnings when they bite. Everything that describes the window as observed —
+ * net profit, total return, drawdown, the trade statistics — is untouched (ADR-0019).
+ */
+export const MIN_PERIODS_TO_ANNUALISE = 30;
+export const MIN_DAYS_TO_ANNUALISE = 30;
+
+/**
+ * What was withheld and why, in the same voice the engine uses for everything else it could not do.
+ *
+ * These go into the metrics' own warnings, which every surface prints above the numbers, so a
+ * reader meets the reason before meeting the `n/a`.
+ */
+function annualisationNotes(
+  spanMicros: number,
+  spanSupportsAnnual: boolean,
+  periods: number,
+  sampleSupportsAnnual: boolean,
+): string[] {
+  const notes: string[] = [];
+  if (!spanSupportsAnnual) {
+    const days = spanMicros / MICROS_PER_DAY;
+    notes.push(
+      `the run covers ${days < 1 ? `${(days * 24 * 60).toFixed(1)} minute(s)` : `${days.toFixed(1)} day(s)`}, ` +
+        `under the ${String(MIN_DAYS_TO_ANNUALISE)} days a compound annual figure needs: CAGR and ` +
+        'Calmar are reported as null rather than extrapolated from it.',
+    );
+  }
+  if (!sampleSupportsAnnual) {
+    notes.push(
+      `the run has ${String(periods)} return period(s), under the ` +
+        `${String(MIN_PERIODS_TO_ANNUALISE)} an annualised dispersion needs: Sharpe, Sortino and ` +
+        'volatility are reported as null rather than scaled up from a sample that small.',
+    );
+  }
+  if (notes.length > 0) {
+    notes.push(
+      'Net profit, total return, drawdown and the trade statistics are unaffected: they describe ' +
+        'the window as it was observed.',
+    );
+  }
+  return notes;
+}
+
 export function computeMetrics(result: RunResult, options: MetricsOptions = {}): Metrics {
   const { equityCurve, trades, stats } = result;
   const length = equityCurve.length;
@@ -375,8 +435,11 @@ export function computeMetrics(result: RunResult, options: MetricsOptions = {}):
   const years = spanMicros / MICROS_PER_YEAR;
 
   const totalReturn = initialEquity === 0 ? 0 : netProfit / initialEquity;
+  // A window shorter than this is extrapolated to a year by a factor large enough to make the
+  // result about the arithmetic rather than about the strategy.
+  const spanSupportsAnnual = spanMicros >= MIN_DAYS_TO_ANNUALISE * MICROS_PER_DAY;
   const cagr =
-    years > 0 && initialEquity > 0 && finalEquity > 0
+    spanSupportsAnnual && years > 0 && initialEquity > 0 && finalEquity > 0
       ? Math.pow(finalEquity / initialEquity, 1 / years) - 1
       : null;
 
@@ -385,15 +448,25 @@ export function computeMetrics(result: RunResult, options: MetricsOptions = {}):
   const perPeriodRiskFree = periodsPerYear > 0 ? Math.pow(1 + riskFree, 1 / periodsPerYear) - 1 : 0;
   const excess = returns.map((value) => value - perPeriodRiskFree);
 
+  // The three dispersion metrics are withheld together, so a reader never sees a Sharpe beside a
+  // missing volatility and has to guess which one to believe.
+  const sampleSupportsAnnual = returns.length >= MIN_PERIODS_TO_ANNUALISE;
+
   const sigma = stdDev(excess);
   const downside = downsideDeviation(excess, 0);
   const annualise = Math.sqrt(periodsPerYear);
-  const volatility = sigma === null ? null : sigma * annualise;
-  const downsideVolatility = downside === null ? null : downside * annualise;
+  const volatility = !sampleSupportsAnnual || sigma === null ? null : sigma * annualise;
+  const downsideVolatility =
+    !sampleSupportsAnnual || downside === null ? null : downside * annualise;
   const averageExcess = mean(excess);
-  const sharpe = sigma === null || sigma === 0 ? null : (averageExcess / sigma) * annualise;
+  const sharpe =
+    !sampleSupportsAnnual || sigma === null || sigma === 0
+      ? null
+      : (averageExcess / sigma) * annualise;
   const sortino =
-    downside === null || downside === 0 ? null : (averageExcess / downside) * annualise;
+    !sampleSupportsAnnual || downside === null || downside === 0
+      ? null
+      : (averageExcess / downside) * annualise;
 
   const drawdown = analyseDrawdown(equityCurve.ts, equityCurve.equity, length);
   const calmar = cagr === null ? null : ratio(cagr, drawdown.maxDepth);
@@ -458,6 +531,9 @@ export function computeMetrics(result: RunResult, options: MetricsOptions = {}):
 
     ambiguousBars: stats.ambiguousBars,
     subBarLatencyIgnored: stats.subBarLatencyIgnored,
-    warnings: result.warnings,
+    warnings: [
+      ...result.warnings,
+      ...annualisationNotes(spanMicros, spanSupportsAnnual, returns.length, sampleSupportsAnnual),
+    ],
   };
 }

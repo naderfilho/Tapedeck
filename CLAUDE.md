@@ -8,7 +8,7 @@ explains it to whoever is about to change it.
 All six phases are done and committed: the deterministic kernel, the incremental indicator library,
 the data adapters and `.tape` format, the SQLite store, the metrics and HTML report, the `tapedeck`
 CLI, live paper trading, and the B3 layer. A seventh landed after them: a second venue, venue-bound
-fee schedules and timeframe aggregation (ADR-0017, ADR-0018). 694 tests, 96% statement coverage, a
+fee schedules and timeframe aggregation (ADR-0017, ADR-0018). 699 tests, 96% statement coverage, a
 committed year of real hourly candles for twelve markets across two exchanges.
 
 The roadmap at the end of the README is the authority on what each phase contained. What is left is
@@ -92,7 +92,7 @@ needs to, write an ADR arguing for it first.
 6. **No `any`, no `@ts-ignore`.** `noUncheckedIndexedAccess` and `exactOptionalPropertyTypes` are on.
 7. **Core has zero runtime dependencies** and imports no other workspace package. The allowlist for
    everything else is in ADR-0007.
-8. **Read the ADRs before arguing with the code.** `docs/adr/` — 18 of them, each with the
+8. **Read the ADRs before arguing with the code.** `docs/adr/` — 19 of them, each with the
    alternatives that were rejected. ADR-0014 amends ADR-0003; read them together.
 9. **A tape and its fee schedule travel together.** A Coinbase tape priced with Binance's fees is a
    report about a market nobody traded in. `SPOT_FEES` carries each venue's published percentages
@@ -260,10 +260,12 @@ rather than by someone thinking:
   reduces its siblings before the next candidate on the same bar is considered, which is the window
   the old two-orders-and-a-cancel pattern left open. `oco.test.ts` reproduces the old bug against
   the old pattern so the difference stays visible.
-- A paper session's report reuses the backtest metrics unchanged. Some of them — a CAGR of -92%
-  extrapolated from nineteen seconds of wall time, which is what the first real session printed —
-  say nothing at all about a session that short. Phase 5 should decide which metrics a live
-  session should print, and which it should refuse to.
+- ~~A paper session's report reuses the backtest metrics unchanged.~~ Done, and in the metrics
+  rather than in a live-only variant, because a nineteen-second _backtest_ has the same defect.
+  CAGR and Calmar need 30 days of span; Sharpe, Sortino and volatility need 30 return periods.
+  Below either, they are `null` and the run says which and why. The two rules are separate on
+  purpose: two points a year apart state an exact annual return, and thirty observations in an hour
+  measure no dispersion at all (ADR-0019).
 - What has now been done against the real Binance socket: aggTrade and `kline_1m` together for two
   and a half minutes (1,535 events, two closed candles, 1,387 prints, queue never above 1), the
   SQLite store written as it went, and the session resumed from that store in a second process —

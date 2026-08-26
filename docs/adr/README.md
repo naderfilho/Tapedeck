@@ -3,23 +3,24 @@
 Short records of the decisions that shaped Tapedeck. Each one states the context, the decision,
 the alternatives that were rejected and why, and the consequences we accepted.
 
-| ADR                                                    | Title                                                           | Status   |
-| ------------------------------------------------------ | --------------------------------------------------------------- | -------- |
-| [0001](0001-monorepo-layout-and-package-boundaries.md) | Monorepo layout and package boundaries                          | Accepted |
-| [0002](0002-fixed-point-money-float-indicators.md)     | Fixed-point integers for money, float64 for indicators          | Accepted |
-| [0003](0003-synchronous-deterministic-kernel.md)       | A synchronous kernel for both backtest and live                 | Accepted |
-| [0004](0004-columnar-tape-and-reused-bar-views.md)     | Columnar tape and reused bar views                              | Accepted |
-| [0005](0005-intrabar-execution-and-no-lookahead.md)    | Intrabar execution model and the no-lookahead invariant         | Accepted |
-| [0006](0006-determinism-guarantees-and-limits.md)      | Determinism guarantees and their limits                         | Accepted |
-| [0007](0007-node-baseline-and-dependency-policy.md)    | Node 24 baseline and dependency policy                          | Accepted |
-| [0008](0008-optional-persistence-behind-store.md)      | Optional persistence behind a Store interface                   | Accepted |
-| [0009](0009-tape-binary-format.md)                     | A columnar .tape format instead of Parquet                      | Accepted |
-| [0010](0010-indicator-contract.md)                     | The indicator contract                                          | Accepted |
-| [0011](0011-read-only-market-data.md)                  | Read-only public market data, and no credentials anywhere       | Accepted |
-| [0012](0012-metric-conventions.md)                     | Metric conventions, and reporting nothing rather than something | Accepted |
-| [0013](0013-report-is-a-file.md)                       | A report is a file, not an application                          | Accepted |
-| [0014](0014-paper-trading-runs-on-event-time.md)       | Paper trading runs on event time, and says how far behind it is | Accepted |
-| [0015](0015-b3-sessions-contracts-and-data.md)         | B3: sessions, contracts, and where the data may live            | Accepted |
-| [0016](0016-the-report-page-recomputes-the-run.md)     | The report page recomputes the run it is asked for              | Accepted |
-| [0017](0017-a-tape-carries-its-venue.md)               | A tape carries its venue, and its venue carries its fees        | Accepted |
-| [0018](0018-slower-timeframes-are-aggregated.md)       | Slower timeframes are aggregated, not downloaded                | Accepted |
+| ADR                                                       | Title                                                           | Status   |
+| --------------------------------------------------------- | --------------------------------------------------------------- | -------- |
+| [0001](0001-monorepo-layout-and-package-boundaries.md)    | Monorepo layout and package boundaries                          | Accepted |
+| [0002](0002-fixed-point-money-float-indicators.md)        | Fixed-point integers for money, float64 for indicators          | Accepted |
+| [0003](0003-synchronous-deterministic-kernel.md)          | A synchronous kernel for both backtest and live                 | Accepted |
+| [0004](0004-columnar-tape-and-reused-bar-views.md)        | Columnar tape and reused bar views                              | Accepted |
+| [0005](0005-intrabar-execution-and-no-lookahead.md)       | Intrabar execution model and the no-lookahead invariant         | Accepted |
+| [0006](0006-determinism-guarantees-and-limits.md)         | Determinism guarantees and their limits                         | Accepted |
+| [0007](0007-node-baseline-and-dependency-policy.md)       | Node 24 baseline and dependency policy                          | Accepted |
+| [0008](0008-optional-persistence-behind-store.md)         | Optional persistence behind a Store interface                   | Accepted |
+| [0009](0009-tape-binary-format.md)                        | A columnar .tape format instead of Parquet                      | Accepted |
+| [0010](0010-indicator-contract.md)                        | The indicator contract                                          | Accepted |
+| [0011](0011-read-only-market-data.md)                     | Read-only public market data, and no credentials anywhere       | Accepted |
+| [0012](0012-metric-conventions.md)                        | Metric conventions, and reporting nothing rather than something | Accepted |
+| [0013](0013-report-is-a-file.md)                          | A report is a file, not an application                          | Accepted |
+| [0014](0014-paper-trading-runs-on-event-time.md)          | Paper trading runs on event time, and says how far behind it is | Accepted |
+| [0015](0015-b3-sessions-contracts-and-data.md)            | B3: sessions, contracts, and where the data may live            | Accepted |
+| [0016](0016-the-report-page-recomputes-the-run.md)        | The report page recomputes the run it is asked for              | Accepted |
+| [0017](0017-a-tape-carries-its-venue.md)                  | A tape carries its venue, and its venue carries its fees        | Accepted |
+| [0018](0018-slower-timeframes-are-aggregated.md)          | Slower timeframes are aggregated, not downloaded                | Accepted |
+| [0019](0019-a-short-run-does-not-get-an-annual-figure.md) | A short run does not get an annual figure                       | Accepted |

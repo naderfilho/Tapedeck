@@ -301,6 +301,12 @@ stream.onBars = (chunk) => session.receive({ kind: 'bars', chunk });
 const result = await session.stop(); // the same RunResult a backtest produces
 ```
 
+A short session gets a short session's metrics: CAGR and Calmar are withheld below 30 days of
+span, and Sharpe, Sortino and volatility below 30 return periods, each with a warning saying what
+was withheld and why ([ADR-0019](adr/0019-a-short-run-does-not-get-an-annual-figure.md)). Net
+profit, drawdown and the trade list are always reported, because they describe what happened rather
+than extrapolating from it.
+
 `session.warnings()` reports lag, refused events, feed gaps and whether the account was restored.
 Read [ADR-0014](adr/0014-paper-trading-runs-on-event-time.md) before assuming what the clock does:
 the kernel runs on **event time** in both modes, and wall time is measured, not applied.

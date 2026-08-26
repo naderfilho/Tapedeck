@@ -1,7 +1,7 @@
 # Tapedeck
 
 [![CI](https://github.com/naderfilho/Tapedeck/actions/workflows/ci.yml/badge.svg)](https://github.com/naderfilho/Tapedeck/actions/workflows/ci.yml)
-![tests](https://img.shields.io/badge/tests-694-brightgreen)
+![tests](https://img.shields.io/badge/tests-699-brightgreen)
 ![coverage](https://img.shields.io/badge/coverage-96%25-brightgreen)
 ![node](https://img.shields.io/badge/node-%E2%89%A524-informational)
 [![licence](https://img.shields.io/badge/licence-PolyForm%20Noncommercial-blue)](LICENSE.md)
@@ -32,7 +32,7 @@ configuration and every trade.
 > **Status: seven phases done.** The kernel, the indicator library, the data adapters, the SQLite
 > store, the metrics and report package, the `tapedeck` command line, paper trading against a live
 > feed, the B3 layer and a second exchange are all in.
-> 694 tests, 96% statement coverage, and a committed year of real candles from two exchanges so that
+> 699 tests, 96% statement coverage, and a committed year of real candles from two exchanges so that
 > `pnpm test` measures something. Not published to npm, deliberately; see
 > [what this is for](#what-this-is-for).
 
@@ -40,7 +40,7 @@ Designed and built from scratch by [Nader Filho](https://github.com/naderfilho).
 checking first are the [property tests that changed the code](#testing) rather than confirming it,
 the [ADR amended](docs/adr/0014-paper-trading-runs-on-event-time.md) after the first live connection
 disproved it, and the [demo](https://tapedeck-nader-filhos-projects.vercel.app/demo/), which is the
-engine itself rather than a recording of it. Every decision is argued in [18 ADRs](docs/adr/), each
+engine itself rather than a recording of it. Every decision is argued in [19 ADRs](docs/adr/), each
 with the alternatives that were rejected.
 
 ## Why this exists
@@ -459,6 +459,12 @@ Two rules make those numbers checkable:
   closes overnight is not defined by its gaps ([ADR-0012](docs/adr/0012-metric-conventions.md)).
 - **A metric that cannot be computed reports `null`.** A profit factor with no losses, a Sharpe
   from one bar, a CAGR over a zero-length run. Zero is a result; nothing is not.
+- **A metric the run cannot support reports `null` too.** A nineteen-second paper session used to
+  print a CAGR of −92%: correct arithmetic, no information. CAGR and Calmar need a span of at least
+  30 days, Sharpe, Sortino and volatility need at least 30 return periods, and below either
+  threshold they are withheld with a warning saying so. What describes the window as observed — net
+  profit, total return, drawdown, every trade statistic — is never withheld
+  ([ADR-0019](docs/adr/0019-a-short-run-does-not-get-an-annual-figure.md)).
 
 Money never becomes a float on the way out: every monetary field in the JSON is an exact decimal
 string, and every ratio is rounded to twelve significant digits, which is what makes two runs of
@@ -605,7 +611,7 @@ hoped for:
 ## Testing
 
 ```bash
-pnpm test          # 694 tests
+pnpm test          # 699 tests
 pnpm coverage      # 96% statements, 97% functions; 85% is the floor for every package
 pnpm lint          # no `any`, no `@ts-ignore`, no wall clock in the kernel
 pnpm typecheck     # strict, plus noUncheckedIndexedAccess and exactOptionalPropertyTypes
