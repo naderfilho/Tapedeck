@@ -34,7 +34,7 @@ import { build } from 'esbuild';
  * brand blue in both, because that is the part people recognise.
  */
 const BRAND_MARK =
-  '<svg class="mark" width="24" height="24" viewBox="0 0 100 100" fill="none" aria-hidden="true"><defs><linearGradient id="td-c" x1="52" y1="14" x2="94" y2="86" gradientUnits="userSpaceOnUse"><stop stop-color="var(--brand-1, #5cb0ff)"/><stop offset="1" stop-color="var(--brand-2, #1358c9)"/></linearGradient></defs><path d="M58 14h6c22 0 36 15 36 36S86 86 64 86h-14l4-18h10c11 0 18-8 18-18s-7-18-18-18h-8z" fill="url(#td-c)"/><path d="M6 14h58l-4 18H44L32 86H12L24 32H2z" fill="currentColor"/><path d="M8 78l18-10 16 8 20-18" stroke="var(--brand-line, #3d9bff)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  '<svg class="mark" width="24" height="24" viewBox="0 0 100 100" fill="none" aria-hidden="true"><defs><linearGradient id="td-c" x1="52" y1="12" x2="96" y2="88" gradientUnits="userSpaceOnUse"><stop stop-color="var(--brand-1, #6ab8ff)"/><stop offset="1" stop-color="var(--brand-2, #0f4fbd)"/></linearGradient></defs><path d="M54 12h8c20 0 34 16 34 38 0 24-16 42-37 42h-8l5-18h4c11 0 19-11 19-24 0-13-7-21-18-21h-12z" fill="url(#td-c)"/><path d="M8 12h48l-4 17H37L25 88H10l12-59H4z" fill="currentColor"/><path d="M5 82l19-11 17 7 20-18" stroke="var(--brand-line, #3d9bff)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
 /**
  * The full lockup, for the one place with room for it.
@@ -44,18 +44,7 @@ const BRAND_MARK =
  * drops them rather than rendering them as three grey specks.
  */
 const BRAND_FULL =
-  '<svg class="mark-full" width="88" height="88" viewBox="0 0 128 128" fill="none" aria-hidden="true">' +
-  '<defs><linearGradient id="td-f" x1="62" y1="16" x2="120" y2="108" gradientUnits="userSpaceOnUse">' +
-  '<stop stop-color="var(--brand-1, #5cb0ff)"/><stop offset="1" stop-color="var(--brand-2, #1358c9)"/>' +
-  '</linearGradient></defs>' +
-  '<path d="M74 16h8c26 0 44 19 44 46s-18 46-44 46H62l5-20h13c15 0 25-11 25-26s-10-26-25-26h-9z" fill="url(#td-f)"/>' +
-  '<path d="M8 16h70l-4 20H52L38 108H16L30 36H4z" fill="currentColor"/>' +
-  '<g fill="currentColor" opacity=".9">' +
-  '<rect x="62" y="52" width="6" height="28" rx="2"/><rect x="76" y="40" width="6" height="32" rx="2"/>' +
-  '<rect x="90" y="30" width="6" height="34" rx="2"/></g>' +
-  '<path d="M10 100l24-14 20 10 26-24 22-14" stroke="var(--brand-line, #3d9bff)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>' +
-  '<g fill="var(--brand-line, #3d9bff)"><circle cx="34" cy="86" r="5.5"/><circle cx="54" cy="96" r="5.5"/>' +
-  '<circle cx="80" cy="72" r="5.5"/></g></svg>';
+  '<svg class="mark-full" width="104" height="104" viewBox="0 0 128 128" fill="none" aria-hidden="true"><defs><linearGradient id="td-f" x1="64" y1="14" x2="122" y2="110" gradientUnits="userSpaceOnUse"><stop stop-color="var(--brand-1, #6ab8ff)"/><stop offset=".55" stop-color="#2b86ec"/><stop offset="1" stop-color="var(--brand-2, #0f4fbd)"/></linearGradient><linearGradient id="td-t" x1="12" y1="14" x2="66" y2="98" gradientUnits="userSpaceOnUse"><stop stop-color="currentColor"/><stop offset="1" stop-color="currentColor" stop-opacity=".78"/></linearGradient></defs><path d="M68 14h9c24 0 43 20 43 47 0 29-20 51-46 51h-9l6-21h4c14 0 24-13 24-29 0-15-9-25-23-25H62z" fill="url(#td-f)"/><path d="M12 14h56l-5 20H47L34 96H16l13-62H7z" fill="url(#td-t)"/><g stroke-linecap="round"><path d="M56 50v22" stroke="currentColor" stroke-width="1.4" opacity=".85"/><rect x="53.6" y="55" width="4.8" height="13" rx="1.2" fill="currentColor" opacity=".85"/><path d="M66 44v22" stroke="var(--brand-line, #3d9bff)" stroke-width="1.4"/><rect x="63.6" y="49" width="4.8" height="13" rx="1.2" fill="var(--brand-line, #3d9bff)"/><path d="M76 38v22" stroke="currentColor" stroke-width="1.4" opacity=".85"/><rect x="73.6" y="43" width="4.8" height="13" rx="1.2" fill="currentColor" opacity=".85"/><path d="M86 32v21" stroke="var(--brand-line, #3d9bff)" stroke-width="1.4"/><rect x="83.6" y="36" width="4.8" height="13" rx="1.2" fill="var(--brand-line, #3d9bff)"/><path d="M96 28v20" stroke="currentColor" stroke-width="1.4" opacity=".85"/><rect x="93.6" y="32" width="4.8" height="12" rx="1.2" fill="currentColor" opacity=".85"/></g><path d="M10 100l22-12 19 7 23-21 22-13" stroke="var(--brand-line, #3d9bff)" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/><g fill="var(--brand-line, #3d9bff)"><circle cx="32" cy="88" r="4.2"/><circle cx="51" cy="95" r="4.2"/><circle cx="74" cy="74" r="4.2"/><circle cx="96" cy="61" r="4.2"/></g></svg>';
 
 /**
  * The tab icon, which cannot inherit anything.

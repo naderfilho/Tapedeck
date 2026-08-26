@@ -1484,3 +1484,45 @@ body.is-loading .market[aria-pressed='true'] {
     flex: 1;
   }
 }
+
+/* The wordmark is real text in the site's own stack rather than SVG outlines: it stays selectable,
+   it reads to a screen reader, and it cannot render differently from the headings beside it. */
+.gate__wordmark {
+  display: block;
+  margin-top: 6px;
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-indent: 0.15em;
+  line-height: 1;
+}
+
+.gate__wordmark b {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.gate__wordmark i {
+  color: var(--brand-line);
+  font-style: normal;
+  font-weight: 700;
+}
+
+.gate__rule {
+  display: block;
+  width: 52px;
+  height: 3px;
+  margin: 9px auto 0;
+  border-radius: 2px;
+  background: var(--brand-line);
+}
+
+.gate__tagline {
+  display: block;
+  margin-top: 9px;
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.17em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
