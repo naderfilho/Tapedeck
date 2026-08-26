@@ -2,23 +2,26 @@
  * Regenerates the committed market-data fixtures.
  *
  * ```sh
- * pnpm fixtures
+ * corepack pnpm fixtures                       # every tape
+ * corepack pnpm fixtures coinbase-BTC-USD      # or just the ones named
  * ```
  *
  * The range is a pair of fixed dates rather than "the last year", so running this in six months
  * produces the same file. A fixture that drifts with the wall clock is not a fixture.
  *
- * Binance spot data is public and redistributable, which is why the repository can ship it. B3
- * data is neither, which is why the B3 examples will always point at a file you fetched yourself.
+ * Binance and Coinbase both publish this data on unauthenticated endpoints, which is why the
+ * repository can ship it. B3 data is neither free nor redistributable, which is why the B3 examples
+ * will always point at a file you fetched yourself.
  *
- * This script uses `@tapedeck/data` rather than a bespoke downloader: if the provider cannot build
- * the fixtures, the provider is broken.
+ * This script uses the providers in `@tapedeck/data` rather than a bespoke downloader: if a
+ * provider cannot build the fixtures, the provider is broken.
  */
 
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import {
   type BarChunk,
+  type DataProvider,
   BarChunkBuilder,
   MICROS_PER_HOUR,
   asDuration,
@@ -26,20 +29,11 @@ import {
   fromIso,
   toIso,
 } from '@tapedeck/core';
-import { BinanceDataProvider, encodeBarTape } from '@tapedeck/data';
-
-/**
- * The demo lets a visitor pick an instrument, so the fixtures cover more than one.
- *
- * These five are liquid enough over the whole window that the tape has no gaps to explain, and
- * they differ enough in price and lot size to be worth switching between: a strategy that looks
- * like an edge on one of them rarely survives the next. `BTCUSDT` stays first because it is the
- * one the README, the example and every test already talk about.
- */
-const SYMBOLS = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'XRPUSDT'] as const;
+import { BinanceDataProvider, CoinbaseDataProvider, encodeBarTape } from '@tapedeck/data';
+import { TAPES } from '../demo/src/markets.ts';
 
 /** The CSV sample exists for the CSV provider's tests, which only ever read this one. */
-const CSV_SAMPLE_FOR = 'BTCUSDT';
+const CSV_SAMPLE_FOR = 'binance-BTCUSDT';
 
 const FROM = fromIso('2025-08-01T00:00:00.000Z');
 const TO = fromIso('2026-08-01T00:00:00.000Z');
@@ -66,10 +60,10 @@ function toCsv(chunk: BarChunk, priceExp: number, qtyExp: number, rows: number):
   return `${lines.join('\n')}\n`;
 }
 
-async function fetchOne(provider: BinanceDataProvider, symbol: string): Promise<void> {
+async function fetchOne(provider: DataProvider, id: string, symbol: string): Promise<void> {
   const instrument = await provider.describe(symbol);
   console.log(
-    `${symbol}: priceExp=${String(instrument.priceExp)} qtyExp=${String(instrument.qtyExp)} ` +
+    `${id}: priceExp=${String(instrument.priceExp)} qtyExp=${String(instrument.qtyExp)} ` +
       `tick=${instrument.tickSize} lot=${instrument.lotSize}`,
   );
 
@@ -92,11 +86,11 @@ async function fetchOne(provider: BinanceDataProvider, symbol: string): Promise<
     throw new Error(`the venue returned no candles for ${symbol} in the requested range`);
   }
 
-  const tapePath = `${fixtures}binance-${symbol}-1h.tape`;
+  const tapePath = `${fixtures}${id}-1h.tape`;
   const bytes = encodeBarTape({
     instrument,
     chunk: bars,
-    source: `binance:${symbol}:1h:${toIso(FROM)}..${toIso(TO)}`,
+    source: `${provider.id}:${symbol}:1h:${toIso(FROM)}..${toIso(TO)}`,
     createdBy: 'tapedeck/scripts/fetch-fixtures',
   });
   writeFileSync(tapePath, bytes);
@@ -107,8 +101,8 @@ async function fetchOne(provider: BinanceDataProvider, symbol: string): Promise<
   );
   console.log(`  ${tapePath}  ${(bytes.byteLength / 1024).toFixed(0)} KiB`);
 
-  if (symbol === CSV_SAMPLE_FOR) {
-    const csvPath = `${fixtures}binance-${symbol}-1h-sample.csv`;
+  if (id === CSV_SAMPLE_FOR) {
+    const csvPath = `${fixtures}binance-BTCUSDT-1h-sample.csv`;
     writeFileSync(
       csvPath,
       toCsv(bars, instrument.priceExp, instrument.qtyExp, SAMPLE_ROWS),
@@ -119,13 +113,25 @@ async function fetchOne(provider: BinanceDataProvider, symbol: string): Promise<
 }
 
 async function main(): Promise<void> {
-  // One provider for all of them: it carries the request delay, and hammering the venue with five
-  // concurrent paginations is how a fixture script earns a rate-limit ban.
-  const provider = new BinanceDataProvider({ requestDelayMs: 400 });
+  // One provider per venue for all of its symbols: each carries the request delay, and hammering
+  // an exchange with concurrent paginations is how a fixture script earns a rate-limit ban.
+  const providers: Record<string, DataProvider> = {
+    binance: new BinanceDataProvider({ requestDelayMs: 400 }),
+    coinbase: new CoinbaseDataProvider({ requestDelayMs: 200 }),
+  };
+
   mkdirSync(fixtures, { recursive: true });
 
-  for (const symbol of SYMBOLS) {
-    await fetchOne(provider, symbol);
+  const wanted = new Set(process.argv.slice(2));
+  const selected = TAPES.filter((tape) => wanted.size === 0 || wanted.has(tape.id));
+  if (selected.length === 0) {
+    throw new Error(`nothing matched. Known tapes: ${TAPES.map((tape) => tape.id).join(', ')}`);
+  }
+
+  for (const tape of selected) {
+    const provider = providers[tape.venue];
+    if (provider === undefined) throw new Error(`no provider for ${tape.venue}`);
+    await fetchOne(provider, tape.id, tape.symbol);
     console.log('');
   }
 }
