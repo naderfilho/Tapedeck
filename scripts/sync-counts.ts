@@ -12,11 +12,16 @@
  * site's figures already come from `out/metrics.json` rather than from a paragraph, and there was no
  * reason the repository's own numbers should be typed by hand.
  *
- * The inputs are the artefacts `pnpm coverage` leaves behind, so a figure can only move when a run
- * moved it.
+ * The benchmark table went the same way, and was worse: the README claimed 4.0 M bars/s in
+ * development mode against the 6.5 M the benchmark actually printed, and the benchmark has been
+ * emitting the markdown for that table all along. It is rewritten from `bench.txt` when there is
+ * one.
+ *
+ * The inputs are the artefacts `pnpm coverage` and `pnpm bench` leave behind, so a figure can only
+ * move when a run moved it.
  */
 
-import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 const at = (path: string): string => fileURLToPath(new URL(`../${path}`, import.meta.url));
@@ -93,6 +98,70 @@ const FILES: readonly { readonly file: string; readonly rules: readonly Rule[] }
   },
 ];
 
+/** One row of the benchmark table, as both the benchmark and the README spell it. */
+interface BenchRow {
+  readonly scenario: string;
+  readonly throughput: string;
+  readonly perBar: string;
+  readonly what: string;
+}
+
+const BENCH_LINE =
+  /^\|\s*(.+?)\s*\|\s*([\d.]+) M bars\/s\s*\|\s*(\d+) ns(?:\/bar)?\s*\|\s*(.+?)\s*\|$/;
+
+function parseRows(text: string): BenchRow[] {
+  const rows: BenchRow[] = [];
+  for (const line of text.split('\n')) {
+    const match = BENCH_LINE.exec(line.trim());
+    if (match === null) continue;
+    rows.push({
+      scenario: match[1] ?? '',
+      throughput: match[2] ?? '',
+      perBar: match[3] ?? '',
+      what: match[4] ?? '',
+    });
+  }
+  return rows;
+}
+
+const renderRow = (row: BenchRow): string =>
+  `| ${row.scenario} | ${row.throughput} M bars/s | ${row.perBar} ns | ${row.what} |`;
+
+const sameRows = (a: readonly BenchRow[], b: readonly BenchRow[]): boolean =>
+  a.length === b.length && a.every((row, i) => renderRow(row) === renderRow(b[i] as BenchRow));
+
+/**
+ * Rewrites the README's benchmark table from the last `pnpm bench`.
+ *
+ * `bench.txt` is gitignored — it measures whoever ran it, and the README says on which machine — so
+ * a checkout without one is not stale, it is unmeasured. The check reports that rather than
+ * failing, which is the only honest thing to do with a file it cannot see.
+ */
+function syncBench(dryRun: boolean): 'missing' | 'ok' | 'stale' {
+  const benchPath = at('bench.txt');
+  if (!existsSync(benchPath)) return 'missing';
+
+  const wanted = parseRows(readFileSync(benchPath, 'utf8'));
+  if (wanted.length === 0) throw new Error('bench.txt has no table in it; run the benchmark again');
+
+  const readmePath = at('README.md');
+  const readme = readFileSync(readmePath, 'utf8');
+  const table = /\| Scenario[^\n]*\n\|[-| ]+\n(?:\|[^\n]*\n)+/.exec(readme);
+  if (table === null) throw new Error('README.md no longer has a benchmark table to rewrite');
+
+  if (sameRows(parseRows(table[0]), wanted)) return 'ok';
+  if (dryRun) return 'stale';
+
+  const rebuilt = [
+    '| Scenario | Throughput | Per bar | What runs |',
+    '| --- | --- | --- | --- |',
+    ...wanted.map(renderRow),
+    '',
+  ].join('\n');
+  writeFileSync(readmePath, readme.replace(table[0], rebuilt), 'utf8');
+  return 'stale';
+}
+
 const check = process.argv.includes('--check');
 const stale: string[] = [];
 
@@ -111,6 +180,17 @@ for (const { file, rules } of FILES) {
   if (after === before) continue;
   if (check) stale.push(file);
   else writeFileSync(path, after, 'utf8');
+}
+
+const bench = syncBench(check);
+if (bench === 'stale') {
+  if (check) stale.push('README.md (benchmark table)');
+  else console.log('benchmark table: rewritten from bench.txt');
+}
+if (bench === 'missing') {
+  console.log(
+    'benchmark table: not checked, there is no bench.txt — run the benchmark to make one',
+  );
 }
 
 const figures =

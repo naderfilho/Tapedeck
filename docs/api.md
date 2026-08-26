@@ -183,9 +183,17 @@ execution: {
 }
 ```
 
-`PRESETS` has `ideal`, `binanceSpot`, `b3Futures` and `b3Stocks`. Every parameter is an integer in
-basis points, never a float fraction, so two machines cannot disagree about the last unit of a
-commission.
+`PRESETS` has `ideal`, `binanceSpot`, `binanceSpotBnb`, `coinbaseExchange`, `b3Futures` and
+`b3Stocks`. Rates are integers in basis points, or — where a venue publishes something finer, like
+Binance's 0.075% for fees paid in BNB — a decimal string parsed once into a fixed-point integer by
+`percentCommission`. Never a float fraction either way, so two machines cannot disagree about the
+last unit of a commission.
+
+The spot schedules come from `SPOT_FEES`, which carries each venue's tier, the source URL and the
+date it was read; `spotFeeCommission` turns one into a commission model with the venue's name on it
+([ADR-0017](adr/0017-a-tape-carries-its-venue.md)). A market's tape and its fee schedule belong
+together: pricing one exchange's data with another's rates is a report about a market nobody traded
+in.
 
 `intrabar` decides what happens when more than one resting order could have filled inside one bar.
 It is **counted** in `stats.ambiguousBars` whatever you choose — a run where that is a large share
@@ -199,15 +207,28 @@ of the trades is a run whose numbers are a guess, and the report says so.
 // A local file
 const tape = readBarTapeFileSync('data/btc.tape');
 
-// Public historical candles
+// Public historical candles, from either venue, through the same contract
 const binance = new BinanceDataProvider();
 for await (const chunk of binance.bars({ symbol: 'BTCUSDT', timeframe, from, to })) {
+  engine.feedBars(chunk);
+}
+const coinbase = new CoinbaseDataProvider(); // historical bars only; no live stream
+for await (const chunk of coinbase.bars({ symbol: 'BTC-USD', timeframe, from, to })) {
   engine.feedBars(chunk);
 }
 
 // A CSV export you already have
 const csv = new CsvBarProvider({ path: 'export.csv', instrument, timeframe });
+
+// A slower clock, derived from the tape you already have rather than downloaded again
+const { chunk, partialBuckets } = resampleBars(tape.chunk, asDuration(MICROS_PER_DAY));
 ```
+
+`resampleBars` aggregates a chunk onto a whole multiple of its timeframe — first open, last close,
+maximum high, minimum low, summed volume, all integer arithmetic — with buckets aligned to the epoch.
+A trailing bucket the source does not cover is dropped rather than published as a bar that has not
+finished forming, and a bucket a gap left short is kept and counted in `partialBuckets` for you to
+report ([ADR-0018](adr/0018-slower-timeframes-are-aggregated.md)).
 
 The `.tape` format is columnar and self-describing: it carries the instrument, so the integers in it
 have units. A tape and the SQLite bar cache store the same bytes, so neither can drift from the
@@ -265,6 +286,12 @@ The HTML report is one self-contained file: no `<script>`, no CDN, no network
 
 The same strategy, the same kernel, a socket instead of a file.
 
+The feed is live and the broker is the simulator, so no order reaches a venue: there is no
+acknowledgement, no rejection, no exchange-side partial fill, no rate limit and no reconciliation
+against a real account. The provider has no concept of a credential
+([ADR-0011](adr/0011-read-only-market-data.md)). Read this as a live feed rather than live
+execution.
+
 ```ts
 const session = new LiveSession(runOptions, { sessionId: 'btc-1', store });
 await session.start(); // restores from the store if this id has run before
@@ -290,7 +317,9 @@ and not the strategy's memory. A field in a closure does not come back, and `bar
 4. **Do not read the clock.** `Date.now()` and `Math.random()` are lint errors inside
    `packages/core/src`, and a strategy that reads them is a strategy whose backtest is not
    reproducible.
-5. **An order cannot fill on the bar that produced it.** Anything that appears to is a bug — please
+5. **An order cannot fill on the bar that produced it**, nor on any bar that had already closed
+   when it became matchable — a bar's interval is half-open, so one ending exactly at an order's
+   `activeFrom` belongs to the order after it. Anything that appears otherwise is a bug — please
    report it.
 6. **Read the warnings.** They are the parts of the answer the data could not support, and they
    print above the numbers everywhere for that reason.

@@ -8,7 +8,7 @@
 
 An event-driven backtesting and paper-trading engine for TypeScript. Deterministic by
 construction, explicit about what it cannot know, and quick enough to replay a million bars in
-about 130 ms while trading them.
+about 140 ms while trading them.
 
 It runs in a browser tab, which is unusual for this kind of engine and is the fastest way to judge
 it. How it compares to NautilusTrader, LEAN, VectorBT and backtrader is
@@ -83,8 +83,9 @@ What it costs, plainly:
 
 - **No NumPy, pandas, SciPy or statsmodels.** Anything statistical beyond the shipped metric set is
   yours to write.
-- **No vectorised parameter sweeps.** A grid search is a loop over runs. At 7.6 M bars/s with
-  trading that is comfortable for hundreds of runs and the wrong tool for millions.
+- **No vectorised parameter sweeps.** A grid search is a loop over runs. At the 7.2 M bars/s the
+  benchmark measures with trading, that is comfortable for hundreds of runs and the wrong tool for
+  millions.
 - **One core per run.** There is no multiprocessing story here.
 - **It will not beat a Rust core on latency**, and does not try to. This is a research and
   simulation engine, not a low-latency execution stack.
@@ -524,16 +525,21 @@ One million bars, five runs each, median reported. Reproduce with `pnpm bench`; 
 own run, dated and with the machine that produced it, at
 <https://tapedeck-nader-filhos-projects.vercel.app/bench.txt>.
 
-| Scenario              | Throughput    | Per bar | What runs                                                     |
-| --------------------- | ------------- | ------- | ------------------------------------------------------------- |
-| replay only           | 26.5 M bars/s | 38 ns   | clock, scheduler, mark-to-market, equity curve                |
-| + two moving averages | 9.1 M bars/s  | 110 ns  | two library indicators updated on every bar                   |
-| + resting limit order | 8.6 M bars/s  | 117 ns  | order matcher runs on every bar                               |
-| + crossover trading   | 7.6 M bars/s  | 132 ns  | indicators, orders, fills, PnL                                |
-| development mode      | 4.0 M bars/s  | 250 ns  | guarded bar views and data validation, as the test suite runs |
+| Scenario              | Throughput     | Per bar | What runs                                                   |
+| --------------------- | -------------- | ------- | ----------------------------------------------------------- |
+| replay only           | 26.10 M bars/s | 38 ns   | clock, scheduler, mark-to-market, equity curve              |
+| + two moving averages | 9.01 M bars/s  | 111 ns  | incremental indicators on every bar                         |
+| + resting limit order | 8.87 M bars/s  | 113 ns  | order matcher runs on every bar                             |
+| + crossover trading   | 7.21 M bars/s  | 139 ns  | indicators, orders, fills, PnL                              |
+| development mode      | 6.53 M bars/s  | 153 ns  | guarded bar views + data validation, as the test suite runs |
+| replay only           | 26.10 M bars/s | 38 ns   | clock, scheduler, mark-to-market, equity curve              |
+| + two moving averages | 9.01 M bars/s  | 111 ns  | incremental indicators on every bar                         |
+| + resting limit order | 8.87 M bars/s  | 113 ns  | order matcher runs on every bar                             |
+| + crossover trading   | 7.21 M bars/s  | 139 ns  | indicators, orders, fills, PnL                              |
+| development mode      | 6.53 M bars/s  | 153 ns  | guarded bar views + data validation, as the test suite runs |
 
-Measured on Node 24.12 / Windows 11 / x64. The run CI publishes is roughly 40% of these figures,
-because a shared two-core cloud runner is not a desktop; that is why the benchmark job reports
+Measured on Node 24.12 / Windows 11 / x64. The run CI publishes lands between 40% and 55% of these
+figures, because a shared two-core cloud runner is not a desktop; that is why the benchmark job reports
 rather than gates, and why both numbers carry the machine that produced them.
 
 Four rows rather than one headline figure, because replaying bars, updating indicators, matching
@@ -543,8 +549,8 @@ second.
 Two of those numbers are trade-offs rather than achievements. Registering indicators through
 `ctx.use` costs roughly 20 nanoseconds per indicator per bar against calling a class directly,
 which is what buys the guarantee that a value read inside `onBar` cannot be stale. Development mode
-is half the speed of production because guarded bar views and per-chunk validation are on, and that
-is what the test suite runs at.
+carries guarded bar views and per-chunk validation on top of that, and is what the test suite runs
+at — the last row is the price of both.
 
 The speed comes from decisions, not micro-optimisation: bars live in `Float64Array` columns instead
 of objects, the bar handed to a strategy is refilled rather than reallocated, the fixed-point
@@ -630,8 +636,11 @@ author already believed, and six of them changed the code rather than confirming
 
 - the latency boundary, which found that an order becoming matchable at exactly a bar's close
   matched **that** bar, at its open — a price up to a whole bar older than the order. A bar's
-  interval is half-open, so the gate wanted `>=` and had `>`. Any latency that is a whole multiple
-  of the bar size lands on that boundary every time.
+  interval is half-open, so the gate wanted `>=` and had `>`, and any latency that is a whole
+  multiple of the bar size lands on that boundary every time.
+  [ADR-0005](docs/adr/0005-intrabar-execution-and-no-lookahead.md) had specified the right rule from
+  the start — "market data whose interval ends **strictly after** `activeFrom`" — and the code had
+  drifted a character away from it.
 
 The last one is the one worth reading about, because of how it was found. The attack that should
 have caught it could not: the fixture had the bar after the jump open at the jump's own close, so a

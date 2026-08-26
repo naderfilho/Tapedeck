@@ -29,8 +29,8 @@ node examples/sma-crossover/src/main.ts   # end-to-end on real data, writes out/
 ```
 
 Everything runs without a build step: Node 24 strips types, and source imports carry real `.ts`
-extensions that `tsc` rewrites on emit. A change is finished when format, lint, typecheck, build and
-coverage are all green — not before.
+extensions that `tsc` rewrites on emit. A change is finished when format, lint, typecheck, build,
+coverage and `counts` are all green — not before.
 
 **Writing files:** heredocs above roughly 8 KB get truncated by the shell here, and template
 literals inside `node -e` get eaten. Use the Write and Edit tools for source files.
@@ -101,8 +101,8 @@ needs to, write an ADR arguing for it first.
 
 ## Testing style
 
-Property tests (fast-check) are not decoration here: five of them changed the code rather than
-confirming it. When adding behaviour that has an invariant, assert the invariant over generated
+Property tests (fast-check) are not decoration here: six findings changed the code rather than
+confirming it, the last of them a lookahead bug the hand-written attack could not see. When adding behaviour that has an invariant, assert the invariant over generated
 input, not one hand-picked case. When a property test finds something, fix the implementation and
 add the shrunk counterexample as a named regression test.
 
@@ -203,9 +203,11 @@ rather than by someone thinking:
   on a jump bar closing at 200 whose successor also opened at 200, so the correct behaviour and the
   one the README calls failure number one produced the same number. Repairing the fixture found a
   real boundary bug: the broker admitted a bar whose `closeTs` equalled an order's `activeFrom`,
-  filling it at that bar's open — a price up to a whole bar older than the order. The gate is `>=`
-  now, and two property tests plus a named case fail if it goes back. When an assertion pins a
-  number, check that a wrong implementation would produce a different one.
+  filling it at that bar's open — a price up to a whole bar older than the order. ADR-0005 had
+  specified the correct rule all along ("interval ends **strictly after** `activeFrom`"); the code
+  had drifted one character from its own ADR. The gate is `>=` now, and two property tests plus a
+  named case fail if it goes back. When an assertion pins a number, check that a wrong
+  implementation would produce a different one.
 - **Coinbase publishes candles as JSON numbers, not strings.** By the time `JSON.parse` has run the
   decimal is already a double, so the string discipline the Binance provider keeps is not available.
   `decimalString` converts without adding a second error — `String(n)` is the shortest decimal that
@@ -224,6 +226,20 @@ rather than by someone thinking:
   Portuguese page opened with an English picker until something re-ran.
 
 ## Still owed from earlier phases
+
+- **The prose pass was partial, on purpose.** The README, the site copy, the two newest ADRs and the
+  comments added with the second venue were trimmed. About forty `X is not Y` lines remain in the
+  older packages and were left because each carries the reason rather than decorating it — an
+  unclosed candle is not a bar, a fixture that drifts with the wall clock is not a fixture. If a
+  reviewer counts them again, that was a decision rather than an oversight.
+- **`counts` covers the figures, not the sentences.** The test count, the coverage percentages, the
+  ADR count and the benchmark table are written from runs. The number of property tests that changed
+  the code, in the README's testing section, is still prose, and so is the 40–55% CI ratio under the
+  benchmark. Both need a human when they move.
+- **No market outside crypto.** Equities and B3 need a source that is free _and_ redistributable,
+  and there is not one: Stooq's and Yahoo's terms are ambiguous at best, B3 requires approval, and
+  generated data is what this repository refuses to publish. Adding one is a licensing problem
+  before it is a code problem.
 
 - ~~A screenshot of `out/report.html` for the README.~~ Done: `docs/images/report.png`, cut after
   the equity chart, linking to the page CI publishes at

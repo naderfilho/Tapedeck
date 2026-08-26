@@ -32,7 +32,7 @@
     "check": "pnpm lint && pnpm typecheck && pnpm test",
     "fixtures": "node scripts/fetch-fixtures.ts",
     "venues": "node scripts/venue-compare.ts",
-    "counts": "node scripts/sync-counts.ts",
+    "counts": "node scripts/sync-counts.ts && prettier --write README.md CLAUDE.md",
     "counts:check": "node scripts/sync-counts.ts --check",
     "site": "node demo/build.ts",
     "site:build": "pnpm -r build && node examples/sma-crossover/src/main.ts && node scripts/venue-compare.ts && node bench/replay.bench.ts > bench.txt && node demo/build.ts",
