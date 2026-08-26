@@ -9,6 +9,9 @@ export default defineConfig({
     alias: {
       '@tapedeck/core': src('./packages/core/src/index.ts'),
       '@tapedeck/indicators': src('./packages/indicators/src/index.ts'),
+      // Before the barrel below: aliases match by prefix, so the longer key has to come first or
+      // '@tapedeck/data/codec' resolves through it and lands on a path that does not exist.
+      '@tapedeck/data/codec': src('./packages/data/src/tape-format.ts'),
       '@tapedeck/data': src('./packages/data/src/index.ts'),
       '@tapedeck/store': src('./packages/store/src/index.ts'),
       '@tapedeck/report': src('./packages/report/src/index.ts'),
@@ -16,7 +19,7 @@ export default defineConfig({
     },
   },
   test: {
-    include: ['{packages,examples}/*/test/**/*.test.ts'],
+    include: ['{packages,examples}/*/test/**/*.test.ts', 'demo/test/**/*.test.ts'],
     environment: 'node',
     coverage: {
       provider: 'v8',

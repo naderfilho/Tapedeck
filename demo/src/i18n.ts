@@ -78,6 +78,22 @@ const PT: Readonly<Record<string, string>> = {
   'home.costs.note':
     'Um backtester que ignorasse as taxas teria reportado uma estratégia três vezes e meia melhor do que a que existe. <a href="demo/">Coloque os custos em nenhum na demo</a> e veja acontecer.',
 
+  'home.badge.free': 'De graça',
+  'home.badge.account': 'Sem conta',
+  'home.badge.upload': 'Nada é enviado',
+  'home.badge.data': '12 mercados com dados reais',
+
+  'home.venues.eyebrow': 'Duas corretoras',
+  'home.venues.title': 'Um resultado é uma afirmação sobre uma corretora',
+  'home.venues.lede':
+    'O mesmo cruzamento 24/72, o mesmo ano de Bitcoin, o mesmo tamanho de posição — rodado uma vez contra a tabela de taxas publicada pela Binance e outra contra a da Coinbase Exchange. Os dois números saem da execução abaixo, não de um parágrafo.',
+  'home.venues.return': 'retorno total',
+  'home.venues.fees': 'taxas pagas',
+  'home.venues.share': 'taxas sobre o lucro bruto',
+  'home.venues.schedule': 'tabela',
+  'home.venues.note':
+    'Faixa de entrada nas duas, tirada da tabela de cada corretora com a data em que foi lida. Os tapes são dois books diferentes, então isto é o custo de uma corretora somado ao mercado dela, e não taxas no vácuo — que é exatamente por que o motor não deixa precificar o tape de uma corretora com as taxas da outra. <a href="demo/?symbol=coinbase-BTC-USD&amp;tf=1h&amp;strategy=sma-crossover&amp;size=25000&amp;costs=coinbaseExchange">Abra a execução da Coinbase</a>.',
+
   'home.live.eyebrow': 'Paper trading',
   'home.live.title': 'A mesma estratégia, ao vivo',
   'home.live.lede':
@@ -87,7 +103,8 @@ const PT: Readonly<Record<string, string>> = {
   'demo.eyebrow': 'Demo ao vivo',
   'demo.title': 'O motor, rodando no seu navegador',
   'demo.lede':
-    'Escolha um mercado, mude qualquer parâmetro, e o backtest roda de novo nesta aba, no mesmo kernel determinístico que a linha de comando usa. Nada é enviado para lugar nenhum, a página reprocessa localmente um ano de dados reais da Binance.',
+    'Doze mercados em duas corretoras, três estratégias, três tempos gráficos. Mude qualquer coisa e o backtest roda de novo nesta aba, no mesmo kernel determinístico que a linha de comando usa. De graça, sem conta, e nada sai do seu navegador: a página reprocessa localmente um ano de dados reais das corretoras.',
+  'demo.badSize': 'O tamanho da posição precisa ser um número positivo.',
   'demo.loading': 'carregando o tape…',
   'demo.source': 'candles de 1h · os mesmos arquivos que a suíte de testes lê',
   'demo.replayed': 'candles reprocessados em',
@@ -97,11 +114,15 @@ const PT: Readonly<Record<string, string>> = {
 
   'field.fast': 'média rápida',
   'field.slow': 'média lenta',
-  'field.size': 'tamanho da posição (USDT)',
+  'field.size': 'tamanho da posição',
   'field.costs': 'custos',
   'field.short': 'permitir shorts',
   'field.run': 'Rodar',
-  'costs.binance': 'Binance spot, 10 bps + slippage',
+  'field.timeframe': 'candles',
+  'costs.binanceSpot': 'Binance spot, 0,100% + slippage',
+  'costs.binanceSpotBnb': 'Binance spot pagando em BNB, 0,075%',
+  'costs.coinbaseExchange': 'Coinbase Exchange, 0,60% de taker',
+  'costs.stress': 'taxas da corretora, execução ruim',
   'costs.ideal': 'nenhum, o cenário bajulador',
 
   'help.fast':
@@ -109,14 +130,14 @@ const PT: Readonly<Record<string, string>> = {
   'help.slow':
     'Candles na média móvel longa. O cruzamento das duas é o sinal inteiro: rápida acima da lenta é comprado, abaixo é vendido.',
   'help.size':
-    'Quanto manter por sinal, na moeda de cotação. Em USDT e não em moeda-base para que os cinco mercados sejam comparáveis; a quantidade em moeda é derivada por instrumento e aparece abaixo.',
+    'Quanto manter por sinal, na moeda de cotação do mercado — USDT na Binance, dólar na Coinbase. Em dinheiro e não em moeda-base para que os doze mercados sejam comparáveis; a quantidade em moeda é derivada por instrumento e aparece abaixo.',
   'help.costs':
-    'Binance spot aplica a taxa de taker publicada pela corretora, 10 bps, mais slippage. Colocar em nenhum é a configuração bajuladora que a maioria dos backtesters entrega por padrão.',
+    'A tabela de taxas publicada por cada corretora, transcrita com a fonte e a data em que foi lida. Só a corretora do mercado selecionado aparece, porque precificar um tape da Coinbase com as taxas da Binance é um report sobre um mercado onde ninguém operou. Colocar em nenhum é a configuração bajuladora que a maioria dos backtesters entrega por padrão.',
   'help.short':
     'Ligado, um cruzamento de baixa abre um short. Desligado, ele apenas zera a posição, que é o que uma conta spot sem margem consegue de fato fazer.',
 
   'demo.hint':
-    'Toda mudança roda o backtest de novo. O capital inicial é de 100.000&nbsp;USDT, e os padrões são a configuração exata por trás do <a href="../report/">report publicado</a>.',
+    'Toda mudança roda o backtest de novo. O capital inicial é de 100.000 na moeda de cotação do mercado, e os padrões são a configuração exata por trás do <a href="../report/">report publicado</a>.',
 
   'strategy.sma-crossover': 'Cruzamento de médias',
   'strategy.breakout': 'Rompimento com bracket',
@@ -165,6 +186,10 @@ const PT: Readonly<Record<string, string>> = {
     'Barras a esperar pela reversão antes de desistir. Sem isso, uma posição que nunca reverte é carregada até o fim da execução e a curva de equity descreve aquele trade, não a regra.',
 
   'warn.title': 'O que esta execução não podia saber',
+  'warn.partial':
+    'candle(s) foram montados com menos horas do que o tempo gráfico pede, porque a corretora não imprimiu candle em parte deles. São candles reais que viram menos mercado, não buracos preenchidos.',
+  'warn.trailing':
+    'hora(s) no fim do tape não completaram um candle neste tempo gráfico e ficaram de fora, em vez de virarem um candle que ainda não tinha fechado.',
   'chart.equity': 'Equity',
   'chart.drawdown': 'Drawdown',
   'chart.hover': 'passe o mouse para ler a data',
@@ -181,7 +206,8 @@ const PT: Readonly<Record<string, string>> = {
 
   'helpm.netProfit':
     'PnL realizado e não realizado depois de toda taxa e todo slippage que a execução aplicou.',
-  'helpm.totalReturn': 'Lucro líquido sobre o capital inicial de 100.000 USDT. Não anualizado.',
+  'helpm.totalReturn':
+    'Lucro líquido sobre o capital inicial de 100.000 na moeda de cotação. Não anualizado.',
   'helpm.maxDrawdown':
     'A maior queda de pico a fundo no equity, como fração do pico. O que segurar isso teria parecido no pior momento.',
   'helpm.sharpe':
@@ -205,17 +231,20 @@ const PT: Readonly<Record<string, string>> = {
   'demo.more.note':
     'Lista de trades, abertura dos custos e parâmetros da execução, gerados pela mesma função que a linha de comando chama. O link carrega a configuração, então ele abre nesta execução e pode ser compartilhado.',
 
-  'demo.try.eyebrow': 'Vale testar',
+  'demo.try.eyebrow': 'Quatro coisas que vale testar',
   'demo.try.title': 'De onde vem o resultado',
   'demo.try1.title': 'Coloque os custos em nenhum',
   'demo.try1.body':
     'O resultado praticamente quadruplica. Essa diferença é o argumento inteiro: um backtester que ignora taxas reporta uma estratégia que não existe.',
+  'demo.try4.title': 'Rode Bitcoin nas duas corretoras',
+  'demo.try4.body':
+    'Mesmo ativo, mesmo ano, mesma regra. Na Binance o cruzamento termina levemente positivo; na faixa de entrada da Coinbase ele perde 24%, com as taxas passando de três vezes o lucro bruto. Um resultado é uma afirmação sobre uma corretora, não sobre uma moeda.',
   'demo.try2.title': 'Procure um período melhor',
   'demo.try2.body':
     'Numa grade 5×5 deles, treze de dezenove perdem dinheiro, e nenhum termina com mais ganhos que perdas.',
-  'demo.try3.title': 'Leia o profit factor',
+  'demo.try3.title': 'Mude para candles diários',
   'demo.try3.body':
-    'Um win rate de 36% é a cara de seguir tendência: muitas perdas pequenas pagando algumas poucas vitórias grandes. O win rate não é o número a ler.',
+    'A mesma regra no mesmo ano, amostrada de outro jeito, é outra estratégia. Os candles diários são agregados a partir do tape de 1h nesta aba — nada extra é baixado para vê-los.',
   'demo.foot':
     'não tem nenhuma dependência de runtime e não importa nada de `node:`. Essa regra foi feita por reprodutibilidade, não por portabilidade; rodar no navegador saiu dela de graça.',
 

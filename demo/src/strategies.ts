@@ -16,7 +16,14 @@
  * strategy's parameter type.
  */
 
-import { PRESETS, type RunResult, runBacktest } from '@tapedeck/core';
+import {
+  type ExecutionConfig,
+  PRESETS,
+  type RunResult,
+  bpsSlippage,
+  runBacktest,
+  volumeParticipation,
+} from '@tapedeck/core';
 import smaCrossover from '../../examples/sma-crossover/src/strategy.ts';
 import breakout from '../../examples/breakout/src/strategy.ts';
 import meanReversion from '../../examples/mean-reversion/src/strategy.ts';
@@ -28,7 +35,59 @@ export const INITIAL_CASH = '100000';
 /** Fixed, and part of the contract: the same seed is why two machines agree to the cent. */
 export const SEED = 20_260_825;
 
-export type CostPreset = 'ideal' | 'binanceSpot';
+/**
+ * The cost settings the page offers, and what each one claims to be.
+ *
+ * Three kinds, and the distinction is the whole reason this list is not just a number:
+ *
+ * - **A venue schedule** — `binanceSpot`, `binanceSpotBnb`, `coinbaseExchange` — is a
+ *   transcription of what that exchange publishes, and only appears for a market on that exchange.
+ * - **`stress`** keeps the venue's own fees and makes the *fills* worse: fifteen basis points of
+ *   slippage instead of two, and a book a tenth as deep. It is a what-if and says so; nobody's
+ *   fee schedule is being misquoted.
+ * - **`ideal`** charges nothing, which is the default most backtesters ship and the reason a
+ *   strategy can look profitable for a whole afternoon.
+ */
+export type CostPreset = 'binanceSpot' | 'binanceSpotBnb' | 'coinbaseExchange' | 'stress' | 'ideal';
+
+/**
+ * Fills at the wrong end of a bad day, on top of whatever the venue charges.
+ *
+ * Not a venue and not pretending to be one. The fee half is left exactly as the exchange publishes
+ * it — inventing a worse fee schedule would be the same failure as inventing a better one — and
+ * only the execution half moves: a taker that gives up 15 bps rather than 2, into a book that
+ * absorbs 1% of a bar's volume rather than 10%, so a position sized past the tape fills in pieces.
+ */
+const isPresetName = (name: string): name is keyof typeof PRESETS => name in PRESETS;
+
+export function stressed(base: ExecutionConfig): ExecutionConfig {
+  return {
+    ...base,
+    slippage: bpsSlippage(15),
+    liquidity: volumeParticipation(100),
+  };
+}
+
+/**
+ * Every cost setting as an execution config, given the venue the market trades on.
+ *
+ * The venue is an argument because `stress` has no fees of its own: it borrows the venue's. That
+ * is also why a Coinbase market cannot be run under Binance's schedule anywhere on this page —
+ * there is no path through this function that pairs them.
+ */
+export function executionFor(preset: CostPreset, venuePreset: string): ExecutionConfig {
+  const venue = isPresetName(venuePreset) ? PRESETS[venuePreset] : PRESETS.binanceSpot;
+  switch (preset) {
+    case 'ideal':
+      return PRESETS.ideal();
+    case 'stress':
+      return stressed(venue());
+    case 'binanceSpot':
+    case 'binanceSpotBnb':
+    case 'coinbaseExchange':
+      return PRESETS[preset]();
+  }
+}
 export type ParamValue = number | boolean;
 export type Values = Readonly<Record<string, ParamValue>>;
 
@@ -49,7 +108,7 @@ export interface StrategySpec {
   readonly blurb: string;
   readonly params: readonly ParamSpec[];
   readonly defaults: Values;
-  readonly run: (tape: Tape, values: Values, qty: number, preset: CostPreset) => RunResult;
+  readonly run: (tape: Tape, values: Values, qty: number, execution: ExecutionConfig) => RunResult;
 }
 
 /** Reads one value out of the form bag, falling back to the default when it is missing or wrong. */
@@ -69,12 +128,12 @@ function bool(values: Values, key: string, fallback: boolean): boolean {
 }
 
 /** The parts of a run that never depend on which strategy is selected. */
-function common(tape: Tape, preset: CostPreset) {
+function common(tape: Tape, execution: ExecutionConfig) {
   return {
     instruments: [tape.instrument],
     initialCash: INITIAL_CASH,
     seed: SEED,
-    execution: PRESETS[preset](),
+    execution,
     flattenAtEnd: true,
     // The guarded bar view costs about half the throughput and exists to catch a strategy that
     // keeps the bar. None of these do, and speed is part of the demonstration.
@@ -113,10 +172,10 @@ export const STRATEGIES: readonly StrategySpec[] = [
       },
     ],
     defaults: { fastPeriod: 24, slowPeriod: 72, allowShort: true },
-    run: (tape, values, qty, preset) =>
+    run: (tape, values, qty, execution) =>
       runBacktest(
         {
-          ...common(tape, preset),
+          ...common(tape, execution),
           strategy: smaCrossover,
           params: {
             fastPeriod: int(values, 'fastPeriod', 24),
@@ -180,10 +239,10 @@ export const STRATEGIES: readonly StrategySpec[] = [
       },
     ],
     defaults: { lookback: 48, atrPeriod: 14, stopAtr: 2, targetAtr: 3, volumeFactor: 1.2 },
-    run: (tape, values, qty, preset) =>
+    run: (tape, values, qty, execution) =>
       runBacktest(
         {
-          ...common(tape, preset),
+          ...common(tape, execution),
           strategy: breakout,
           params: {
             lookback: int(values, 'lookback', 48),
@@ -238,10 +297,10 @@ export const STRATEGIES: readonly StrategySpec[] = [
       },
     ],
     defaults: { rsiPeriod: 14, entryLevel: 30, exitLevel: 55, maxBarsHeld: 48 },
-    run: (tape, values, qty, preset) =>
+    run: (tape, values, qty, execution) =>
       runBacktest(
         {
-          ...common(tape, preset),
+          ...common(tape, execution),
           strategy: meanReversion,
           params: {
             rsiPeriod: int(values, 'rsiPeriod', 14),
@@ -267,9 +326,9 @@ export function runStrategy(
   id: string,
   values: Values,
   notional: number,
-  preset: CostPreset,
+  execution: ExecutionConfig,
 ): RunResult {
   const spec = strategyById(id);
   if (spec === undefined) throw new Error(`no strategy named ${id}`);
-  return spec.run(tape, values, quantityFor(tape, notional), preset);
+  return spec.run(tape, values, quantityFor(tape, notional), execution);
 }

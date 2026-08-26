@@ -24,6 +24,7 @@ import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } fr
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
+import { TAPES } from './src/markets.ts';
 
 /**
  * The monogram, defined once and substituted into every page that shows a header.
@@ -125,18 +126,19 @@ writeFileSync(resolve(site, 'assets/favicon.svg'), FAVICON, 'utf8');
 cpSync(resolve(here, 'site.css'), resolve(site, 'assets/site.css'));
 
 /**
- * The instruments the demo offers, and the only place their list is written down twice — the other
- * is `MARKETS` in `demo/src/main.ts`. A symbol here without a fixture is a 404 the visitor sees, so
- * the copy throws instead of shipping a broken picker.
+ * The tapes the site serves, copied out of the fixtures the test suite reads.
+ *
+ * The list is imported from `demo/src/markets.ts` rather than written down again. It was a second
+ * copy until the second venue arrived, and a market in one list and not the other is a 404 the
+ * visitor finds. A missing fixture still throws rather than shipping a broken picker.
  */
-const TAPES = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'XRPUSDT'];
 mkdirSync(resolve(site, 'demo/tapes'), { recursive: true });
-for (const symbol of TAPES) {
-  const from = src(`fixtures/binance-${symbol}-1h.tape`);
+for (const tape of TAPES) {
+  const from = src(`fixtures/${tape.id}-1h.tape`);
   if (!existsSync(from)) {
     throw new Error(`${from} is missing. Run \`corepack pnpm fixtures\` to fetch the tapes.`);
   }
-  cpSync(from, resolve(site, `demo/tapes/${symbol}-1h.tape`));
+  cpSync(from, resolve(site, `demo/tapes/${tape.id}-1h.tape`));
 }
 console.log(`tapes: ${String(TAPES.length)} instruments copied`);
 
@@ -160,18 +162,45 @@ const adrs = readFileSync(src('docs/adr/README.md'), 'utf8').match(/^\| \[\d{4}\
  * the landing page cannot claim a profit the report does not show.
  */
 interface MetricsJson {
-  readonly equity: { readonly netProfit: string };
+  readonly equity: { readonly netProfit: string; readonly totalReturn: number };
   readonly costs: { readonly commissionPaid: string; readonly shareOfGross: number };
 }
 const metricsPath = resolve(root, 'out/metrics.json');
 if (!existsSync(metricsPath)) throw new Error(`${metricsPath} does not exist; run the example`);
 const metrics = JSON.parse(readFileSync(metricsPath, 'utf8')) as MetricsJson;
 
+/**
+ * The venue comparison, from `scripts/venue-compare.ts`.
+ *
+ * Same discipline, second run. The page claims that the same strategy is profitable on one
+ * exchange and not on the other; that claim is only allowed to be on the page because the two runs
+ * behind it happen on every build.
+ */
+interface VenueJson {
+  readonly netProfit: string;
+  readonly totalReturn: number;
+  readonly commissionPaid: string;
+  readonly shareOfGross: number | null;
+}
+const venuesPath = resolve(root, 'out/venues.json');
+if (!existsSync(venuesPath)) {
+  throw new Error(`${venuesPath} does not exist; run \`node scripts/venue-compare.ts\``);
+}
+const venues = JSON.parse(readFileSync(venuesPath, 'utf8')) as Record<string, VenueJson>;
+const venueOf = (key: string): VenueJson => {
+  const found = venues[key];
+  if (found === undefined) throw new Error(`out/venues.json has no ${key} run in it`);
+  return found;
+};
+
 const usd = (value: string): string =>
   Number(value).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const pct = (value: number | null): string => ((value ?? 0) * 100).toFixed(1);
 const netProfit = Number(metrics.equity.netProfit);
 const commission = Number(metrics.costs.commissionPaid);
 const share = metrics.costs.shareOfGross;
+const binance = venueOf('binance');
+const coinbase = venueOf('coinbase');
 
 writeFileSync(
   resolve(site, 'index.html'),
@@ -180,11 +209,21 @@ writeFileSync(
     brandFull: BRAND_FULL,
     tests,
     adrs: String(adrs),
+    markets: String(TAPES.length),
     netProfit: usd(metrics.equity.netProfit),
+    totalReturn: (metrics.equity.totalReturn * 100).toFixed(2),
     commission: usd(metrics.costs.commissionPaid),
     grossPnl: usd(String(netProfit + commission)),
     costShare: (share * 100).toFixed(0),
     costSharePrecise: (share * 100).toFixed(1),
+    venueBinanceNet: usd(binance.netProfit),
+    venueBinanceReturn: pct(binance.totalReturn),
+    venueBinanceFees: usd(binance.commissionPaid),
+    venueBinanceShare: pct(binance.shareOfGross),
+    venueCoinbaseNet: usd(coinbase.netProfit),
+    venueCoinbaseReturn: pct(coinbase.totalReturn),
+    venueCoinbaseFees: usd(coinbase.commissionPaid),
+    venueCoinbaseShare: pct(coinbase.shareOfGross),
   }),
   'utf8',
 );

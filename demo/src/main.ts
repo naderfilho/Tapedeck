@@ -29,25 +29,33 @@ import {
   linePath,
 } from '@tapedeck/report';
 import {
-  EXAMPLE_SIZE_COINS,
-  EXAMPLE_SYMBOL,
-  MARKETS,
-  type MarketSymbol,
-  type RunConfig,
-  fromQuery,
-  type Tape,
-  describeQuantity,
-  execute,
-  loadTape,
-  quantityFor,
-  toQuery,
+  type CostPreset,
   DEFAULT_STRATEGY,
+  DEFAULT_TIMEFRAME,
+  EXAMPLE_MARKET,
+  EXAMPLE_SIZE_COINS,
+  PRESET_LABELS,
   type ParamSpec,
   type ParamValue,
+  type RunConfig,
   STRATEGIES,
   type StrategySpec,
+  TIMEFRAMES,
+  type Tape,
+  type TapeView,
   type Values,
+  defaultPresetFor,
+  describeQuantity,
+  execute,
+  fromQuery,
+  loadTape,
+  marketsByVenue,
+  presetsFor,
+  quantityFor,
+  quoteOf,
   strategyById,
+  toQuery,
+  viewOf,
 } from './run.ts';
 import { type CursorState, attachCursor, readoutFor } from './cursor.ts';
 import { setup, t } from './i18n.ts';
@@ -149,7 +157,8 @@ type Metric = readonly [label: string, value: string, tone: string, help: string
 const HELP: Readonly<Record<string, string>> = {
   'net profit':
     'Realised and unrealised PnL after every commission and slippage charge the run applied.',
-  'total return': 'Net profit over the starting equity of 100,000 USDT. Not annualised.',
+  'total return':
+    'Net profit over the starting equity of 100,000 in the quote currency. Not annualised.',
   'max drawdown':
     'The deepest peak-to-trough fall in equity, as a share of the peak. What holding this would have felt like at its worst.',
   Sharpe:
@@ -184,13 +193,22 @@ const helpFor = (label: string): string => HELP[label] ?? '';
 const m = (key: string, english: string): string => t(`metric.${key}`, english);
 const h = (key: string, english: string): string => t(`helpm.${key}`, helpFor(english));
 
-function renderMetrics(metrics: Metrics, elapsed: number, bars: number): void {
+function renderMetrics(
+  metrics: Metrics,
+  elapsed: number,
+  bars: number,
+  config: RunConfig,
+  view: TapeView,
+): void {
+  // Every money figure is in the market's own quote currency, which is USDT on Binance and dollars
+  // on Coinbase. Printing "USDT" over a Coinbase run would be a small lie in a large font.
+  const quote = quoteOf(config.market);
   // Three headline numbers and then the rest. Nine cards of identical weight is a table pretending
   // to be a dashboard: it makes the reader decide what matters before they know what any of it is.
   const lead: readonly Metric[] = [
     [
       m('netProfit', 'net profit'),
-      `${money(metrics.netProfit)} USDT`,
+      `${money(metrics.netProfit)} ${quote}`,
       metrics.netProfit >= 0 ? 'up' : 'down',
       h('netProfit', 'net profit'),
     ],
@@ -224,7 +242,7 @@ function renderMetrics(metrics: Metrics, elapsed: number, bars: number): void {
     ],
     [
       m('commission', 'commission'),
-      `${money(metrics.commissionPaid)} USDT`,
+      `${money(metrics.commissionPaid)} ${quote}`,
       'down',
       h('commission', 'commission'),
     ],
@@ -257,7 +275,11 @@ function renderMetrics(metrics: Metrics, elapsed: number, bars: number): void {
   // The class carries the styling, so a run with nothing to declare draws nothing at all. The
   // container used to be styled unconditionally and left an empty warning box on a clean run,
   // which trains a reader to stop looking at the one place this engine puts its caveats.
-  const warnings = metrics.warnings;
+  // What the engine could not know, plus what the *tape* could not say. The second list is new
+  // with the timeframe picker: aggregating an hourly tape onto a slower clock can only be as
+  // complete as the hours underneath it, and both Coinbase tapes have holes where the venue
+  // printed nothing for five hours at a stretch.
+  const warnings = [...metrics.warnings, ...aggregationNotes(view)];
   const box = el('warnings');
   box.className = warnings.length === 0 ? '' : 'callout';
   box.innerHTML =
@@ -268,10 +290,38 @@ function renderMetrics(metrics: Metrics, elapsed: number, bars: number): void {
           .join('')}</ul>`;
 }
 
+/**
+ * What aggregating the tape cost, in the engine's own voice.
+ *
+ * Printed with the run's caveats rather than under the chart, for the same reason everything else
+ * here is: a number you cannot fully trust should not be read before the reason you cannot.
+ */
+function aggregationNotes(view: TapeView): readonly string[] {
+  const notes: string[] = [];
+  if (view.partialBuckets > 0) {
+    notes.push(
+      `${String(view.partialBuckets)} ${t(
+        'warn.partial',
+        'bar(s) were built from fewer hours than the timeframe implies, because the venue printed no candle for part of them. They are real bars that saw less of the market, not gaps that were filled in.',
+      )}`,
+    );
+  }
+  if (view.droppedTrailingBars > 0) {
+    notes.push(
+      `${String(view.droppedTrailingBars)} ${t(
+        'warn.trailing',
+        'hour(s) at the end of the tape did not complete a bar on this timeframe and were left out rather than published as a bar that had not finished forming.',
+      )}`,
+    );
+  }
+  return notes;
+}
+
 // --------------------------------------------------------------------------------------- run
 
-const tapes = new Map<MarketSymbol, Tape>();
-let active: MarketSymbol = EXAMPLE_SYMBOL;
+const tapes = new Map<string, Tape>();
+let active = EXAMPLE_MARKET;
+let activeTimeframe = DEFAULT_TIMEFRAME;
 let activeStrategy = DEFAULT_STRATEGY;
 let sizeInitialised = false;
 
@@ -285,11 +335,12 @@ function readConfig(): RunConfig {
     params[param.key] = param.kind === 'bool' ? input.checked : Number(input.value);
   }
   return {
-    symbol: active,
+    market: active,
+    timeframe: activeTimeframe,
     strategy: activeStrategy,
     params,
     notional: Number(field('notional').value),
-    preset: field('preset').value as RunConfig['preset'],
+    preset: field('preset').value as CostPreset,
   };
 }
 
@@ -299,12 +350,16 @@ function run(): void {
 
   const config = readConfig();
   if (!Number.isFinite(config.notional) || config.notional <= 0) {
-    el('error').textContent = 'Position size has to be a positive number of USDT.';
+    el('error').textContent = t('demo.badSize', 'Position size has to be a positive number.');
     return;
   }
   el('error').textContent = '';
 
-  el('derived').textContent = `≈ ${describeQuantity(tape, quantityFor(tape, config.notional))}`;
+  // The run happens on the selected clock, so the quantity is derived from that tape rather than
+  // from the hourly one it was aggregated out of.
+  const view = viewOf(tape, config.timeframe);
+  el('derived').textContent =
+    `≈ ${describeQuantity(view.tape, quantityFor(view.tape, config.notional))}`;
 
   const started = performance.now();
   // `execute` is shared with the report page, which is the only reason the two can be trusted to
@@ -319,7 +374,7 @@ function run(): void {
     link.setAttribute('href', `../report/?${query}`);
   }
 
-  renderMetrics(computeMetrics(result), elapsed, result.stats.bars);
+  renderMetrics(computeMetrics(result), elapsed, result.stats.bars, config, view);
   const curve = result.equityCurve;
   chart(
     'equity',
@@ -329,7 +384,7 @@ function run(): void {
       kind: 'equity',
       label: 'Equity curve',
       formatAxis: compact,
-      formatValue: (value) => `${money(value)} USDT`,
+      formatValue: (value) => `${money(value)} ${quoteOf(config.market)}`,
       baseline: 'min',
     },
   );
@@ -361,33 +416,45 @@ function run(): void {
 
 // -------------------------------------------------------------------------------------- boot
 
-async function load(symbol: MarketSymbol): Promise<Tape> {
-  const tape = await loadTape(symbol, 'tapes/');
-  tapes.set(symbol, tape);
+async function load(id: string): Promise<Tape> {
+  const tape = await loadTape(id, 'tapes/');
+  tapes.set(id, tape);
   return tape;
 }
 
+/**
+ * The line under the heading: which file is loaded, and how much of a year is really in it.
+ *
+ * The bar count is not decoration. Both Coinbase tapes hold 8,750 hours rather than 8,760, because
+ * the venue printed nothing for two five-hour stretches, and a page that rounds that up to "a year
+ * of data" is hiding the first thing an engineer would want to know about its inputs.
+ */
 function describeSource(tape: Tape): void {
+  const frame = activeTimeframe === '1h' ? '' : ` → ${activeTimeframe}`;
   el('source').textContent =
     `${tape.instrument.venue}:${tape.instrument.symbol} · ` +
-    `${tape.chunk.count.toLocaleString('en-US')} ${t('demo.source', 'hourly bars · the same files the test suite reads')}`;
+    `${tape.chunk.count.toLocaleString('en-US')} ${t('demo.source', 'hourly bars · the same files the test suite reads')}${frame}`;
 }
 
-async function select(symbol: MarketSymbol): Promise<void> {
-  active = symbol;
-  for (const button of Array.from(document.querySelectorAll('.market'))) {
-    button.setAttribute(
-      'aria-pressed',
-      button.getAttribute('data-symbol') === symbol ? 'true' : 'false',
-    );
-  }
+async function select(id: string): Promise<void> {
+  const previous = active;
+  active = id;
+  renderMarkets();
+
+  // The cost setting belongs to a venue. Moving to a market on the other one takes the setting with
+  // it, rather than leaving Binance's fees priced against a Coinbase tape.
+  renderCosts(
+    defaultPresetFor(previous) === defaultPresetFor(id)
+      ? (field('preset').value as CostPreset)
+      : defaultPresetFor(id),
+  );
 
   document.body.classList.add('is-loading');
   try {
-    const tape = await load(symbol);
+    const tape = await load(id);
     // Only ever on the very first load, and only for the instrument the report used: after that
     // the field belongs to the visitor and re-deriving it would silently discard what they typed.
-    if (!sizeInitialised && symbol === EXAMPLE_SYMBOL) {
+    if (!sizeInitialised && id === EXAMPLE_MARKET) {
       const price = (tape.chunk.close[0] ?? 0) / 10 ** tape.instrument.priceExp;
       field('notional').value = String(Math.round(EXAMPLE_SIZE_COINS * price));
       sizeInitialised = true;
@@ -402,46 +469,129 @@ async function select(symbol: MarketSymbol): Promise<void> {
   }
 }
 
+/**
+ * The market picker, grouped by venue.
+ *
+ * Grouped rather than a flat row of twelve, because the venue is not a label on a market here — it
+ * decides which fees apply, and BTC appears under both on purpose.
+ */
 function renderMarkets(): void {
-  el('markets').innerHTML = MARKETS.map(
-    (market) =>
-      `<button class="market" type="button" data-symbol="${market.symbol}" aria-pressed="${
-        market.symbol === active ? 'true' : 'false'
-      }"><span class="market__ticker">${market.ticker}</span>` +
-      `<span class="market__name">${market.name}</span></button>`,
-  ).join('');
+  el('markets').innerHTML = marketsByVenue()
+    .map(
+      ([venue, markets]) =>
+        `<div class="markets__group"><span class="markets__venue">${venue}</span>` +
+        markets
+          .map(
+            (market) =>
+              `<button class="market" type="button" data-market="${market.id}" aria-pressed="${
+                market.id === active ? 'true' : 'false'
+              }"><span class="market__ticker">${market.ticker}</span>` +
+              `<span class="market__name">${market.name}</span></button>`,
+          )
+          .join('') +
+        '</div>',
+    )
+    .join('');
 
   for (const button of Array.from(document.querySelectorAll('.market'))) {
     button.addEventListener('click', () => {
-      const symbol = button.getAttribute('data-symbol') as MarketSymbol | null;
-      if (symbol !== null && symbol !== active) void select(symbol);
+      const id = button.getAttribute('data-market');
+      if (id !== null && id !== active) void select(id);
     });
   }
 }
 
+/** The bar-clock chips. Switching one re-aggregates the tape already in memory. */
+function renderTimeframes(): void {
+  el('timeframes').innerHTML = TIMEFRAMES.map(
+    (frame) =>
+      `<button class="tf" type="button" data-tf="${frame.id}" aria-pressed="${
+        frame.id === activeTimeframe ? 'true' : 'false'
+      }">${frame.label}</button>`,
+  ).join('');
+
+  for (const button of Array.from(document.querySelectorAll('.tf'))) {
+    button.addEventListener('click', () => {
+      const id = button.getAttribute('data-tf');
+      if (id === null || id === activeTimeframe) return;
+      activeTimeframe = id;
+      renderTimeframes();
+      const tape = tapes.get(active);
+      if (tape !== undefined) describeSource(tape);
+      run();
+    });
+  }
+}
+
+/**
+ * The cost options, rebuilt for whichever venue the selected market trades on.
+ *
+ * Built here rather than written into the markup because the list is not fixed: three of the five
+ * settings are transcriptions of one exchange's fee schedule, and offering one of them against the
+ * other exchange's tape is exactly the flattering-by-accident failure this page argues against.
+ */
+function renderCosts(selected: CostPreset): void {
+  const allowed = presetsFor(active);
+  const choice = allowed.includes(selected) ? selected : defaultPresetFor(active);
+  field('preset').innerHTML = allowed
+    .map(
+      (preset) =>
+        `<option value="${preset}"${preset === choice ? ' selected' : ''}>` +
+        `${t(`costs.${preset}`, PRESET_LABELS[preset])}</option>`,
+    )
+    .join('');
+}
+
 async function boot(): Promise<void> {
+  // A shared link wins over the example defaults, and skips the size initialisation in `select`.
+  const shared = fromQuery(window.location.search);
+  if (shared !== null) {
+    active = shared.market;
+    activeTimeframe = shared.timeframe;
+    activeStrategy = shared.strategy;
+  }
+
+  // The language is applied before anything is drawn, because half of this page is built by
+  // script: the strategy chips and the cost options are rendered through `t()`, and rendering them
+  // first meant a Portuguese page opened with an English picker on it until something re-ran.
+  setup(rerender);
+
   renderMarkets();
+  renderTimeframes();
+  renderCosts(shared?.preset ?? defaultPresetFor(active));
   for (const id of ['equity', 'drawdown']) {
     attachCursor(el(id), () => chartStates.get(id) ?? null);
   }
 
   renderStrategies();
-  renderParams(strategyById(activeStrategy)?.defaults ?? {});
+  renderParams(shared?.params ?? strategyById(activeStrategy)?.defaults ?? {});
+  if (shared !== null) {
+    field('notional').value = String(shared.notional);
+    sizeInitialised = true;
+  }
+
   for (const id of ['notional', 'preset']) {
     el(id).addEventListener('change', run);
   }
   el('run').addEventListener('click', run);
-  setup(run);
   await wireSharing();
 
-  // A shared link wins over the example defaults, and skips the size initialisation below.
-  const shared = fromQuery(window.location.search);
-  if (shared !== null) {
-    applyConfig(shared);
-    active = shared.symbol;
-  }
-
   await select(active);
+}
+
+/**
+ * Redraws everything the language toggle touches, then re-runs.
+ *
+ * The market chips, the cost options and the metric cards are all built by script, so switching
+ * language has to rebuild them rather than only swapping the static copy around them.
+ */
+function rerender(): void {
+  renderCosts(field('preset').value as CostPreset);
+  renderStrategies();
+  const tape = tapes.get(active);
+  if (tape === undefined) return;
+  describeSource(tape);
+  run();
 }
 
 void boot().catch((error: unknown) => {
@@ -461,15 +611,6 @@ void boot().catch((error: unknown) => {
 function rememberInUrl(config: RunConfig): void {
   const url = `${window.location.pathname}?${toQuery(config)}`;
   window.history.replaceState(null, '', url);
-}
-
-function applyConfig(config: RunConfig): void {
-  activeStrategy = config.strategy;
-  renderStrategies();
-  renderParams(config.params);
-  field('notional').value = String(config.notional);
-  field('preset').value = config.preset;
-  sizeInitialised = true;
 }
 
 async function wireSharing(): Promise<void> {

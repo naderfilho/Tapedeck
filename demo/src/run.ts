@@ -18,24 +18,48 @@ import {
   DEFAULT_STRATEGY,
   type ParamValue,
   type Values,
+  executionFor,
   runStrategy,
   strategyById,
 } from './strategies.ts';
-import { type MarketSymbol, type Tape, isMarketSymbol, nameFor } from './tape.ts';
+import {
+  DEFAULT_TIMEFRAME,
+  type Tape,
+  VENUES,
+  labelFor,
+  marketById,
+  quoteOf,
+  timeframeById,
+  viewOf,
+} from './tape.ts';
 
 export {
+  DEFAULT_TIMEFRAME,
+  EXAMPLE_MARKET,
   EXAMPLE_SIZE_COINS,
-  EXAMPLE_SYMBOL,
   MARKETS,
-  type MarketSymbol,
+  type Market,
+  TIMEFRAMES,
   type Tape,
+  type TapeView,
+  type Timeframe,
+  VENUES,
+  type Venue,
+  type VenueId,
   describeQuantity,
+  labelFor,
   loadTape,
+  marketById,
+  marketsByVenue,
   nameFor,
   quantityFor,
+  quoteOf,
   tickerFor,
+  timeframeById,
+  viewOf,
 } from './tape.ts';
 export {
+  type CostPreset,
   DEFAULT_STRATEGY,
   INITIAL_CASH,
   type ParamSpec,
@@ -44,21 +68,51 @@ export {
   STRATEGIES,
   type StrategySpec,
   type Values,
+  executionFor,
   strategyById,
 } from './strategies.ts';
 
 export interface RunConfig {
-  readonly symbol: MarketSymbol;
+  /** `venue-symbol`, as `markets.ts` spells it. */
+  readonly market: string;
+  /** Bar clock the run is replayed on. The tapes are hourly; anything slower is aggregated. */
+  readonly timeframe: string;
   readonly strategy: string;
   /** The selected strategy's own parameters. Their shape is the strategy's business, not this file's. */
   readonly params: Values;
-  /** Position size in quote currency (USDT). See `quantityFor`. */
+  /** Position size in the market's quote currency. See `quantityFor`. */
   readonly notional: number;
   readonly preset: CostPreset;
 }
 
+/**
+ * The cost settings a market may be run under: its own venue's, plus the two neutral ones.
+ *
+ * A Coinbase tape priced with Binance's fees would be a report about a market nobody traded in, so
+ * the pairing is enforced here rather than left to the person building the form.
+ */
+export function presetsFor(marketId: string): readonly CostPreset[] {
+  const market = marketById(marketId);
+  const venue = market === undefined ? undefined : VENUES[market.venue];
+  return [...((venue?.presets ?? []) as readonly CostPreset[]), 'stress', 'ideal'];
+}
+
+/** The cost setting a market opens under, and the one it falls back to after a venue change. */
+export function defaultPresetFor(marketId: string): CostPreset {
+  const market = marketById(marketId);
+  const venue = market === undefined ? undefined : VENUES[market.venue];
+  return (venue?.defaultPreset ?? 'binanceSpot') as CostPreset;
+}
+
 export function execute(tape: Tape, config: RunConfig): RunResult {
-  return runStrategy(tape, config.strategy, config.params, config.notional, config.preset);
+  const view = viewOf(tape, config.timeframe);
+  return runStrategy(
+    view.tape,
+    config.strategy,
+    config.params,
+    config.notional,
+    executionFor(config.preset, defaultPresetFor(config.market)),
+  );
 }
 
 // -------------------------------------------------------------------------- travelling as a URL
@@ -68,7 +122,8 @@ const PARAM_PREFIX = 'p.';
 
 export function toQuery(config: RunConfig): string {
   const params = new URLSearchParams({
-    symbol: config.symbol,
+    symbol: config.market,
+    tf: config.timeframe,
     strategy: config.strategy,
     size: String(config.notional),
     costs: config.preset,
@@ -89,12 +144,19 @@ export function toQuery(config: RunConfig): string {
  * from a URL somebody can edit. `null` rather than a thrown error or a repaired object: a page that
  * silently corrects a link renders a report for a run nobody asked for, and the reader has no way
  * to tell it happened.
+ *
+ * The two exceptions are both about links that were shared before the page grew: a `symbol` with
+ * no venue in it resolves to the Binance market it always meant, and a missing `tf` is the hourly
+ * clock, which is the only one that existed. Neither changes the run that was shared.
  */
 export function fromQuery(search: string): RunConfig | null {
   const query = new URLSearchParams(search);
 
-  const symbol = query.get('symbol');
-  if (symbol === null || !isMarketSymbol(symbol)) return null;
+  const market = marketById(query.get('symbol') ?? '');
+  if (market === undefined) return null;
+
+  const timeframe = timeframeById(query.get('tf') ?? DEFAULT_TIMEFRAME);
+  if (timeframe === undefined) return null;
 
   const spec = strategyById(query.get('strategy') ?? DEFAULT_STRATEGY);
   if (spec === undefined) return null;
@@ -102,8 +164,8 @@ export function fromQuery(search: string): RunConfig | null {
   const notional = Number(query.get('size'));
   if (!Number.isFinite(notional) || notional <= 0 || notional > 1e12) return null;
 
-  const preset = query.get('costs');
-  if (preset !== 'ideal' && preset !== 'binanceSpot') return null;
+  const preset = query.get('costs') ?? '';
+  if (!presetsFor(market.id).includes(preset as CostPreset)) return null;
 
   const params: Record<string, ParamValue> = {};
   for (const param of spec.params) {
@@ -125,15 +187,31 @@ export function fromQuery(search: string): RunConfig | null {
     params[param.key] = value;
   }
 
-  return { symbol, strategy: spec.id, params, notional, preset };
+  return {
+    market: market.id,
+    timeframe: timeframe.id,
+    strategy: spec.id,
+    params,
+    notional,
+    preset: preset as CostPreset,
+  };
 }
+
+/** What each cost setting is called, in English. The demo translates its own copy. */
+export const PRESET_LABELS: Readonly<Record<CostPreset, string>> = {
+  binanceSpot: 'Binance spot, 0.100% + slippage',
+  binanceSpotBnb: 'Binance spot paying in BNB, 0.075%',
+  coinbaseExchange: 'Coinbase Exchange, 0.60% taker',
+  stress: 'venue fees, bad fills',
+  ideal: 'none, the flattering one',
+};
 
 /** How a run reads in a sentence, for a page heading. */
 export function describeConfig(config: RunConfig): string {
   const spec = strategyById(config.strategy);
-  const costs = config.preset === 'ideal' ? 'no costs' : 'Binance spot costs';
+  const costs = PRESET_LABELS[config.preset];
   return (
-    `${nameFor(config.symbol)} · ${spec?.name ?? config.strategy} · ` +
-    `${config.notional.toLocaleString('en-US')} USDT · ${costs}`
+    `${labelFor(config.market)} · ${config.timeframe} · ${spec?.name ?? config.strategy} · ` +
+    `${config.notional.toLocaleString('en-US')} ${quoteOf(config.market)} · ${costs}`
   );
 }

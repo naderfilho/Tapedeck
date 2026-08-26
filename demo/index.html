@@ -38,28 +38,35 @@
         <p class="eyebrow" data-i18n="demo.eyebrow">Live demo</p>
         <h1 data-i18n="demo.title">The engine, running in your browser</h1>
         <p class="lede" data-i18n="demo.lede">
-          Pick a market, change any parameter, and the backtest re-runs in this tab on the same
-          deterministic kernel the command line uses. Nothing is sent anywhere, the page replays a
-          committed year of real Binance data locally.
+          Twelve markets across two exchanges, three strategies, three bar clocks. Change anything
+          and the backtest re-runs in this tab on the same deterministic kernel the command line
+          uses. Free, no account, and nothing leaves your browser: the page replays a committed year
+          of real exchange data locally.
         </p>
         <p class="small muted" id="source">loading the tape…</p>
       </section>
 
       <div class="markets" id="markets" role="group" aria-label="Market"></div>
 
-      <div class="strategies" id="strategies" role="group" aria-label="Strategy"></div>
+      <div class="picker-row">
+        <div class="strategies" id="strategies" role="group" aria-label="Strategy"></div>
+        <div class="timeframes">
+          <span class="timeframes__label" data-i18n="field.timeframe">bars</span>
+          <div class="timeframes__chips" id="timeframes" role="group" aria-label="Timeframe"></div>
+        </div>
+      </div>
       <p class="strategy-blurb" id="strategy-blurb"></p>
 
       <form class="toolbar" onsubmit="return false;">
         <div class="params" id="params"></div>
         <label class="field">
           <span
-            ><span data-i18n="field.size">position size (USDT)</span>
+            ><span data-i18n="field.size">position size</span>
             <button class="help" type="button" aria-label="What this does">
               ?<span class="help__bubble" role="tooltip" data-i18n="help.size"
-                >How much to hold per signal, in quote currency. Quoted in USDT rather than coins so
-                the five markets are comparable; the coin amount is derived per instrument and shown
-                below.</span
+                >How much to hold per signal, in the market's quote currency — USDT on Binance,
+                dollars on Coinbase. Quoted in money rather than coins so twelve markets are
+                comparable; the coin amount is derived per instrument and shown below.</span
               >
             </button></span
           >
@@ -71,22 +78,21 @@
             ><span data-i18n="field.costs">costs</span>
             <button class="help" type="button" aria-label="What this does">
               ?<span class="help__bubble" role="tooltip" data-i18n="help.costs"
-                >Binance spot applies the venue published 10 bps taker fee plus slippage. Setting it
+                >Each venue's own published fee schedule, transcribed with a source and the date it
+                was read. Only the selected market's exchange is offered, because pricing a Coinbase
+                tape with Binance's fees is a report about a market nobody traded in. Setting costs
                 to none is the flattering configuration most backtesters ship by default.</span
               >
             </button></span
           >
-          <select id="preset">
-            <option value="binanceSpot" data-i18n="costs.binance">
-              Binance spot, 10 bps + slippage
-            </option>
-            <option value="ideal" data-i18n="costs.ideal">none, the flattering one</option>
-          </select>
+          <!-- Filled by the demo: which schedules apply depends on the venue selected above. -->
+          <select id="preset"></select>
         </label>
         <button id="run" class="btn btn--primary" type="button" data-i18n="field.run">Run</button>
         <p class="toolbar__hint" data-i18n="demo.hint">
-          Every change re-runs the backtest. Starting equity is 100,000&nbsp;USDT, and the defaults
-          are the exact configuration behind <a href="../report/">the published report</a>.
+          Every change re-runs the backtest. Starting equity is 100,000 in the market's quote
+          currency, and the defaults are the exact configuration behind
+          <a href="../report/">the published report</a>.
         </p>
       </form>
 
@@ -138,15 +144,23 @@
 
       <section class="section">
         <div class="section__head">
-          <p class="eyebrow" data-i18n="demo.try.eyebrow">Two things worth trying</p>
+          <p class="eyebrow" data-i18n="demo.try.eyebrow">Four things worth trying</p>
           <h2 data-i18n="demo.try.title">Where the result comes from</h2>
         </div>
-        <div class="cards cards--3">
+        <div class="cards cards--4">
           <article class="card">
             <h3 data-i18n="demo.try1.title">Set the costs to none</h3>
             <p data-i18n="demo.try1.body">
               The result roughly quadruples. That gap is the whole argument: a backtester that skips
               fees reports a strategy that does not exist.
+            </p>
+          </article>
+          <article class="card">
+            <h3 data-i18n="demo.try4.title">Run Bitcoin on both exchanges</h3>
+            <p data-i18n="demo.try4.body">
+              Same asset, same year, same rule. On Binance the crossover ends slightly ahead; on
+              Coinbase's entry tier it loses 24%, with fees coming to more than three times the
+              gross profit. A result is a claim about a venue, not about a coin.
             </p>
           </article>
           <article class="card">
@@ -157,10 +171,11 @@
             </p>
           </article>
           <article class="card">
-            <h3 data-i18n="demo.try3.title">Read the profit factor</h3>
+            <h3 data-i18n="demo.try3.title">Switch to daily bars</h3>
             <p data-i18n="demo.try3.body">
-              A 36% win rate is what trend following looks like: many small losses paying for a few
-              large wins. The win rate is not the number to read.
+              The same rule on the same year, sampled differently, is a different strategy. The
+              daily candles are aggregated from the hourly tape in this tab — nothing extra is
+              downloaded to see them.
             </p>
           </article>
         </div>
