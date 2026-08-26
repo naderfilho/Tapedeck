@@ -7,7 +7,7 @@
  * unlocks everything except persistence.
  *
  * The other kind signs in with an email link. There is no password anywhere in this file, and there
- * is no password in the database either — Supabase issues a one-time link and we never see a
+ * is no password in the database either. Supabase issues a one-time link and we never see a
  * credential. That was the whole reason for choosing it over rolling a login.
  *
  * **No SDK.** Supabase's auth and REST endpoints are plain HTTP, so this talks to them with

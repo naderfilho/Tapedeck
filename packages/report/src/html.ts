@@ -352,7 +352,7 @@ export function renderHtmlReport(
   options: HtmlReportOptions = {},
 ): string {
   const currency = options.currency ?? '';
-  const title = options.title ?? `${result.config.strategyId} — Tapedeck report`;
+  const title = options.title ?? `${result.config.strategyId} · Tapedeck report`;
   const limit = options.maxTradeRows ?? MAX_TRADE_ROWS;
 
   const caveats =

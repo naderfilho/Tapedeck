@@ -3,14 +3,14 @@
  *
  * The page shipped as a static file: whatever instrument you picked in the demo, clicking through
  * to the report showed Bitcoin, because the file was the CLI example regenerated at build time. It
- * is a fair record and a confusing page — a report that does not describe the run you just did is
+ * is a fair record and a confusing page. A report that does not describe the run you just did is
  * a report about somebody else's run.
  *
  * **Nothing is carried across.** The demo hands over the configuration in the URL, and this page
  * re-runs the backtest and calls the same `renderHtmlReport` the command line calls. That is only
  * possible because the engine is deterministic: recomputing is guaranteed to reproduce the demo's
- * numbers rather than merely likely to. It also makes the URL shareable — anyone opening it
- * recalculates the identical report — and means a link cannot outlive the truth, because there is
+ * numbers rather than merely likely to. It also makes the URL shareable, because anyone opening it
+ * recalculates the identical report, and it means a link cannot outlive the truth, because there is
  * no stored result to go stale.
  *
  * ADR-0016 argues the exception this makes to ADR-0013. In short: `renderHtmlReport` still returns
@@ -154,10 +154,10 @@ async function boot(): Promise<void> {
 
     swapIn(html);
     wireCharts(result);
-    document.title = `${describeConfig(config)} — Tapedeck report`;
+    document.title = `${describeConfig(config)} · Tapedeck report`;
 
     banner.innerHTML =
-      `<span><strong>Your run.</strong> ${describeConfig(config)} — recomputed in this tab from ` +
+      `<span><strong>Your run.</strong> ${describeConfig(config)}. Recomputed in this tab from ` +
       "the same kernel and the same tape, so these are the demo's numbers to the cent.</span>" +
       '<button class="btn btn--ghost btn--small" id="download" type="button" hidden>Download</button>' +
       '<a class="btn btn--ghost btn--small" href="../demo/">Back to the demo</a>';

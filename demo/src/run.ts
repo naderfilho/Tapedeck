@@ -42,7 +42,7 @@ export const tickerFor = (symbol: string): string =>
 export const nameFor = (symbol: string): string =>
   MARKETS.find((m) => m.symbol === symbol)?.name ?? symbol;
 
-/** The instrument type the engine accepts, derived rather than imported — see the note in `Tape`. */
+/** The instrument type the engine accepts, derived rather than imported. See the note in `Tape`. */
 type InstrumentInput = Parameters<typeof runBacktest>[0]['instruments'][number];
 
 export interface Tape {
@@ -68,7 +68,7 @@ export interface RunConfig {
 /**
  * The example's size, in coins, so an unparameterised page opens on the published run.
  *
- * `examples/sma-crossover/src/main.ts` sizes in BTC — `0.25`, which is how a human says it for one
+ * `examples/sma-crossover/src/main.ts` sizes in BTC, `0.25`, which is how a human says it for one
  * instrument. A page offering five cannot: 0.25 is a different amount of money on every tape.
  */
 export const EXAMPLE_SIZE_COINS = 0.25;

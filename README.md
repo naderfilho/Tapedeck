@@ -12,26 +12,26 @@ coffee break.
 
 [![The report a run writes](docs/images/report.png)](https://tapedeck-nader-filhos-projects.vercel.app/report/)
 
-**[Run a backtest in your browser →](https://tapedeck-nader-filhos-projects.vercel.app/demo/)** — change the
+**[Run a backtest in your browser →](https://tapedeck-nader-filhos-projects.vercel.app/demo/)**. Change the
 periods and the costs and the engine re-runs in the tab, on the same kernel the CLI uses. It works
 because `core` has zero runtime dependencies and imports nothing from `node:`; portability fell out
 of a rule made for reproducibility. **[The report above is here](https://tapedeck-nader-filhos-projects.vercel.app/report/)**,
 rebuilt by CI from the committed fixture on every push so it cannot drift from the code.
 
 That is the output of `node examples/sma-crossover/src/main.ts` on a committed year of hourly
-BTCUSDT — one self-contained HTML file, no scripts and no network. The box at the top is the point
+BTCUSDT: one self-contained HTML file, no scripts and no network. The box at the top is the point
 of the whole project: **what this run could not know, printed above the numbers it qualifies**, not
 in a footnote. Below the fold sit the drawdown, the trade distribution, the exact execution
 configuration and every trade.
 
 > **Status: all six phases done.** The kernel, the indicator library, the data adapters, the SQLite
 > store, the metrics and report package, the `tapedeck` command line, live paper trading and the B3
-> layer — session calendar, contract expiries, continuous series — are all in. 610 tests, 97%
+> layer (session calendar, contract expiries, continuous series) are all in. 610 tests, 97%
 > statement coverage, and a committed year of real BTCUSDT candles so that `pnpm test` measures
-> something. Nothing is published to npm, deliberately — see the roadmap.
+> something. Nothing is published to npm, deliberately. See the roadmap.
 
 Built in pair with an AI assistant. Every decision that shaped it is argued in
-[fifteen ADRs](docs/adr/), each with the alternatives that were rejected — including
+[sixteen ADRs](docs/adr/), each with the alternatives that were rejected, including
 [one that amends an earlier one](docs/adr/0014-paper-trading-runs-on-event-time.md) after the first
 live connection to a real exchange proved it wrong.
 
@@ -42,19 +42,19 @@ Most backtesters lie in one of three ways, and all three are structural rather t
 1. **They let a strategy act on information it did not have.** A bar arrives, the strategy reads
    its close, and the engine fills the resulting order at that same close.
 2. **They resolve intrabar ambiguity in the strategy's favour.** When a stop and a target both sit
-   inside one bar's range, the engine quietly picks one — and it is rarely the stop.
+   inside one bar's range, the engine quietly picks one, and it is rarely the stop.
 3. **They keep money in floating point.** Across a few hundred thousand fills, the reported PnL
    stops reconciling with the sum of the trades.
 
 Tapedeck is built so that none of the three is expressible. An order submitted while processing a
 bar carries an activation time strictly after that bar; ambiguity is resolved by an explicit,
 pessimistic-by-default policy and **counted in the run statistics**; money is fixed-point integers
-all the way to the ledger. When the engine cannot know something — sub-bar latency on candle data,
-which side of a bar traded first — it says so in the result, above the numbers it qualifies.
+all the way to the ledger. When the engine cannot know something (sub-bar latency on candle data,
+which side of a bar traded first) it says so in the result, above the numbers it qualifies.
 
 The second goal is that a strategy runs unchanged in backtest and in live paper trading. That is
 not a compatibility layer: both modes share one synchronous kernel, and the only real difference is
-who fills the event queue — a file, or a socket. Both run on event time; the wall clock measures
+who fills the event queue: a file, or a socket. Both run on event time; the wall clock measures
 how far behind a live session is and reports it, and never decides when an order may fill.
 
 ## Quickstart
@@ -69,8 +69,8 @@ Then replay a year of real hourly BTCUSDT and write a report:
 node examples/sma-crossover/src/main.ts
 ```
 
-That prints the summary below and leaves `out/report.html` — one self-contained page with the
-equity curve, the drawdown and the trade distribution — next to `out/metrics.json`.
+That prints the summary below and leaves `out/report.html` (one self-contained page with the
+equity curve, the drawdown and the trade distribution) next to `out/metrics.json`.
 
 ```text
 Modelling caveats
@@ -106,7 +106,7 @@ a half times better than the one that exists.
 The 36.7% win rate is not a defect either, and it is worth saying so before someone reads it as
 one: trend following pays for a few large wins with many small losses, so the number that decides
 whether it works is the profit factor. Sweep the periods across a 5&times;5 grid and thirteen of the
-nineteen combinations lose money outright — which is the more useful lesson, and the reason the
+nineteen combinations lose money outright, which is the more useful lesson, and the reason the
 example ships the parameters it started with rather than the ones that flattered it afterwards.
 
 Node 24 strips the types natively, so every file in this repository runs without a build step. If
@@ -138,7 +138,7 @@ tapedeck paper examples/sma-crossover/src/strategy.ts \
   --html out/paper.html
 ```
 
-A strategy is a module you point at, not a name in a registry — a strategy is code, and pretending
+A strategy is a module you point at, not a name in a registry. A strategy is code, and pretending
 otherwise means inventing a plugin system nobody asked for.
 
 ## Paper trading
@@ -147,7 +147,7 @@ otherwise means inventing a plugin system nobody asked for.
 strategy is not told which one it is running under, because there is nothing it could correctly do
 with the answer.
 
-What differs is who fills the queue — a file, or a WebSocket handler that enqueues and calls the
+What differs is who fills the queue: a file, or a WebSocket handler that enqueues and calls the
 same synchronous `drain()` a backtest calls. The kernel runs on **event time** in both cases
 ([ADR-0014](docs/adr/0014-paper-trading-runs-on-event-time.md)); the wall clock is used to measure
 how far behind the session is, and that number is reported rather than folded into execution.
@@ -187,10 +187,10 @@ Three things it will not do quietly:
   builder refuses anything carrying a listen key, an API key or a signature
   ([ADR-0011](docs/adr/0011-read-only-market-data.md)).
 
-`--store` with `--session` makes a session resumable. What comes back is the **account** — cash,
+`--store` with `--session` makes a session resumable. What comes back is the **account**: cash,
 the cost basis of every open position, the resting orders, and the order and fill counters so the
 audit trail continues. Resuming a real session mid-position, in a second process, blends the new
-fills into the existing cost basis and numbers the next fill 10 rather than 1 — which is what the
+fills into the existing cost basis and numbers the next fill 10 rather than 1, which is what the
 counters are for: `paper_fills` is keyed by `(session, fillId)`, so a restart that began again at 1
 would overwrite a trade instead of recording one. What does not come back is the strategy's own memory: a field in a closure
 is gone, and `bar.index` restarts because it counts this run's bars. A strategy meant to survive a
@@ -213,7 +213,7 @@ That runs the mini index across six contracts and five rolls. What it shows:
 
 - **A session calendar.** B3 shuts at 18:00 in São Paulo and does not open on Carnival, which moves
   with Easter and is therefore computed rather than listed. A `day` order dies at the **session
-  close**, not at midnight UTC — the old rule kept a Friday order alive into Saturday, a day nobody
+  close**, not at midnight UTC. The old rule kept a Friday order alive into Saturday, a day nobody
   could have cancelled anything on.
 - **Contracts as coordinates.** `WINJ25` exists for a few months. Expiries come from B3's own rules
   and are asserted in the tests against the dates the exchange actually used. "Front month" means
@@ -239,7 +239,7 @@ tapedeck data fetch --venue b3 --symbol WIN --from 2025-08-01 --to 2026-08-01 -o
 
 ```mermaid
 flowchart LR
-  subgraph edge["Asynchronous edge — I/O lives here"]
+  subgraph edge["Asynchronous edge: I/O lives here"]
     csv["CSV export"]
     tape[".tape files"]
     rest["Binance REST"]
@@ -247,7 +247,7 @@ flowchart LR
     b3["B3 price reports<br/><small>fetched, never committed</small>"]
   end
 
-  subgraph kernel["Synchronous kernel — identical in backtest and live"]
+  subgraph kernel["Synchronous kernel: identical in backtest and live"]
     direction TB
     queue["LiveSession queue<br/><small>bounded · drained synchronously</small>"]
     chunks["Tape<br/><small>columnar Float64Array chunks</small>"]
@@ -315,8 +315,8 @@ strategy is awake.
 | `@tapedeck/store`      | Bar cache, run history and paper state on `node:sqlite`              | none                 |
 | `@tapedeck/cli`        | The `tapedeck` command                                               | `commander`, `zod`   |
 
-The dependency arrows only ever point inward: `core` declares the contracts — `Strategy`,
-`Broker`, `DataProvider`, `Indicator`, `Store` — and imports no other workspace package.
+The dependency arrows only ever point inward: `core` declares the contracts (`Strategy`,
+`Broker`, `DataProvider`, `Indicator`, `Store`) and imports no other workspace package.
 
 ## What a strategy looks like
 
@@ -340,7 +340,7 @@ export default function meanReversion(): Strategy<{ oversold: number }> {
     },
 
     onBar(bar, ctx) {
-      // `bar` is a reused view. Read it, never keep it — under test the object is revoked when
+      // `bar` is a reused view. Read it, never keep it; under test the object is revoked when
       // this callback returns, so keeping it throws instead of silently reading the future.
       if (strength.value === null || volatility.value === null) return;
       if (strength.value > threshold) return;
@@ -378,7 +378,7 @@ Two rules make those numbers checkable:
   from one bar, a CAGR over a zero-length run. Zero is a result; nothing is not.
 
 Money never becomes a float on the way out: every monetary field in the JSON is an exact decimal
-string, and every ratio is rounded to twelve significant digits — which is what makes two runs of
+string, and every ratio is rounded to twelve significant digits, which is what makes two runs of
 the same configuration produce byte-identical metrics on any machine, despite `Math.pow`.
 
 ## Data
@@ -403,7 +403,7 @@ Prices travel from the venue to `parseFixed` **as strings** and become integers 
 candle that has not finished forming is dropped rather than truncated, because letting one through
 is a quiet way to hand a strategy the future.
 
-The repository ships a year of hourly BTCUSDT — 8,760 bars, 480 KiB, fetched between two fixed
+The repository ships a year of hourly BTCUSDT: 8,760 bars, 480 KiB, fetched between two fixed
 dates so the file never drifts. B3 data is neither public nor redistributable, so every B3 example
 points at a file you fetched yourself ([ADR-0011](docs/adr/0011-read-only-market-data.md)).
 
@@ -422,7 +422,7 @@ own run, dated and with the machine that produced it, at
 | development mode      | 4.0 M bars/s  | 250 ns  | guarded bar views and data validation, as the test suite runs |
 
 Measured on Node 24.12 / Windows 11 / x64. The run CI publishes is roughly 40% of these figures,
-because a shared two-core cloud runner is not a desktop — which is exactly why the benchmark job
+because a shared two-core cloud runner is not a desktop, which is exactly why the benchmark job
 reports and never gates, and why both numbers carry the machine that produced them. Compare like
 with like or not at all.
 
@@ -431,7 +431,7 @@ bars, updating indicators, matching resting orders and actually trading are four
 workloads, so the benchmark reports all four. The target was one million bars per second.
 
 Two of those numbers are trade-offs rather than achievements. Registering indicators through
-`ctx.use` costs roughly 20 nanoseconds per indicator per bar against calling a class directly — the
+`ctx.use` costs roughly 20 nanoseconds per indicator per bar against calling a class directly. The
 price of an abstraction that makes reading a stale value impossible. Development mode is half the
 speed of production because guarded bar views and per-chunk validation are on; that is what the
 test suite runs at, on purpose.
@@ -446,18 +446,18 @@ indicator allocates on the hot path.
 Each of these is an [ADR](docs/adr/) with the alternatives that were rejected and why.
 
 - **[Fixed-point money, float indicators](docs/adr/0002-fixed-point-money-float-indicators.md).**
-  The ledger stores a **cost basis in money**, not an average entry price — the first property test
+  The ledger stores a **cost basis in money**, not an average entry price. The first property test
   written against the portfolio found that a rounded average makes `equity` and
   `realised + unrealised - commission` disagree.
 - **[A synchronous kernel](docs/adr/0003-synchronous-deterministic-kernel.md).** Asynchrony is
   confined to the edges. The cost: a strategy cannot do I/O inside a callback.
 - **[B3 sessions, contracts and data](docs/adr/0015-b3-sessions-contracts-and-data.md).** A fixed
   UTC offset rather than a time zone, because session boundaries that move with a Node upgrade are
-  not reproducible — and the calendar refuses dates from before Brazil abolished daylight saving
+  not reproducible, and the calendar refuses dates from before Brazil abolished daylight saving
   rather than shifting them by an hour in silence.
 - **[Paper trading on event time](docs/adr/0014-paper-trading-runs-on-event-time.md).** The wall
   clock measures lag; it never decides when an order becomes matchable. Building this amended
-  ADR-0003, which had claimed the live clock drives the kernel — it cannot, or the same events
+  ADR-0003, which had claimed the live clock drives the kernel. It cannot, or the same events
   would fill differently on a machine two seconds fast.
 - **[Columnar tape and reused bar views](docs/adr/0004-columnar-tape-and-reused-bar-views.md).**
   The literal "one event object per bar" design caps out around 300k bars/s. The cost: a strategy
@@ -478,7 +478,7 @@ Each of these is an [ADR](docs/adr/) with the alternatives that were rejected an
 ## Determinism, precisely
 
 Same data, same configuration, same seed produces an identical trade list, equity curve and fill
-log — regardless of how the input was chunked and regardless of the machine. It is enforced, not
+log, regardless of how the input was chunked and regardless of the machine. It is enforced, not
 hoped for:
 
 - `Date.now()`, `new Date()`, `Math.random()` and `performance.now()` are blocked by lint inside
@@ -512,7 +512,7 @@ author already believed, and five of them changed the code rather than confirmin
 - the intrabar ordering, which found that comparing a buy's "favourability" against a sell's is not
   a comparison at all;
 - the chart downsampler, which found that `bucket * (length / buckets)` and
-  `bucket * length / buckets` are the same in arithmetic and not in floating point — for 52 points
+  `bucket * length / buckets` are the same in arithmetic and not in floating point: for 52 points
   in 23 buckets the first is `51.99999999999999`, so the last bucket ended one short and an extreme
   sitting on the final point of a series was silently deleted from the chart. This one was found by
   CI rather than by the author: fast-check draws different cases every run, and the shape it needed
@@ -525,26 +525,26 @@ worth stating.
 
 ## Roadmap
 
-- [x] **Phase 1 — core.** Events, clock, scheduler, columnar tape, simulated broker (market, limit,
+- [x] **Phase 1: core.** Events, clock, scheduler, columnar tape, simulated broker (market, limit,
       stop, stop-limit; partial fills; TIF; slippage, commission, latency and liquidity models),
       fixed-point portfolio, trade extraction, tick support.
-- [x] **Phase 2 — indicators and data.** Incremental indicators behind one contract the engine
+- [x] **Phase 2: indicators and data.** Incremental indicators behind one contract the engine
       drives; CSV and Binance providers; the `.tape` format; the SQLite store; a committed year of
       real BTCUSDT.
-- [x] **Phase 3 — metrics, report and CLI.** Full metric set with stated conventions, JSON output,
+- [x] **Phase 3: metrics, report and CLI.** Full metric set with stated conventions, JSON output,
       a self-contained HTML report with charts, and the `tapedeck` command.
-- [x] **Phase 4 — paper trading.** Binance WebSocket feeding the same kernel through a queue whose
+- [x] **Phase 4: paper trading.** Binance WebSocket feeding the same kernel through a queue whose
       depth and lag are reported, heartbeats so a quiet market still moves time, crash-recoverable
       sessions, and `tapedeck paper`. No credentials, anywhere.
-- [x] **Phase 5 — polish.** [The API guide](docs/api.md), a benchmark CI publishes with each push,
-      and the report itself served live rather than recorded — a page you can scroll beats a video
+- [x] **Phase 5: polish.** [The API guide](docs/api.md), a benchmark CI publishes with each push,
+      and the report itself served live rather than recorded. A page you can scroll beats a video
       of someone else scrolling. Deliberately not an npm release: the licence is noncommercial, and
       a package on a registry most consumers cannot legally use commercially is a trap rather than
       a convenience. Clone it.
-- [x] **Phase 6 — B3.** Session calendar with computed holidays, contract expiries on B3's own
+- [x] **Phase 6: B3.** Session calendar with computed holidays, contract expiries on B3's own
       rules, a roll measured from volume rather than assumed, back-adjusted continuous series, the
       published tariffs, and a fetcher for the exchange's daily price reports. B3 data is fetched,
-      never committed — its consumption policy permits internal use and requires approval to
+      never committed: its consumption policy permits internal use and requires approval to
       redistribute (ADR-0015).
 
 Not planned, and deliberately so: a strategy DSL, a GUI, or a "no-code" layer. This is a library.
@@ -552,7 +552,7 @@ Not planned, and deliberately so: a strategy DSL, a GUI, or a "no-code" layer. T
 ## Licence
 
 [PolyForm Noncommercial License 1.0.0](LICENSE.md). Read it, study it, run it, fork it and build on
-it for any noncommercial purpose — learning, research, evaluation, personal trading. Commercial use
+it for any noncommercial purpose: learning, research, evaluation, personal trading. Commercial use
 is not granted, which includes selling it, reselling it, or operating it or a derivative as part of
 a commercial offering. For a commercial licence, get in touch.
 

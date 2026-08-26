@@ -2,7 +2,7 @@
  * The entry page.
  *
  * Its whole job is to get out of the way. The guest button is the first thing focusable, it needs
- * no network, and it is what nearly every visitor will use — this is a portfolio for an engine, and
+ * no network, and it is what nearly every visitor will use. This is a portfolio for an engine, and
  * an account wall in front of it would trade readers for a login form nobody asked for.
  */
 

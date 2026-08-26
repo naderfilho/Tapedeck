@@ -3,7 +3,7 @@
  *
  * It lives here because the two pages have to behave identically. The report's charts came out of
  * `renderHtmlReport` as inert SVG while the demo's reacted to the pointer, and a reader moving
- * between them finds one of the two broken — they cannot tell that one is a generated record and
+ * between them finds one of the two broken, and cannot tell that one is a generated record and
  * the other a live page, nor should they have to.
  *
  * The interactivity is added to the SVG from outside rather than baked into it. That is the whole
@@ -98,7 +98,7 @@ export function readoutFor(panel: HTMLElement): HTMLElement {
  * Wires pointer tracking for one panel.
  *
  * `resolve` is called per event rather than captured, so a panel that is redrawn with a new series
- * needs no re-wiring — the listener stays, and the data it reads is whatever the page last set.
+ * needs no re-wiring: the listener stays, and the data it reads is whatever the page last set.
  *
  * Pointer events rather than mouse events, so a touch drag reads the series too. The readout is an
  * HTML element rather than SVG `<text>` because it has to be measured and clamped against the panel

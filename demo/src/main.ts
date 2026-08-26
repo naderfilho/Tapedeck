@@ -11,8 +11,8 @@
  * planned that; it fell out of ADR-0001 and ADR-0007.
  *
  * The report itself stays static and stays a file (ADR-0013). This is a different artefact with a
- * different job: a report is a record, and this is a demonstration. Everything interactive below —
- * the crosshair, the tooltips, the transitions — exists here and can never leak into the report,
+ * different job: a report is a record, and this is a demonstration. Everything interactive below,
+ * the crosshair, the tooltips and the transitions, exists here and can never leak into the report,
  * because the report has no `<script>` to run it.
  */
 
@@ -89,7 +89,7 @@ const chartStates = new Map<string, CursorState>();
 /**
  * Draws one line chart with the report's own boxes, axes and path builders.
  *
- * The box used to be built here — `right: width - 14`, `bottom: height - 26` — on the assumption
+ * The box used to be built here, `right: width - 14` and `bottom: height - 26`, on the assumption
  * that those fields were coordinates. They are insets, so the usable width came out negative and
  * both charts collapsed into a 32×14 scribble in the top-left corner. Nothing here computes
  * geometry any more; `CHART_BOX` and `SMALL_BOX` are the report's, and so is `axes`.
@@ -134,7 +134,7 @@ type Metric = readonly [label: string, value: string, tone: string, help: string
 /**
  * What each number means, for a visitor who did not write the engine.
  *
- * These are deliberately not definitions of "what is a Sharpe ratio" — the reader can look that
+ * These are deliberately not definitions of "what is a Sharpe ratio". The reader can look that
  * up. They say what *this* run measured and, where it matters, how the number misleads.
  */
 const HELP: Readonly<Record<string, string>> = {
@@ -148,7 +148,7 @@ const HELP: Readonly<Record<string, string>> = {
   trades:
     'Round trips closed, with wins and losses. Any position still open at the end is flattened first, so nothing is left unpriced.',
   'win rate':
-    'Share of closed trades that made money. On its own it says almost nothing — trend following wins rarely and wins big.',
+    'Share of closed trades that made money. On its own it says almost nothing. Trend following wins rarely and wins big.',
   'profit factor':
     'Gross profit divided by gross loss. Under 1.0 the strategy loses money; 1.07 means it barely paid for itself.',
   commission: "Total fees charged, at the venue's real published maker and taker rates.",
@@ -213,7 +213,7 @@ function renderMetrics(metrics: Metrics, elapsed: number, bars: number): void {
 
   // A run that finishes inside the clock's resolution gets no throughput figure. `performance.now`
   // is deliberately coarsened against timing attacks, and dividing by the zero it then returns
-  // printed "∞ bars/s" — a number that says the replay took no time at all.
+  // printed "∞ bars/s", a number that says the replay took no time at all.
   const rate =
     elapsed > 0
       ? ` (${((bars / elapsed) * 1000).toLocaleString('en-US', { maximumFractionDigits: 0 })} bars/s)`
