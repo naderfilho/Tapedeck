@@ -135,6 +135,13 @@ rather than by someone thinking:
   half-open. And an exit sent on the closing bar fills at the next session's open, because an order
   cannot match against the bar that produced it — so being flat overnight means exiting one bar
   early. Both are regression tests now.
+- **The demo drew its own chart box and got it inside out.** `Box.right` and `Box.bottom` are
+  insets from the far edge; the demo passed `width - 14` and `height - 26` as though they were
+  coordinates, so the usable width came out negative and a year of hourly bars collapsed into a
+  32×14 scribble in the corner of an empty panel. It went unseen because the demo also skipped the
+  axes — with nothing else on the canvas there was nothing for it to look wrong against. Both
+  charts now use the report's `CHART_BOX`, `SMALL_BOX` and `axes`, and `charts.test.ts` asserts
+  that a shipped box leaves a plot area inside its canvas.
 
 ## Still owed from earlier phases
 

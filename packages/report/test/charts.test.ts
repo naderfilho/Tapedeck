@@ -1,6 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import fc from 'fast-check';
-import { areaPath, boundsOf, downsample, histogram, linePath, ticks } from '../src/index.ts';
+import {
+  CHART_BOX,
+  SMALL_BOX,
+  areaPath,
+  boundsOf,
+  downsample,
+  histogram,
+  linePath,
+  scaleX,
+  scaleY,
+  ticks,
+} from '../src/index.ts';
 
 function series(values: readonly number[]): { xs: Float64Array; ys: Float64Array; length: number } {
   return {
@@ -180,5 +191,42 @@ describe('histogram', () => {
       ),
       { numRuns: 120 },
     );
+  });
+});
+
+describe('boxes', () => {
+  // `right` and `bottom` are insets from the far edge, not coordinates. The browser demo read them
+  // as coordinates, passed `width - 14`, and drew a year of hourly bars into a 32-pixel scribble in
+  // the top-left corner. Both shipped boxes are asserted here because both are now shared with it.
+  for (const [name, box] of [
+    ['CHART_BOX', CHART_BOX],
+    ['SMALL_BOX', SMALL_BOX],
+  ] as const) {
+    it(`${name} leaves a plot area inside the canvas`, () => {
+      expect(box.width - box.left - box.right).toBeGreaterThan(0);
+      expect(box.height - box.top - box.bottom).toBeGreaterThan(0);
+    });
+
+    it(`${name} maps every value in range onto the canvas`, () => {
+      fc.assert(
+        fc.property(fc.double({ min: 0, max: 1, noNaN: true }), (t) => {
+          const bounds = { minX: 0, maxX: 1_000, minY: -50, maxY: 50 };
+          const x = scaleX(bounds.minX + t * (bounds.maxX - bounds.minX), bounds, box);
+          const y = scaleY(bounds.minY + t * (bounds.maxY - bounds.minY), bounds, box);
+          expect(x).toBeGreaterThanOrEqual(box.left);
+          expect(x).toBeLessThanOrEqual(box.width - box.right);
+          expect(y).toBeGreaterThanOrEqual(box.top);
+          expect(y).toBeLessThanOrEqual(box.height - box.bottom);
+        }),
+      );
+    });
+  }
+
+  it('collapses the plot when the insets are read as coordinates', () => {
+    // The shape of the bug, kept so the failure mode stays recognisable rather than mysterious.
+    const wrong = { width: 900, height: 260, left: 46, right: 900 - 14, top: 12, bottom: 260 - 26 };
+    const bounds = { minX: 0, maxX: 100, minY: 0, maxY: 100 };
+    expect(scaleX(bounds.maxX, bounds, wrong)).toBeLessThan(scaleX(bounds.minX, bounds, wrong));
+    expect(wrong.height - wrong.top - wrong.bottom).toBeLessThan(20);
   });
 });

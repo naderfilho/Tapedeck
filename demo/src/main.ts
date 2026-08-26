@@ -18,8 +18,12 @@ import { type BarChunk, PRESETS, runBacktest } from '@tapedeck/core';
 import { decodeBarTape } from '@tapedeck/data/codec';
 import smaCrossover from '../../examples/sma-crossover/src/strategy.ts';
 import {
+  type Box,
+  CHART_BOX,
   type Metrics,
+  SMALL_BOX,
   areaPath,
+  axes,
   boundsOf,
   computeMetrics,
   downsample,
@@ -53,25 +57,44 @@ const percent = (value: number | null): string =>
   value === null ? 'n/a' : `${(value * 100).toFixed(2)}%`;
 const decimal = (value: number | null): string => (value === null ? 'n/a' : value.toFixed(2));
 
-/** Draws one line chart with the report's own path builders, so it looks like the report. */
+interface ChartOptions {
+  /** `CHART_BOX` or `SMALL_BOX`, taken from the report rather than invented here. */
+  readonly box: Box;
+  readonly kind: 'equity' | 'drawdown';
+  readonly label: string;
+  readonly formatY: (value: number) => string;
+  /** Where the fill closes: the bottom of the range for equity, zero for drawdown. */
+  readonly baseline: 'min' | 0;
+}
+
+/**
+ * Draws one line chart with the report's own boxes, axes and path builders.
+ *
+ * The box used to be built here — `right: width - 14`, `bottom: height - 26` — on the assumption
+ * that those fields were coordinates. They are insets, so the usable width came out negative and
+ * both charts collapsed into a 32×14 scribble in the top-left corner. Nothing here computes
+ * geometry any more; `CHART_BOX` and `SMALL_BOX` are the report's, and so is `axes`.
+ */
 function chart(
   series: { xs: Float64Array; ys: Float64Array; length: number },
-  stroke: string,
-  fill: string,
+  options: ChartOptions,
 ): string {
-  const width = 900;
-  const height = 260;
-  const box = { width, height, left: 46, right: width - 14, top: 12, bottom: height - 26 };
-  const reduced = downsample(series.xs, series.ys, series.length, 260);
+  const { box, kind, label, formatY, baseline } = options;
+  const reduced = downsample(series.xs, series.ys, series.length, 600);
+  if (reduced.length === 0) return '';
   const bounds = boundsOf(reduced);
-  const line = linePath(reduced, bounds, box);
-  // The area is filled down to the bottom of the value range, which is what the report does.
-  const area = areaPath(reduced, bounds, box, bounds.minY);
 
-  return `<svg viewBox="0 0 ${String(width)} ${String(height)}" preserveAspectRatio="none" role="img">
-    <path d="${area}" fill="${fill}" />
-    <path d="${line}" fill="none" stroke="${stroke}" stroke-width="1.5" />
+  return `<svg class="chart" viewBox="0 0 ${String(box.width)} ${String(box.height)}" role="img" aria-label="${label}">
+    ${axes({ box, series: reduced, formatY })}
+    <path class="${kind}-area" d="${areaPath(reduced, bounds, box, baseline === 'min' ? bounds.minY : 0)}" />
+    <path class="${kind}-line" d="${linePath(reduced, bounds, box)}" />
   </svg>`;
+}
+
+/** The y-axis labels for money, which arrives fixed-point. */
+function compact(value: number): string {
+  const units = value / MONEY;
+  return Math.abs(units) >= 1_000 ? `${(units / 1_000).toFixed(1)}k` : units.toFixed(2);
 }
 
 function readParams(): Params {
@@ -112,9 +135,17 @@ function renderMetrics(metrics: Metrics, elapsed: number, bars: number): void {
     )
     .join('');
 
+  // A run that finishes inside the clock's resolution gets no throughput figure. `performance.now`
+  // is deliberately coarsened against timing attacks, and dividing by the zero it then returns
+  // printed "∞ bars/s" — a number that says the replay took no time at all.
+  const rate =
+    elapsed > 0
+      ? ` (${((bars / elapsed) * 1000).toLocaleString('en-US', { maximumFractionDigits: 0 })} bars/s)`
+      : '';
+  const took =
+    elapsed > 0 ? `${elapsed.toFixed(elapsed < 10 ? 1 : 0)} ms` : 'under the clock’s resolution';
   el('timing').textContent =
-    `${bars.toLocaleString('en-US')} bars replayed in ${elapsed.toFixed(0)} ms ` +
-    `(${((bars / elapsed) * 1000).toLocaleString('en-US', { maximumFractionDigits: 0 })} bars/s), ` +
+    `${bars.toLocaleString('en-US')} bars replayed in ${took}${rate}, ` +
     `in this tab, on the same kernel the CLI runs.`;
 
   const warnings = metrics.warnings;
@@ -165,8 +196,13 @@ function run(): void {
   const curve = result.equityCurve;
   el('equity').innerHTML = chart(
     { xs: curve.ts, ys: curve.equity, length: curve.length },
-    '#1d4ed8',
-    'rgba(29,78,216,0.10)',
+    {
+      box: CHART_BOX,
+      kind: 'equity',
+      label: 'Equity curve',
+      formatY: compact,
+      baseline: 'min',
+    },
   );
 
   // Drawdown, recomputed from the curve the run just produced.
@@ -179,8 +215,13 @@ function run(): void {
   }
   el('drawdown').innerHTML = chart(
     { xs: curve.ts, ys: drawdown, length: curve.length },
-    '#b91c1c',
-    'rgba(185,28,28,0.10)',
+    {
+      box: SMALL_BOX,
+      kind: 'drawdown',
+      label: 'Drawdown',
+      formatY: (value) => `${value.toFixed(1)}%`,
+      baseline: 0,
+    },
   );
 }
 

@@ -101,6 +101,14 @@ export function boundsOf(series: Series, padding = 0.02): Bounds {
   };
 }
 
+/**
+ * The canvas and its gutters.
+ *
+ * `left`, `right`, `top` and `bottom` are **insets from each edge**, not coordinates: the plot
+ * occupies `x` from `left` to `width - right`. Passing `width - 14` as `right` makes the usable
+ * width negative, and `scaleX` then draws the whole series backwards inside a few pixels — which
+ * is exactly what the browser demo did until it was made to share `CHART_BOX` below.
+ */
 export interface Box {
   readonly width: number;
   readonly height: number;

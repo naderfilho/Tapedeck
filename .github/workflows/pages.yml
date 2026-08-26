@@ -58,18 +58,17 @@ jobs:
         # what makes this worth publishing is that it is dated and says which machine produced it.
         run: pnpm bench | tee bench.txt
 
-      - name: Build the landing page and the live demo
+      - name: Build the site
         # The demo bundles the kernel for the browser. That it can be bundled at all is the point:
         # core, indicators and report import nothing from `node:`, so they were already portable.
+        #
+        # This also places the report, which is why it runs after the example. `out/report.html`
+        # stays the self-contained file ADR-0013 describes; the copy under `/report/` gets a
+        # navigation bar, because a page on a site needs a way back and a downloaded file does not.
         run: pnpm site
 
-      - name: Assemble the site
-        # The report keeps its own path. It is one self-contained file with no scripts and no
-        # external requests (ADR-0013); the demo next to it is a different artefact.
+      - name: Publish the benchmark
         run: |
-          mkdir -p site/report
-          cp out/report.html site/report/index.html
-          cp out/metrics.json site/report/metrics.json
           {
             echo "Tapedeck benchmark"
             echo "run    $(date -u +%Y-%m-%dT%H:%M:%SZ)"

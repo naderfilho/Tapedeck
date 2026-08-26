@@ -38,12 +38,16 @@ export {
   type HistogramBin,
   type Series,
   type Tick,
+  CHART_BOX,
+  SMALL_BOX,
   areaPath,
   boundsOf,
   downsample,
   histogram,
   linePath,
+  scaleX,
+  scaleY,
   ticks,
 } from './charts.ts';
 
-export { type HtmlReportOptions, renderHtmlReport } from './html.ts';
+export { type AxisOptions, type HtmlReportOptions, axes, renderHtmlReport } from './html.ts';

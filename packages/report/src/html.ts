@@ -89,13 +89,21 @@ function toneOf(value: number): 'good' | 'bad' | 'plain' {
   return 'plain';
 }
 
-interface AxisOptions {
+export interface AxisOptions {
   readonly box: Box;
   readonly series: Series;
   readonly formatY: (value: number) => string;
 }
 
-function axes(options: AxisOptions): string {
+/**
+ * Horizontal grid lines with their value labels, and dated ticks along the bottom.
+ *
+ * Exported because the browser demo draws the same two charts and drew them without axes, which is
+ * how a `Box` whose `right` and `bottom` were passed as coordinates rather than insets went
+ * unnoticed: with nothing else on the canvas there was nothing to look wrong against. Sharing this
+ * is the cheap way to keep the two from drifting again.
+ */
+export function axes(options: AxisOptions): string {
   const { box, series, formatY } = options;
   const bounds = boundsOf(series);
   const yTicks = ticks(bounds.minY, bounds.maxY, 4, formatY, (v) => scaleY(v, bounds, box));
@@ -111,11 +119,13 @@ function axes(options: AxisOptions): string {
     )
     .join('');
 
+  // The outermost dates are anchored to their own edge rather than centred on it. Centred, half of
+  // each sits outside the viewBox and the last one is served with its day cut off.
   const dates = xTicks
-    .map(
-      (tick) =>
-        `<text class="tick" x="${tick.position.toFixed(1)}" y="${String(box.height - 8)}" text-anchor="middle">${escapeHtml(tick.label)}</text>`,
-    )
+    .map((tick, i) => {
+      const anchor = i === 0 ? 'start' : i === xTicks.length - 1 ? 'end' : 'middle';
+      return `<text class="tick" x="${tick.position.toFixed(1)}" y="${String(box.height - 8)}" text-anchor="${anchor}">${escapeHtml(tick.label)}</text>`;
+    })
     .join('');
 
   return grid + dates;

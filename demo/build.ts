@@ -9,9 +9,14 @@
  *
  * Nothing here touches `renderHtmlReport`. The report stays a file with no `<script>` in it
  * (ADR-0013); this produces a different artefact next to it.
+ *
+ * The site's copy of the report is assembled here rather than by a `cp` in the workflow, because a
+ * page published under `/report/` needs a way back to `/` and the file you email someone does not —
+ * a relative link in a downloaded file points at nothing. `out/report.html` stays untouched; the
+ * navigation is grafted onto the copy.
  */
 
-import { cpSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
@@ -64,6 +69,59 @@ const adrs = readFileSync(src('docs/adr/README.md'), 'utf8').match(/^\| \[\d{4}\
 
 writeFileSync(resolve(site, 'index.html'), landing({ tests, adrs: String(adrs) }), 'utf8');
 console.log('landing: written');
+
+// The static report, as the site serves it: the generated file plus a way back to the site.
+const report = resolve(root, 'out/report.html');
+if (!existsSync(report)) {
+  throw new Error(
+    `${report} does not exist. Run \`node examples/sma-crossover/src/main.ts\` first — the ` +
+      `published report is regenerated from the committed fixture, never uploaded by hand.`,
+  );
+}
+
+mkdirSync(resolve(site, 'report'), { recursive: true });
+writeFileSync(
+  resolve(site, 'report/index.html'),
+  withSiteNav(readFileSync(report, 'utf8'), [
+    ['../', '← Tapedeck'],
+    ['../demo/', 'Run it in your browser →'],
+  ]),
+  'utf8',
+);
+cpSync(resolve(root, 'out/metrics.json'), resolve(site, 'report/metrics.json'));
+console.log('report: copied with site navigation');
+
+/**
+ * Grafts a navigation bar onto a standalone report.
+ *
+ * Injection rather than a template: the report's markup belongs to `renderHtmlReport`, and this
+ * has no business knowing anything about it beyond where `<main>` opens. If that anchor ever
+ * stops matching this throws rather than publishing a page with no way out of it.
+ */
+function withSiteNav(html: string, links: readonly (readonly [string, string])[]): string {
+  const anchor = '<body>\n<main>';
+  const head = '</style>\n</head>';
+  for (const marker of [anchor, head]) {
+    if (!html.includes(marker)) {
+      throw new Error(
+        `could not find ${JSON.stringify(marker)} in the report to attach the nav to`,
+      );
+    }
+  }
+  const style =
+    '<style>' +
+    '.site-nav{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 20px}' +
+    '.site-nav .spacer{flex:1}' +
+    '.site-nav a{display:inline-block;padding:6px 12px;border:1px solid #e3e6ea;border-radius:6px;' +
+    'background:#fff;color:#5b6570;font-size:13px;font-weight:600;text-decoration:none}' +
+    '.site-nav a:hover{border-color:#1d4ed8;color:#1d4ed8}' +
+    '</style>';
+  const anchors = links.map(([href, text]) => `<a href="${href}">${text}</a>`);
+  // The first link is the way back; anything after it is pushed to the far side.
+  const nav = `<nav class="site-nav">${anchors.slice(0, 1).join('')}<span class="spacer"></span>${anchors.slice(1).join('')}</nav>`;
+
+  return html.replace(head, `</style>\n${style}\n</head>`).replace(anchor, `${anchor}\n  ${nav}`);
+}
 
 function landing(facts: { tests: string; adrs: string }): string {
   return `<!doctype html>

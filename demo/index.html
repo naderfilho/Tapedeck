@@ -38,12 +38,31 @@
         margin: 0 auto;
         padding: 32px 20px 64px;
       }
-      header a {
+      /* Every page below the root carries this, so there is always a way back out of it. */
+      .nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+        margin: 0 0 6px;
+      }
+      .nav a {
+        display: inline-block;
+        padding: 6px 12px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: var(--card);
         color: var(--muted);
+        font-size: 13px;
+        font-weight: 600;
         text-decoration: none;
       }
-      header a:hover {
+      .nav a:hover {
+        border-color: var(--accent);
         color: var(--accent);
+      }
+      .nav .spacer {
+        flex: 1;
       }
       h1 {
         font-size: 26px;
@@ -165,10 +184,40 @@
         border-radius: 8px;
         padding: 10px;
       }
-      .panel svg {
+      /* The charts carry the report's own viewBox, so they scale on their own aspect ratio. A
+         fixed height plus `preserveAspectRatio="none"` would stretch the axis labels with them. */
+      .panel svg.chart {
         display: block;
         width: 100%;
-        height: 230px;
+        height: auto;
+      }
+      .grid {
+        stroke: var(--line);
+        stroke-width: 1;
+      }
+      .tick {
+        fill: var(--muted);
+        font-size: 11px;
+        font-family: inherit;
+      }
+      .equity-line {
+        fill: none;
+        stroke: var(--accent);
+        stroke-width: 1.6;
+        stroke-linejoin: round;
+      }
+      .equity-area {
+        fill: rgba(29, 78, 216, 0.1);
+        stroke: none;
+      }
+      .drawdown-line {
+        fill: none;
+        stroke: var(--down);
+        stroke-width: 1.2;
+      }
+      .drawdown-area {
+        fill: rgba(185, 28, 28, 0.12);
+        stroke: none;
       }
       #warnings {
         margin-top: 26px;
@@ -204,9 +253,11 @@
   </head>
   <body>
     <div class="wrap">
-      <header>
+      <nav class="nav">
         <a href="../">← Tapedeck</a>
-      </header>
+        <span class="spacer"></span>
+        <a href="../report/">The static report →</a>
+      </nav>
 
       <h1>The engine, running in your browser</h1>
       <p class="lede">
