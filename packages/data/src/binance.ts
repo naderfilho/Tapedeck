@@ -37,6 +37,10 @@ import {
   parseFixed,
 } from '@tapedeck/core';
 import { BinanceStream } from './binance-stream.ts';
+import { decimalsOf, trimZeros } from './decimals.ts';
+
+// Both were defined here first and are re-exported so the package's surface does not move.
+export { decimalsOf, trimZeros };
 
 export type FetchLike = (url: string, init?: RequestInit) => Promise<Response>;
 
@@ -77,26 +81,6 @@ const SymbolInfoSchema = z.looseObject({
 });
 
 const ExchangeInfoSchema = z.looseObject({ symbols: z.array(SymbolInfoSchema) });
-
-/**
- * Binance quotes its increments with trailing zeros — `"0.01000000"` — and the number of
- * *significant* decimals is the instrument's true scale. Reading the string length instead would
- * declare BTCUSDT as having eight decimals of price and inflate every fixed-point value by a
- * million.
- */
-export function decimalsOf(value: string): number {
-  const dot = value.indexOf('.');
-  if (dot === -1) return 0;
-  const fraction = value.slice(dot + 1).replace(/0+$/, '');
-  return fraction.length;
-}
-
-/** Strips trailing zeros so a spec reads like the contract sheet rather than like a wire format. */
-export function trimZeros(value: string): string {
-  if (!value.includes('.')) return value;
-  const trimmed = value.replace(/0+$/, '');
-  return trimmed.endsWith('.') ? trimmed.slice(0, -1) : trimmed;
-}
 
 const INTERVALS: readonly (readonly [number, string])[] = [
   [MICROS_PER_MINUTE, '1m'],

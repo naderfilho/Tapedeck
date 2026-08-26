@@ -8,7 +8,7 @@
  * Three sources, one contract:
  *
  * - {@link CsvBarProvider} for a local export,
- * - {@link BinanceDataProvider} for public historical candles,
+ * - {@link BinanceDataProvider} and {@link CoinbaseDataProvider} for public historical candles,
  * - the `.tape` format for everything you have already fetched and do not want to fetch again.
  */
 
@@ -53,6 +53,14 @@ export {
   decimalsOf,
   trimZeros,
 } from './binance.ts';
+
+export {
+  type CoinbaseProviderOptions,
+  CoinbaseDataProvider,
+  coinbaseGranularity,
+} from './coinbase.ts';
+
+export { decimalString } from './decimals.ts';
 
 export {
   type BinanceStreamOptions,
