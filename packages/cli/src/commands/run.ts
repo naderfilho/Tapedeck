@@ -1,9 +1,9 @@
 /**
  * `tapedeck run` — replay a strategy over a tape and report what happened.
  *
- * The strategy is a module you point at, not a name in a registry: a strategy is code, and
- * pretending otherwise means inventing a plugin system nobody asked for. The module exports a
- * factory as `default` or as `strategy`, which is exactly what `Engine` already expects.
+ * The strategy is a module you point at rather than a name in a registry, so there is no plugin
+ * system to configure. The module exports a factory as `default` or as `strategy`, which is what
+ * `Engine` already expects.
  *
  * Everything the run needed in order to be reproducible — the seed, the execution preset, the
  * parameters, the data range — is printed with the results and stored in the result file, so a

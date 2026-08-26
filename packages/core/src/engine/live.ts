@@ -301,8 +301,7 @@ export class LiveSession<P extends object> {
    * Ends the session: drains what is left, writes the final state, and produces a run result.
    *
    * The result is the same object a backtest produces, so a paper session goes through the same
-   * metrics and the same report (ADR-0013). Nothing about the report knows where the bars came
-   * from, which is the point.
+   * metrics and the same report (ADR-0013). Nothing in the report knows where the bars came from.
    */
   async stop(): Promise<RunResult> {
     if (this.stopped) throw new IllegalStateError('live session already stopped');

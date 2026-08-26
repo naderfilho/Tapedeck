@@ -43,8 +43,8 @@ export interface ResampleResult {
  * into 90m — cannot be assembled from whole source bars, and inventing the boundary would mean
  * inventing prices inside it.
  *
- * Returns the same chunk untouched when the timeframes match, which keeps `resample(x, x.timeframe)`
- * free rather than a copy nobody asked for.
+ * Returns the same chunk untouched when the timeframes match, so `resample(x, x.timeframe)` costs
+ * nothing.
  */
 export function resampleBars(chunk: BarChunk, timeframe: Duration): ResampleResult {
   const source = chunk.timeframe;
