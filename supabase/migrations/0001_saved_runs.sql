@@ -1,8 +1,11 @@
 -- Saved backtest configurations.
 --
--- Run this once in the Supabase SQL editor. It is committed rather than applied from a script
--- because the project it targets is not reachable from this repository's tooling, and a schema
--- nobody can read is a schema nobody can review.
+-- Applied 2026-08-26 to project kefsjdtluuvmqygrfxim, through the dashboard SQL editor, because
+-- that project is not reachable from this repository's tooling. Verified afterwards rather than
+-- trusted: 11 columns, row-level security on, five policies, seven check constraints; and from
+-- outside with the publishable key, an anonymous select returns an empty list while an anonymous
+-- insert is refused with 42501. It is committed because a schema nobody can read is a schema
+-- nobody can review, and it is idempotent so re-running it is safe.
 --
 -- **Only the configuration is stored, never the result.** The engine is deterministic: the same
 -- parameters over the same committed tape produce the same equity curve, on any machine, forever.
