@@ -197,10 +197,23 @@ export interface BpsCommissionOptions {
   readonly minimum?: string | undefined;
 }
 
-/** A share of notional, the shape used by nearly every crypto venue. */
+/**
+ * A share of notional in whole basis points, the shape used by nearly every crypto venue.
+ *
+ * Whole basis points only. A venue that quotes 0.075% does not fit here and must not be squeezed
+ * into it by rounding: {@link percentCommission} takes the published figure instead. The guard is
+ * explicit because the failure without it is unhelpful — a fractional rate travels all the way
+ * into `mulDiv`'s bigint path and dies there, on the first fill rather than at configuration time.
+ */
 export function bpsCommission(options: BpsCommissionOptions): CommissionModel {
   const { makerBps, takerBps } = options;
   if (makerBps < 0 || takerBps < 0) throw new ConfigError('commission bps must not be negative');
+  if (!Number.isInteger(makerBps) || !Number.isInteger(takerBps)) {
+    throw new ConfigError('commission bps must be whole basis points; use percentCommission', {
+      makerBps,
+      takerBps,
+    });
+  }
   const minimum = options.minimum === undefined ? 0 : parseFixed(options.minimum, MONEY_EXP);
   return {
     name: `bps(maker=${String(makerBps)},taker=${String(takerBps)})`,
@@ -209,6 +222,125 @@ export function bpsCommission(options: BpsCommissionOptions): CommissionModel {
       const fee = mulDiv(ctx.notional, bps, BPS_DIVISOR, 'half-up');
       return asMoney(Math.max(fee, minimum));
     },
+  };
+}
+
+/**
+ * Decimals of a percentage rate kept exactly. `0.0001%` of notional is a hundredth of a basis
+ * point, finer than any venue publishes and finer than any single fill can round to.
+ */
+const PERCENT_EXP = 6;
+
+/** `percent / 100`, as an integer divisor for a rate held at {@link PERCENT_EXP}. */
+const PERCENT_DIVISOR = 10 ** PERCENT_EXP * 100;
+
+export interface PercentCommissionOptions {
+  /** Maker rate as the venue prints it, without the sign: `'0.075'` for 0.075%. */
+  readonly makerPercent: string;
+  readonly takerPercent: string;
+  /** Floor per fill, as a decimal string. Binance and Coinbase have none; several brokers do. */
+  readonly minimum?: string | undefined;
+}
+
+/**
+ * A share of notional quoted the way fee schedules are: a percentage, as a decimal string.
+ *
+ * The string is the point. Every venue publishes a percentage — `0.100%`, `0.075%`, `0.60%` — and
+ * a transcription that has to convert it first is a transcription with a place to make an error.
+ * The string is parsed to a fixed-point integer once, so the arithmetic per fill is exact and two
+ * machines cannot disagree about the last cent (ADR-0002).
+ */
+export function percentCommission(options: PercentCommissionOptions): CommissionModel {
+  const maker = parseFixed(options.makerPercent, PERCENT_EXP);
+  const taker = parseFixed(options.takerPercent, PERCENT_EXP);
+  if (maker < 0 || taker < 0) {
+    throw new ConfigError('commission percent must not be negative', {
+      makerPercent: options.makerPercent,
+      takerPercent: options.takerPercent,
+    });
+  }
+  const minimum = options.minimum === undefined ? 0 : parseFixed(options.minimum, MONEY_EXP);
+  return {
+    name: `percent(maker=${options.makerPercent},taker=${options.takerPercent})`,
+    charge: (ctx) => {
+      const rate = ctx.liquidity === 'maker' ? maker : taker;
+      const fee = mulDiv(ctx.notional, rate, PERCENT_DIVISOR, 'half-up');
+      return asMoney(Math.max(fee, minimum));
+    },
+  };
+}
+
+/**
+ * A spot venue's published trading fees, transcribed rather than remembered.
+ *
+ * Same discipline as {@link B3Tariff}: the figure, where it came from, and the day it was read.
+ * Every venue quotes a *tier*, and the tier that belongs in a default is the one a reader of this
+ * repository is actually in — the entry row, no volume, no discounts. A backtest configured with a
+ * market-maker's rebate is a backtest about somebody else.
+ */
+export interface SpotFeeSchedule {
+  /** Short venue name. It reaches the report, so it is what a reader will see. */
+  readonly venue: string;
+  /** Which row of the venue's table this is, in the venue's own words. */
+  readonly tier: string;
+  /** Maker fee as the venue prints it, without the sign: `'0.100'` for 0.100%. */
+  readonly makerPercent: string;
+  readonly takerPercent: string;
+  readonly source: string;
+  /** The day it was transcribed. Venues revise these; treat it as a reading, not a law. */
+  readonly readOn: string;
+}
+
+/**
+ * Spot fee schedules for the venues this repository ships data for.
+ *
+ * The gap between them is the reason more than one is here. Coinbase's entry tier costs six times
+ * Binance's, so the same strategy on the same asset is profitable on one venue and not on the
+ * other — which is a fact about fees rather than about the strategy, and is invisible in any
+ * backtester that models costs as a single global number.
+ */
+export const SPOT_FEES = {
+  /** Binance spot, no BNB, under 1M USD of 30-day volume. */
+  binance: {
+    venue: 'binance-spot',
+    tier: 'Regular User / VIP 0',
+    makerPercent: '0.100',
+    takerPercent: '0.100',
+    source: 'https://www.binance.com/en/fee/schedule',
+    readOn: '2026-08-26',
+  },
+  /** The same tier with fees paid in BNB, which the venue discounts by 25%. */
+  binanceBnb: {
+    venue: 'binance-spot-bnb',
+    tier: 'Regular User / VIP 0, paying fees with BNB',
+    makerPercent: '0.075',
+    takerPercent: '0.075',
+    source: 'https://www.binance.com/en/fee/schedule',
+    readOn: '2026-08-26',
+  },
+  /**
+   * Coinbase Exchange's entry tier: under 10K USD of 30-day volume, where the taker pays 60 bps.
+   * Published as basis points in the venue's table and written here as the percentage it equals.
+   */
+  coinbase: {
+    venue: 'coinbase-exchange',
+    tier: '$0K–$10K 30-day volume',
+    makerPercent: '0.40',
+    takerPercent: '0.60',
+    source: 'https://help.coinbase.com/en/exchange/trading-and-funding/exchange-fees',
+    readOn: '2026-08-26',
+  },
+} as const satisfies Readonly<Record<string, SpotFeeSchedule>>;
+
+/** A commission model from a published schedule, with the venue's name on it for the report. */
+export function spotFeeCommission(schedule: SpotFeeSchedule): CommissionModel {
+  const base = percentCommission({
+    makerPercent: schedule.makerPercent,
+    takerPercent: schedule.takerPercent,
+  });
+  return {
+    name: `${schedule.venue}(maker=${schedule.makerPercent},taker=${schedule.takerPercent})`,
+    charge: (ctx) => base.charge(ctx),
   };
 }
 
@@ -444,10 +576,40 @@ export const PRESETS = {
     intrabar: 'pessimistic',
   }),
 
-  /** Binance spot: 10 bps taker, 10 bps maker, 2 bps of slippage on takers. */
+  /** Binance spot at the entry tier: 0.100% either side, 2 bps of slippage on takers. */
   binanceSpot: (): ExecutionConfig => ({
     slippage: bpsSlippage(2),
-    commission: bpsCommission({ makerBps: 10, takerBps: 10 }),
+    commission: spotFeeCommission(SPOT_FEES.binance),
+    latency: uniformLatency(20_000, 80_000),
+    liquidity: volumeParticipation(1_000),
+    intrabar: 'pessimistic',
+  }),
+
+  /**
+   * The same venue with the fee paid in BNB, which is 0.075%.
+   *
+   * Worth its own preset because it is the cheapest configuration a retail account can reach on
+   * Binance without trading volume, and because the difference it makes — a quarter of every
+   * commission — is large enough to move a marginal strategy across zero.
+   */
+  binanceSpotBnb: (): ExecutionConfig => ({
+    slippage: bpsSlippage(2),
+    commission: spotFeeCommission(SPOT_FEES.binanceBnb),
+    latency: uniformLatency(20_000, 80_000),
+    liquidity: volumeParticipation(1_000),
+    intrabar: 'pessimistic',
+  }),
+
+  /**
+   * Coinbase Exchange at the entry tier: 0.60% to take, 0.40% to make.
+   *
+   * Six times Binance's rate, and the reason this preset exists rather than being approximated by
+   * the Binance one. A tape from Coinbase run under Binance's fees is a report about a venue
+   * nobody traded on.
+   */
+  coinbaseExchange: (): ExecutionConfig => ({
+    slippage: bpsSlippage(2),
+    commission: spotFeeCommission(SPOT_FEES.coinbase),
     latency: uniformLatency(20_000, 80_000),
     liquidity: volumeParticipation(1_000),
     intrabar: 'pessimistic',

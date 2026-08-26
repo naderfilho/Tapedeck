@@ -30,8 +30,14 @@ import {
 } from '@tapedeck/report';
 import type { CliIo } from '../io.ts';
 
-const PRESET_NAMES = ['ideal', 'binanceSpot', 'b3Futures', 'b3Stocks'] as const;
-export type PresetName = (typeof PRESET_NAMES)[number];
+/**
+ * The cost presets, read off {@link PRESETS} rather than listed again.
+ *
+ * The list used to be typed out here and in `paper.ts`, which meant a preset added to the engine
+ * was a preset the CLI rejected until somebody remembered these two lines.
+ */
+export type PresetName = keyof typeof PRESETS;
+export const PRESET_NAMES = Object.keys(PRESETS) as [PresetName, ...PresetName[]];
 
 const OptionsSchema = z.object({
   data: z.string().min(1),

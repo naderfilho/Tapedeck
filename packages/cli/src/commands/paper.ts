@@ -36,9 +36,7 @@ import {
   renderHtmlReport,
 } from '@tapedeck/report';
 import type { CliIo } from '../io.ts';
-import { parseParams, resolveStrategyFactory } from './run.ts';
-
-const PRESET_NAMES = ['ideal', 'binanceSpot', 'b3Futures', 'b3Stocks'] as const;
+import { PRESET_NAMES, parseParams, resolveStrategyFactory } from './run.ts';
 
 const OptionsSchema = z.object({
   symbol: z.string().min(1),

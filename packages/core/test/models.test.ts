@@ -22,8 +22,11 @@ import {
   noLatency,
   noSlippage,
   notionalOf,
+  percentCommission,
   perUnitCommission,
   rangeFractionSlippage,
+  SPOT_FEES,
+  spotFeeCommission,
   uniformLatency,
   unlimitedLiquidity,
   volumeParticipation,
@@ -191,9 +194,61 @@ describe('commission models', () => {
     }
   });
 
+  it('charges a percentage exactly, including the fractions of a basis point venues quote', () => {
+    // Binance's BNB tier is 0.075%, which is 7.5 basis points and therefore not expressible in
+    // whole bps at all. 10 units at 1,000 is 10,000 of notional; 0.075% of that is 7.50.
+    const model = percentCommission({ makerPercent: '0.075', takerPercent: '0.075' });
+    expect(model.charge(context(10, 1_000))).toBe(7.5 * MONEY);
+    expect(model.charge(context(10, 1_000, 'maker'))).toBe(7.5 * MONEY);
+  });
+
+  it('separates the maker and taker sides of a schedule', () => {
+    // Coinbase's entry tier is the widest maker/taker gap of the venues here: 0.40 against 0.60.
+    const model = spotFeeCommission(SPOT_FEES.coinbase);
+    expect(model.charge(context(10, 1_000))).toBe(60 * MONEY);
+    expect(model.charge(context(10, 1_000, 'maker'))).toBe(40 * MONEY);
+    expect(model.name).toContain('coinbase-exchange');
+  });
+
+  it('agrees with the bps model wherever both can express the same rate', () => {
+    // The two spellings of 0.10% must not disagree by a cent, or a report's cost line would
+    // depend on which function someone reached for.
+    const bps = bpsCommission({ makerBps: 10, takerBps: 10 });
+    const percent = percentCommission({ makerPercent: '0.100', takerPercent: '0.100' });
+    for (const [qty, price] of [
+      [1, 1],
+      [3, 7],
+      [10, 1_000],
+      [137, 65_432],
+    ] as const) {
+      expect(percent.charge(context(qty, price))).toBe(bps.charge(context(qty, price)));
+    }
+  });
+
+  it('carries the venue, the tier, the source and the date it was read', () => {
+    for (const schedule of Object.values(SPOT_FEES)) {
+      expect(schedule.venue).toBeTruthy();
+      expect(schedule.tier).toBeTruthy();
+      expect(schedule.source).toMatch(/^https:\/\//);
+      expect(schedule.readOn).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      // A schedule that cannot be parsed as a percentage would fail at the first fill instead.
+      expect(() => spotFeeCommission(schedule)).not.toThrow();
+    }
+  });
+
   it('rejects negative costs', () => {
     expect(() => perUnitCommission('-1')).toThrow(ConfigError);
     expect(() => bpsCommission({ makerBps: -1, takerBps: 1 })).toThrow(ConfigError);
+    expect(() => percentCommission({ makerPercent: '-0.1', takerPercent: '0.1' })).toThrow(
+      ConfigError,
+    );
+  });
+
+  it('refuses a fractional bps rather than dying on the first fill', () => {
+    // 0.075% is 7.5 bps. Before the guard this constructed fine and threw a PrecisionError deep
+    // inside mulDiv the first time an order filled, which is a long way from the mistake.
+    expect(() => bpsCommission({ makerBps: 7.5, takerBps: 7.5 })).toThrow(ConfigError);
+    expect(() => bpsCommission({ makerBps: 7.5, takerBps: 7.5 })).toThrow(/percentCommission/);
   });
 });
 
@@ -254,12 +309,7 @@ describe('liquidity models', () => {
 
 describe('venue presets', () => {
   it('composes four named models each, and names them in the run config', () => {
-    for (const preset of [
-      PRESETS.ideal,
-      PRESETS.binanceSpot,
-      PRESETS.b3Futures,
-      PRESETS.b3Stocks,
-    ]) {
+    for (const preset of Object.values(PRESETS)) {
       const config = preset();
       expect(config.slippage.name).toBeTruthy();
       expect(config.commission.name).toBeTruthy();
@@ -267,6 +317,22 @@ describe('venue presets', () => {
       expect(config.liquidity.name).toBeTruthy();
       expect(config.intrabar).toBe('pessimistic');
     }
+  });
+
+  it('prices the same fill differently on each venue, which is the point of having more than one', () => {
+    // The same 10,000 of taker notional: 10.00 on Binance, 7.50 with the BNB discount, 60.00 on
+    // Coinbase. A single "crypto fees" number would hide a sixfold difference.
+    const fill = {
+      instrument: FUTURE,
+      side: 'buy' as Side,
+      qty: asQty(10),
+      price: asPrice(1_000),
+      notional: notionalOf(FUTURE, asPrice(1_000), asQty(10)),
+      liquidity: 'taker' as Liquidity,
+    };
+    expect(PRESETS.binanceSpot().commission.charge(fill)).toBe(10 * MONEY);
+    expect(PRESETS.binanceSpotBnb().commission.charge(fill)).toBe(7.5 * MONEY);
+    expect(PRESETS.coinbaseExchange().commission.charge(fill)).toBe(60 * MONEY);
   });
 
   it('charges nothing at all in the ideal preset, which is why it is only for testing', () => {

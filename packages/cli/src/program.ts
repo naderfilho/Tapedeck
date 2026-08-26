@@ -13,9 +13,12 @@ import type { CliIo } from './io.ts';
 import { type DataDependencies, convertCommand, fetchCommand } from './commands/data.ts';
 import { type PaperDependencies, paperCommand } from './commands/paper.ts';
 import { reportCommand } from './commands/report.ts';
-import { type RunDependencies, runCommand } from './commands/run.ts';
+import { PRESET_NAMES, type RunDependencies, runCommand } from './commands/run.ts';
 
 export const VERSION = '0.1.0';
+
+/** The preset list, spelled once so `--help` cannot describe a set of options that has moved. */
+const PRESETS_HELP = PRESET_NAMES.join(' | ');
 
 export interface ProgramDependencies extends RunDependencies, DataDependencies, PaperDependencies {
   readonly io: CliIo;
@@ -45,7 +48,7 @@ export function createProgram(deps: ProgramDependencies): Command {
     .requiredOption('-d, --data <file>', 'a .tape file to replay')
     .option('-c, --cash <amount>', 'starting balance, as a decimal string', '100000')
     .option('-s, --seed <number>', 'seed for every random stream in the run', '1')
-    .option('-p, --preset <name>', 'ideal | binanceSpot | b3Futures | b3Stocks', 'ideal')
+    .option('-p, --preset <name>', PRESETS_HELP, 'ideal')
     .option('--params <json>', 'strategy parameters as a JSON object')
     .option('--intrabar <policy>', 'pessimistic | optimistic | ohlc-path')
     .option('--result <file>', 'write the full run result as JSON')
@@ -68,7 +71,7 @@ export function createProgram(deps: ProgramDependencies): Command {
     .option('--venue <name>', 'currently only binance', 'binance')
     .option('-c, --cash <amount>', 'starting balance, as a decimal string', '100000')
     .option('-s, --seed <number>', 'seed for every random stream in the session', '1')
-    .option('-p, --preset <name>', 'ideal | binanceSpot | b3Futures | b3Stocks', 'binanceSpot')
+    .option('-p, --preset <name>', PRESETS_HELP, 'binanceSpot')
     .option('--params <json>', 'strategy parameters as a JSON object')
     .option('--store <file>', 'SQLite file holding the session state, for crash recovery')
     .option('--session <id>', 'session identifier; reusing one resumes it')
