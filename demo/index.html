@@ -185,8 +185,10 @@
         padding: 10px;
       }
       /* The charts carry the report's own viewBox, so they scale on their own aspect ratio. A
-         fixed height plus `preserveAspectRatio="none"` would stretch the axis labels with them. */
-      .panel svg.chart {
+         fixed height plus `preserveAspectRatio="none"` would stretch the axis labels with them.
+         Matched on the element rather than on `.chart`: a panel holds nothing but a chart, and a
+         selector that needs the script to remember a class sizes wrongly the one time it forgets. */
+      .panel svg {
         display: block;
         width: 100%;
         height: auto;

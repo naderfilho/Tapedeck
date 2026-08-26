@@ -42,7 +42,14 @@ createServer((request, response) => {
     response.writeHead(404).end('not found');
     return;
   }
-  response.writeHead(200, { 'content-type': TYPES[extname(path)] ?? 'application/octet-stream' });
+  response.writeHead(200, {
+    'content-type': TYPES[extname(path)] ?? 'application/octet-stream',
+    // `demo.js` keeps its name across rebuilds, and with no header on it a browser applies
+    // heuristic freshness and reuses the bundle it already has. That served a fixed page with a
+    // stale script — new stylesheet, old chart code — which looks like the fix not having worked.
+    // This server exists to look at what was just built, so it never answers with anything else.
+    'cache-control': 'no-store',
+  });
   createReadStream(path).pipe(response);
 }).listen(port, () => {
   console.log(`site/ on http://localhost:${String(port)}/`);
