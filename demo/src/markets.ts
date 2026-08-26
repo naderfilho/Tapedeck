@@ -6,9 +6,8 @@
  * purpose: `scripts/fetch-fixtures.ts` runs under plain Node with no bundler aliases, and it needs
  * the same list to know what to download.
  *
- * A market is identified by `venue-symbol` rather than by the symbol alone. BTC on Binance and BTC
- * on Coinbase are different prices, different fees and different books; collapsing them into
- * "BTC" would be the first lie the page tells.
+ * A market is identified by `venue-symbol` rather than by the symbol alone: BTC on Binance and BTC
+ * on Coinbase are different prices, different fees and different books.
  */
 
 export type VenueId = 'binance' | 'coinbase';
@@ -26,10 +25,9 @@ export interface Venue {
 /**
  * The venues, and which cost presets belong to each.
  *
- * The pairing is the point. A Coinbase tape priced with Binance's fees is a report about a market
- * nobody traded in, so the page will not let the two meet: switching venue moves the cost setting
- * with it. `ideal` and `stress` are venue-neutral by construction — one charges nothing and the
- * other is explicitly a what-if — so they stay available everywhere.
+ * Switching venue moves the cost setting with it, so a Coinbase tape is never priced at Binance's
+ * rates (ADR-0017). `ideal` and `stress` are venue-neutral — one charges nothing and the other is
+ * explicitly a what-if — so they stay available everywhere.
  */
 export const VENUES: Readonly<Record<VenueId, Venue>> = {
   binance: {
@@ -67,9 +65,8 @@ export interface Market {
  * a strategy that looks like an edge on one of them rarely survives the next, which is most of
  * what a picker with twelve entries is for.
  *
- * The three Coinbase products deliberately duplicate assets Binance also lists. Same asset, same
- * year, different venue — the cleanest way to see that a result is a claim about a venue and not
- * about a coin.
+ * The three Coinbase products deliberately duplicate assets Binance also lists, so the same asset
+ * over the same year can be compared across two venues.
  */
 export const MARKETS: readonly Market[] = [
   {

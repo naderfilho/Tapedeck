@@ -27,9 +27,9 @@ Two rules make the output honest rather than merely convenient:
 - **Buckets align to the epoch, not to the first bar.** A 4h bar starting at 00:00 UTC is the bar
   every venue and every chart means. Starting the first bucket wherever a file happens to begin
   produces a series that agrees with nothing, including itself after the file is re-cut.
-- **A bucket that is still forming is not a bar.** The trailing group is dropped unless the source
-  covers all of it — the same rule the data providers apply to a candle whose close lies past the
-  requested end. Publishing one hands a strategy a bar the market had not finished printing.
+- **A trailing bucket the source does not cover is dropped**, the same rule the data providers
+  apply to a candle whose close lies past the requested end. Publishing one would hand a strategy a
+  bar the market had not finished printing.
 
 Interior gaps are a different case and are kept, not filled. A bucket built from fewer source bars
 than the ratio implies is all the venue printed, so the result reports `partialBuckets`, and the
@@ -46,8 +46,8 @@ The demo aggregates in the tab. Nothing extra is fetched to switch timeframe.
   from ours in ways nobody could see: a venue aggregates its own trades, including any it did not
   print as an hourly candle. Deriving from the shipped tape means the daily bar and the hourly bars
   under it are the same data, which is the property the page is demonstrating.
-- **Let a strategy declare a timeframe and have the engine resample.** The kernel would then be
-  deciding what a bar is. It stays a transformation applied to a tape before the engine sees it.
+- **Let a strategy declare a timeframe and have the engine resample.** That moves the definition of
+  a bar into the kernel. It stays a transformation applied to a tape before the engine sees it.
 
 ## Consequences
 

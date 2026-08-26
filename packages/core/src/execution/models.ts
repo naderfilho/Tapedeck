@@ -245,10 +245,10 @@ export interface PercentCommissionOptions {
 /**
  * A share of notional quoted the way fee schedules are: a percentage, as a decimal string.
  *
- * The string is the point. Every venue publishes a percentage — `0.100%`, `0.075%`, `0.60%` — and
- * a transcription that has to convert it first is a transcription with a place to make an error.
- * The string is parsed to a fixed-point integer once, so the arithmetic per fill is exact and two
- * machines cannot disagree about the last cent (ADR-0002).
+ * Venues publish percentages — `0.100%`, `0.075%`, `0.60%` — and a transcription that converts
+ * first is a transcription with somewhere to make an error. The string is parsed to a fixed-point
+ * integer once, so the arithmetic per fill is exact and two machines cannot disagree about the last
+ * cent (ADR-0002).
  */
 export function percentCommission(options: PercentCommissionOptions): CommissionModel {
   const maker = parseFixed(options.makerPercent, PERCENT_EXP);
@@ -294,10 +294,9 @@ export interface SpotFeeSchedule {
 /**
  * Spot fee schedules for the venues this repository ships data for.
  *
- * The gap between them is the reason more than one is here. Coinbase's entry tier costs six times
- * Binance's, so the same strategy on the same asset is profitable on one venue and not on the
- * other — which is a fact about fees rather than about the strategy, and is invisible in any
- * backtester that models costs as a single global number.
+ * The gap between them is the reason more than one is here: Coinbase's entry tier costs six times
+ * Binance's, so the same strategy on the same asset can be profitable on one venue and not on the
+ * other. A single global cost number cannot express that.
  */
 export const SPOT_FEES = {
   /** Binance spot, no BNB, under 1M USD of 30-day volume. */

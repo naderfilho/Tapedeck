@@ -1,26 +1,22 @@
 /**
  * Coinbase Exchange public market data.
  *
- * The second venue, and it is here for a reason that has nothing to do with wanting more symbols:
- * a strategy's result is a claim about a venue, not about an asset. Coinbase's entry fee tier is
- * six times Binance's, its book is a different depth, and its prices are quoted against dollars
- * rather than a stablecoin. Running one venue's tape under another's assumptions produces a report
- * about a market nobody traded in — so the tape and the fee schedule arrive together, and
- * `PRESETS.coinbaseExchange` exists next to `PRESETS.binanceSpot` rather than instead of it.
+ * The second venue. A strategy's result is a claim about a venue rather than about an asset:
+ * Coinbase's entry fee tier is six times Binance's, its book is a different depth, and its prices
+ * are quoted against dollars rather than a stablecoin. So the tape and the fee schedule travel
+ * together, and `PRESETS.coinbaseExchange` exists next to `PRESETS.binanceSpot` (ADR-0017).
  *
  * Read-only and unauthenticated, like {@link BinanceDataProvider}: these endpoints need no key,
  * and a provider with no concept of one cannot place an order (ADR-0011).
  *
- * Historical bars only. There is no {@link DataProvider.stream} here, because paper trading is
- * driven by the Binance socket and claiming a live feed this file does not implement would be a
- * worse kind of missing than the absence.
+ * Historical bars only — {@link DataProvider.stream} is not implemented here, because paper trading
+ * is driven by the Binance socket.
  *
  * Two differences from Binance shape the code:
  *
  * - **Candles come back as JSON numbers, not strings.** By the time `JSON.parse` is done the
  *   decimal is already a double, so the string discipline the Binance provider keeps is not
- *   available here. {@link decimalString} converts without adding a second error, and the loss is
- *   documented rather than hidden.
+ *   available here. {@link decimalString} converts without introducing a second error.
  * - **Pages are windows, not cursors.** The endpoint takes `start`/`end` and caps a response at
  *   300 candles, so a year of hours is thirty requests that must be walked forward by time and
  *   sorted, because it answers newest-first.
@@ -169,9 +165,9 @@ export class CoinbaseDataProvider implements DataProvider {
    * Streams closed candles for a range.
    *
    * Coinbase answers a window newest-first and prints nothing at all for a bucket in which nothing
-   * traded, so a page is sorted before it is appended and gaps stay gaps. A candle whose close
-   * lies past the requested end is dropped rather than truncated: a bar that has not finished
-   * forming is not a bar, and letting one through is a quiet way to hand a strategy the future.
+   * traded, so a page is sorted before it is appended and gaps stay gaps. A candle whose close lies
+   * past the requested end is dropped rather than truncated, which is the no-lookahead rule applied
+   * at the edge of the range.
    */
   async *bars(request: BarRequest): AsyncIterable<BarChunk> {
     const instrument = await this.describe(request.symbol);

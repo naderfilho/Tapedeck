@@ -43,8 +43,8 @@ export const SEED = 20_260_825;
  * - **A venue schedule** — `binanceSpot`, `binanceSpotBnb`, `coinbaseExchange` — is a
  *   transcription of what that exchange publishes, and only appears for a market on that exchange.
  * - **`stress`** keeps the venue's own fees and makes the *fills* worse: fifteen basis points of
- *   slippage instead of two, and a book a tenth as deep. It is a what-if and says so; nobody's
- *   fee schedule is being misquoted.
+ *   slippage instead of two, and a book a tenth as deep. It is labelled as a what-if rather than as
+ *   a venue.
  * - **`ideal`** charges nothing, which is the default most backtesters ship and the reason a
  *   strategy can look profitable for a whole afternoon.
  */
@@ -53,10 +53,10 @@ export type CostPreset = 'binanceSpot' | 'binanceSpotBnb' | 'coinbaseExchange' |
 /**
  * Fills at the wrong end of a bad day, on top of whatever the venue charges.
  *
- * Not a venue and not pretending to be one. The fee half is left exactly as the exchange publishes
- * it — inventing a worse fee schedule would be the same failure as inventing a better one — and
- * only the execution half moves: a taker that gives up 15 bps rather than 2, into a book that
- * absorbs 1% of a bar's volume rather than 10%, so a position sized past the tape fills in pieces.
+ * The fee half is left exactly as the exchange publishes it — inventing a worse schedule would be
+ * the same failure as inventing a better one — and only the execution half moves: a taker that gives
+ * up 15 bps rather than 2, into a book that absorbs 1% of a bar's volume rather than 10%, so a
+ * position sized past the tape fills in pieces.
  */
 const isPresetName = (name: string): name is keyof typeof PRESETS => name in PRESETS;
 

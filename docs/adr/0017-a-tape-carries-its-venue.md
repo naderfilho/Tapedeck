@@ -14,12 +14,12 @@ claim about a market.
 It is a claim about a market, and the difference is not small. Coinbase Exchange's entry fee tier is
 0.40% maker and 0.60% taker; Binance's is 0.100% either side. That is six times the taker cost on
 the same asset in the same year. Run the repository's own 24/72 crossover over a year of hourly
-Bitcoin and the gap is the whole result: slightly profitable on one venue, down 21% on the other,
+Bitcoin and the gap decides the result: slightly profitable on one venue, down 21% on the other,
 with fees coming to more than three times the gross profit.
 
 A backtester that models costs as one global number cannot express that, and a page that lets a
-visitor price one exchange's tape with another exchange's fees invites exactly the mistake this
-project exists to complain about — a number that looks like a measurement and is a mismatch.
+visitor price one exchange's tape with another exchange's fees produces a figure that looks like a
+measurement and is a mismatch.
 
 ## Decision
 
@@ -27,11 +27,10 @@ project exists to complain about — a number that looks like a measurement and 
 
 - `CoinbaseDataProvider` in `@tapedeck/data` fetches public candles from Coinbase Exchange, through
   the same `DataProvider` contract, with no credentials (ADR-0011). Historical bars only: paper
-  trading is driven by the Binance socket, and a `stream` that claimed to exist would be worse than
-  one that does not.
+  trading is driven by the Binance socket, and this provider does not implement `stream`.
 - `SPOT_FEES` in `@tapedeck/core` holds each venue's published schedule as the venue prints it — a
-  percentage string, the tier it belongs to, the source URL and the date it was read. Same
-  discipline as `B3_TARIFFS` (ADR-0015): a citation with a date, not a remembered number.
+  percentage string, the tier it belongs to, the source URL and the date it was read, following the
+  same shape as `B3_TARIFFS` (ADR-0015).
 - `percentCommission` takes those percentages directly, because a fee of 0.075% is seven and a half
   basis points and does not fit in the integer-bps model. `bpsCommission` now rejects a fractional
   rate at configuration time rather than dying inside `mulDiv` on the first fill.
@@ -47,14 +46,14 @@ project exists to complain about — a number that looks like a measurement and 
 - **One "crypto fees" number, configurable.** What most tools do. It makes the sixfold difference
   above invisible, and it puts the burden of knowing a fee schedule on the person least likely to
   have read one.
-- **Offer every preset for every market.** One line of code less, and it would let the page produce
-  a report about a market nobody traded in. The engine is allowed to be told anything; the site is
-  not allowed to suggest it.
+- **Offer every preset for every market.** One line of code less, and it would let the page price a
+  Coinbase tape at Binance's rates. The engine will accept whatever it is told; the site does not
+  have to offer it.
 - **Approximate Coinbase with Binance's tape.** The prices are close enough to look fine. They are
   a different book against a different quote currency, and the Coinbase year is genuinely ten hours
   shorter — the venue printed nothing during two outages. Approximating would have hidden all three.
-- **Fill the Coinbase gaps by interpolation.** Inventing a price nobody paid, to make a chart
-  tidier. The gaps stay, and the page counts them.
+- **Fill the Coinbase gaps by interpolation.** That would put prices nobody paid into a committed
+  file. The gaps stay, and the page counts them.
 - **A single "venue" object owning data and fees together.** Tidy until the first person wants a
   Binance tape under their own negotiated rate. Fees are an input to a run; the pairing is enforced
   where runs are configured, not in the type system.
@@ -62,12 +61,11 @@ project exists to complain about — a number that looks like a measurement and 
 ## Consequences
 
 - The repository ships twelve tapes rather than five, three of them the same assets from the second
-  venue. That is deliberate duplication: same asset, same year, different venue is the cleanest
-  demonstration the site has.
+  venue. The duplication is deliberate: it is what makes the cross-venue comparison possible.
 - Anything quoting a fee has a source URL and a read date attached, and both venues revise them.
-  `SPOT_FEES` is a reading, not a law, and the test asserts only that the citation is present —
-  no test can tell you the figure is still current.
+  The test asserts only that the citation is present; no test can tell you the figure is still
+  current.
 - `scripts/venue-compare.ts` runs both configurations on every site build, so the landing page's
   comparison is a run's output rather than a sentence somebody typed.
-- A money figure on the demo is now printed in the market's own quote currency. USDT is not USD and
-  the page no longer says it is.
+- A money figure on the demo is printed in the market's own quote currency: USDT on Binance, USD on
+  Coinbase.

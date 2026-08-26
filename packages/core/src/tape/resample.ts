@@ -1,24 +1,24 @@
 /**
  * Aggregating a tape onto a slower clock.
  *
- * A year of hourly candles is also a year of four-hourly candles and a year of daily ones, and
- * nobody should have to download three files to see that. The arithmetic is exact — a maximum, a
- * minimum, a first, a last and a sum over integers — so a resampled tape is as much a fixed-point
- * artefact as the one it came from, and no price is ever averaged into existence.
+ * A year of hourly candles is also a year of four-hourly candles and a year of daily ones, so the
+ * slower series are derived rather than downloaded. The arithmetic is exact — a maximum, a minimum,
+ * a first, a last and a sum over integers — so a resampled tape is as fixed-point as the one it came
+ * from, and no price is averaged into existence.
  *
- * Two rules make the result honest rather than merely convenient:
+ * Two rules:
  *
  * - **Buckets are aligned to the epoch, not to the first bar.** A 4h bar starting at 00:00 UTC is
  *   the bar every venue and every chart means by "4h". Starting the first bucket wherever the tape
  *   happens to begin would produce a series that agrees with nothing, including itself after the
  *   file is re-cut.
- * - **A bucket that is still forming is not a bar.** The trailing group is dropped unless the
- *   source covers all of it, for the same reason the data providers drop a candle whose close lies
- *   past the requested end: publishing one hands a strategy a bar the market had not finished.
+ * - **A trailing bucket the source does not cover is dropped**, for the same reason the data
+ *   providers drop a candle whose close lies past the requested end: it would hand a strategy a bar
+ *   the market had not finished printing.
  *
- * Interior gaps are a different matter. A bucket missing a source bar in the middle of the tape is
- * all the venue printed, so it is kept and counted: {@link ResampleResult.partialBuckets} is the
- * number a caller should put in front of a reader rather than swallow.
+ * Interior gaps are different. A bucket missing a source bar in the middle of the tape is all the
+ * venue printed, so it is kept and counted in {@link ResampleResult.partialBuckets} for the caller
+ * to report.
  */
 
 import type { Duration } from '../time/timestamp.ts';
