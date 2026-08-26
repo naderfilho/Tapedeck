@@ -236,13 +236,15 @@ function renderMetrics(metrics: Metrics, elapsed: number, bars: number): void {
   // printed "∞ bars/s", a number that says the replay took no time at all.
   const rate =
     elapsed > 0
-      ? ` (${((bars / elapsed) * 1000).toLocaleString('en-US', { maximumFractionDigits: 0 })} bars/s)`
+      ? ` (${((bars / elapsed) * 1000).toLocaleString('en-US', { maximumFractionDigits: 0 })} ${t('demo.rate', 'bars/s')})`
       : '';
   const took =
-    elapsed > 0 ? `${elapsed.toFixed(elapsed < 10 ? 1 : 0)} ms` : 'under the clock’s resolution';
+    elapsed > 0
+      ? `${elapsed.toFixed(elapsed < 10 ? 1 : 0)} ms`
+      : t('demo.subTick', 'under the clock’s resolution');
   el('timing').textContent =
-    `${bars.toLocaleString('en-US')} bars replayed in ${took}${rate}, ` +
-    `in this tab, on the same kernel the CLI runs.`;
+    `${bars.toLocaleString('en-US')} ${t('demo.replayed', 'bars replayed in')} ${took}${rate}, ` +
+    t('demo.inTab', 'in this tab, on the same kernel the CLI runs.');
 
   // The class carries the styling, so a run with nothing to declare draws nothing at all. The
   // container used to be styled unconditionally and left an empty warning box on a clean run,
@@ -355,7 +357,7 @@ async function load(symbol: MarketSymbol): Promise<Tape> {
 function describeSource(tape: Tape): void {
   el('source').textContent =
     `${tape.instrument.venue}:${tape.instrument.symbol} · ` +
-    `${tape.chunk.count.toLocaleString('en-US')} hourly bars · the same files the test suite reads`;
+    `${tape.chunk.count.toLocaleString('en-US')} ${t('demo.source', 'hourly bars · the same files the test suite reads')}`;
 }
 
 async function select(symbol: MarketSymbol): Promise<void> {

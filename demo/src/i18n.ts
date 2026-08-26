@@ -88,6 +88,11 @@ const PT: Readonly<Record<string, string>> = {
   'demo.lede':
     'Escolha um mercado, mude qualquer parâmetro, e o backtest roda de novo nesta aba, no mesmo kernel determinístico que a linha de comando usa. Nada é enviado para lugar nenhum, a página reprocessa localmente um ano de dados reais da Binance.',
   'demo.loading': 'carregando o tape…',
+  'demo.source': 'candles de 1h · os mesmos arquivos que a suíte de testes lê',
+  'demo.replayed': 'candles reprocessados em',
+  'demo.rate': 'candles/s',
+  'demo.inTab': 'nesta aba, no mesmo kernel que a linha de comando roda.',
+  'demo.subTick': 'menos que a resolução do relógio',
 
   'field.fast': 'média rápida',
   'field.slow': 'média lenta',
