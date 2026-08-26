@@ -1526,3 +1526,41 @@ body.is-loading .market[aria-pressed='true'] {
   text-transform: uppercase;
   color: var(--ink-faint);
 }
+
+/* The hero now carries two blocks: what you write, and what the engine says back. The second is
+   the argument, so it gets the warning colour on the lines nobody else's output has. */
+.hero__code--out {
+  margin-top: 14px;
+}
+
+.hero__code--out pre {
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.t-warn {
+  color: var(--warn);
+}
+
+.t-up {
+  color: var(--up);
+}
+
+.t-down {
+  color: var(--down);
+}
+
+.hero__caption {
+  margin: 14px 0 0;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--ink-faint);
+}
+
+.hero__caption strong {
+  color: var(--ink);
+}
+
+.hero__panel {
+  min-width: 0;
+}

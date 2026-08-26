@@ -79,8 +79,69 @@ function shortDate(micros: number): string {
   return toIso(micros as never).slice(0, 10);
 }
 
+/**
+ * What each number means, for a reader who did not configure the run.
+ *
+ * Deliberately not textbook definitions. They say what *this* run measured and, where the number
+ * is routinely misread, they say that too. The win rate entry is the clearest case: on its own it
+ * is close to meaningless, and a report that prints it without saying so is inviting the mistake.
+ */
+const HELP: Readonly<Record<string, string>> = {
+  'Net profit':
+    'Realised and unrealised PnL after every commission and slippage charge this run applied.',
+  'Total return': 'Net profit over the starting equity. Not annualised.',
+  CAGR: 'Total return expressed as a yearly rate. Over a short run it extrapolates wildly and should be ignored.',
+  'Max drawdown':
+    'The deepest peak-to-trough fall in equity, as a share of the peak. What holding this would have felt like at its worst.',
+  Sharpe:
+    'Mean return over its standard deviation, annualised from the bar interval. It punishes upside volatility as harshly as downside.',
+  Sortino:
+    'Sharpe counting only downside deviation, so a strategy is not penalised for rising fast.',
+  Calmar: 'Annual return over the maximum drawdown. How much pain each unit of return cost.',
+  'Profit factor':
+    'Gross profit divided by gross loss. Under 1.0 the strategy loses money; just above it means it barely paid for itself.',
+  Trades:
+    'Round trips closed. Any position still open at the end is flattened first, so nothing is left unpriced.',
+  'Win rate':
+    'Share of closed trades that made money. On its own it says almost nothing: trend following wins rarely and wins big, so read the profit factor instead.',
+  Expectancy: 'Average net PnL per closed trade, costs included.',
+  Commission: "Total fees charged, at the venue's real published maker and taker rates.",
+  Slippage: 'The model that decides how far from the quoted price an order actually filled.',
+  Latency:
+    'The delay between submitting an order and it reaching the book. Shorter than one bar cannot be honoured on bar data, which is why the run says how often that happened.',
+  Liquidity: 'The cap on how much of a bar this run was allowed to take.',
+  'Intrabar policy':
+    'How a bar that could fill more than one resting order is resolved. Pessimistic means the worse outcome wins, every time.',
+  'Bar view mode':
+    'Guarded revokes the bar object after the hook returns, so a strategy that keeps a reference is caught rather than silently reading stale prices.',
+  Exposure: 'Share of the run spent holding a position rather than flat.',
+  'Ambiguous bars':
+    'Bars where a stop and a target both sat inside the range, so the order they filled in could not be known from bar data alone.',
+};
+
+/**
+ * A "?" that reveals an explanation, in CSS alone.
+ *
+ * No script, because ADR-0013 does not allow one and this does not need one: `:hover` and
+ * `:focus-within` do the whole job, so the tooltips survive in the file you download and in the one
+ * you email. The button is focusable so a keyboard reaches them too, and `@media print` drops them.
+ */
+function help(label: string): string {
+  const text = HELP[label];
+  if (text === undefined) return '';
+  return (
+    `<span class="help" tabindex="0" role="button" aria-label="What ${escapeHtml(label)} means">?` +
+    `<span class="help-bubble" role="tooltip">${escapeHtml(text)}</span></span>`
+  );
+}
+
 function card(label: string, value: string, tone: 'good' | 'bad' | 'plain' = 'plain'): string {
-  return `<div class="card ${tone}"><div class="card-label">${escapeHtml(label)}</div><div class="card-value">${escapeHtml(value)}</div></div>`;
+  return `<div class="card ${tone}"><div class="card-label">${escapeHtml(label)}${help(label)}</div><div class="card-value">${escapeHtml(value)}</div></div>`;
+}
+
+/** A `<dt>` in the run panel, with the same explanation affordance the cards carry. */
+function term(label: string): string {
+  return `<dt>${escapeHtml(label)}${help(label)}</dt>`;
 }
 
 function toneOf(value: number): 'good' | 'bad' | 'plain' {
@@ -318,6 +379,16 @@ td.strong { font-weight: 600; color: var(--ink); }
 tr.win td.strong { color: var(--up); }
 tr.loss td.strong { color: var(--down); }
 .note, .empty { color: var(--ink-faint); font-size: 13px; margin: 10px 2px 0; }
+.card-label { display: flex; align-items: center; gap: 6px; }
+.meta dt { display: flex; align-items: center; gap: 6px; }
+/* Explanations with no script in them. ADR-0013 forbids one and this does not need one. */
+.help { position: relative; flex: none; display: inline-flex; align-items: center; justify-content: center; width: 14px; height: 14px; border: 1px solid var(--line-strong); border-radius: 50%; color: var(--ink-faint); font: 600 9px/1 var(--mono); cursor: help; }
+.help:hover, .help:focus, .help:focus-visible { border-color: var(--accent); color: var(--accent); outline: none; }
+.help-bubble { position: absolute; bottom: calc(100% + 8px); left: 50%; z-index: 30; width: max-content; max-width: min(260px, 70vw); transform: translateX(-50%) translateY(3px); padding: 9px 11px; border: 1px solid var(--line-strong); border-radius: 8px; background: var(--panel-2); color: var(--ink-dim); font: 400 12.5px/1.45 inherit; text-align: left; text-transform: none; letter-spacing: 0; opacity: 0; visibility: hidden; pointer-events: none; box-shadow: 0 8px 24px rgb(0 0 0 / 0.28); transition: opacity .16s ease, transform .16s ease, visibility .16s; }
+.help:hover .help-bubble, .help:focus .help-bubble, .help:focus-visible .help-bubble { opacity: 1; visibility: visible; transform: translateX(-50%) translateY(0); }
+.cards > .card:first-child .help-bubble { left: 0; transform: translateY(3px); }
+.cards > .card:first-child .help:hover .help-bubble, .cards > .card:first-child .help:focus .help-bubble { transform: translateY(0); }
+@media (max-width: 600px) { .help-bubble { position: fixed; inset: auto 16px 16px 16px; width: auto; max-width: none; transform: translateY(8px); } .help:hover .help-bubble, .help:focus .help-bubble, .help:focus-visible .help-bubble { transform: none; } }
 footer { margin-top: 48px; padding-top: 20px; border-top: 1px solid var(--line); color: var(--ink-faint); font-size: 12px; }
 @media (max-width: 720px) { .tick { font-size: 20px; } }
 /* On paper the palette goes back to ink on white whatever the screen was set to, and the table
@@ -334,6 +405,7 @@ footer { margin-top: 48px; padding-top: 20px; border-top: 1px solid var(--line);
   }
   body { padding: 0; }
   main { padding: 0; max-width: none; }
+  .help { display: none; }
   .table-scroll { overflow: visible; }
   table { min-width: 0; }
   .site-topbar { display: none; }
@@ -410,17 +482,17 @@ export function renderHtmlReport(
   <h2>Run</h2>
   <section class="panel">
     <dl class="meta">
-      <dt>Slippage</dt><dd>${escapeHtml(result.config.slippageModel)}</dd>
-      <dt>Commission</dt><dd>${escapeHtml(result.config.commissionModel)}</dd>
-      <dt>Latency</dt><dd>${escapeHtml(result.config.latencyModel)}</dd>
-      <dt>Liquidity</dt><dd>${escapeHtml(result.config.liquidityModel)}</dd>
-      <dt>Intrabar policy</dt><dd>${escapeHtml(result.config.intrabarPolicy)}</dd>
-      <dt>Bar view mode</dt><dd>${escapeHtml(result.config.barViewMode)}</dd>
-      <dt>Exposure</dt><dd>${percent(metrics.exposure, 1)}</dd>
-      <dt>Average bars held</dt><dd>${decimal(metrics.avgBarsHeld, 1)}</dd>
-      <dt>Longest drawdown</dt><dd>${String(metrics.longestDrawdownBars)} bars</dd>
-      <dt>Ambiguous bars</dt><dd>${String(metrics.ambiguousBars)}</dd>
-      <dt>Parameters</dt><dd>${escapeHtml(JSON.stringify(result.config.params))}</dd>
+      ${term('Slippage')}<dd>${escapeHtml(result.config.slippageModel)}</dd>
+      ${term('Commission')}<dd>${escapeHtml(result.config.commissionModel)}</dd>
+      ${term('Latency')}<dd>${escapeHtml(result.config.latencyModel)}</dd>
+      ${term('Liquidity')}<dd>${escapeHtml(result.config.liquidityModel)}</dd>
+      ${term('Intrabar policy')}<dd>${escapeHtml(result.config.intrabarPolicy)}</dd>
+      ${term('Bar view mode')}<dd>${escapeHtml(result.config.barViewMode)}</dd>
+      ${term('Exposure')}<dd>${percent(metrics.exposure, 1)}</dd>
+      ${term('Average bars held')}<dd>${decimal(metrics.avgBarsHeld, 1)}</dd>
+      ${term('Longest drawdown')}<dd>${String(metrics.longestDrawdownBars)} bars</dd>
+      ${term('Ambiguous bars')}<dd>${String(metrics.ambiguousBars)}</dd>
+      ${term('Parameters')}<dd>${escapeHtml(JSON.stringify(result.config.params))}</dd>
     </dl>
   </section>
 

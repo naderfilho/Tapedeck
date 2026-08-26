@@ -59,13 +59,14 @@
             </p>
           </div>
 
-          <div class="code hero__code">
-            <div class="code__bar">
-              <span class="code__dot"></span><span class="code__dot"></span
-              ><span class="code__dot"></span>
-              <span style="margin-left: 6px">strategy.ts</span>
-            </div>
-            <pre><code><span class="t-key">onBar</span>(bar, ctx) {
+          <div class="hero__panel">
+            <div class="code hero__code">
+              <div class="code__bar">
+                <span class="code__dot"></span><span class="code__dot"></span
+                ><span class="code__dot"></span>
+                <span style="margin-left: 6px">strategy.ts</span>
+              </div>
+              <pre><code><span class="t-key">onBar</span>(bar, ctx) {
   <span class="t-key">const</span> fast = fastSma.value;
   <span class="t-key">const</span> slow = slowSma.value;
   <span class="t-key">if</span> (fast === <span class="t-key">null</span> || slow === <span class="t-key">null</span>) <span class="t-key">return</span>;
@@ -78,6 +79,32 @@
   <span class="t-com">// Positions are the truth; flags drift.</span>
   <span class="t-fn">rebalance</span>(ctx, side &gt; <span class="t-num">0</span> ? qty : -qty);
 }</code></pre>
+            </div>
+
+            <div class="code hero__code hero__code--out">
+              <div class="code__bar">
+                <span class="code__dot"></span><span class="code__dot"></span
+                ><span class="code__dot"></span>
+                <span style="margin-left: 6px">what it prints back</span>
+              </div>
+              <pre><code>$ tapedeck run strategy.ts --data btcusdt-1h.tape
+
+<span class="t-warn">Modelling caveats</span>
+<span class="t-warn">  ! 139 order(s) had latency shorter than one bar, which</span>
+<span class="t-warn">    cannot be honoured on bar data and was ignored rather</span>
+<span class="t-warn">    than invented. Feed tick data for exact latency.</span>
+
+Result
+  net profit            <span class="t-up">{{netProfit}} USDT</span>
+  total return          <span class="t-up">2.31%</span>
+  costs ate             <span class="t-down">{{costSharePrecise}}%</span></code></pre>
+            </div>
+
+            <p class="hero__caption" data-i18n="home.caption">
+              The caveats print <strong>above</strong> the result. In the terminal, in the report
+              and on this site, every time. An engine that knows what it could not model and hides
+              it is the one that flatters you.
+            </p>
           </div>
         </section>
 

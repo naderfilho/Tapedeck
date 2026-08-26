@@ -43,6 +43,8 @@ const PT: Readonly<Record<string, string>> = {
   'home.cta.report': 'Veja um report completo',
   'home.note':
     '8.760 candles de 1h são reprocessados em cerca de 50 ms, na sua aba, no mesmo kernel que a linha de comando roda. Nada sai do seu navegador.',
+  'home.caption':
+    'As ressalvas são impressas <strong>acima</strong> do resultado. No terminal, no report e neste site, sempre. O motor que sabe o que não conseguiu modelar e esconde é o que bajula.',
   'stat.tests': 'testes',
   'stat.coverage': 'cobertura',
   'stat.adrs': 'decisões registradas',
