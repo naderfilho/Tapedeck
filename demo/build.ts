@@ -99,24 +99,19 @@ const result = await build({
   },
 });
 
-// The two script-light pages: the entry gate and the landing page's language toggle. Neither
-// touches the engine, so they skip the workspace aliases the demo bundle needs.
-for (const [entry, out] of [
-  ['src/login.ts', 'login/login.js'],
-  ['src/home.ts', 'assets/home.js'],
-] as const) {
-  const bundled = await build({
-    entryPoints: [resolve(here, entry)],
-    outfile: resolve(site, out),
-    bundle: true,
-    format: 'esm',
-    target: 'es2023',
-    platform: 'browser',
-    minify: true,
-    legalComments: 'none',
-  });
-  if (bundled.errors.length > 0) throw new Error(`the ${entry} bundle failed`);
-}
+// The landing page's only script is its language toggle. It never touches the engine, so it skips
+// the workspace aliases the demo bundle needs.
+const home = await build({
+  entryPoints: [resolve(here, 'src/home.ts')],
+  outfile: resolve(site, 'assets/home.js'),
+  bundle: true,
+  format: 'esm',
+  target: 'es2023',
+  platform: 'browser',
+  minify: true,
+  legalComments: 'none',
+});
+if (home.errors.length > 0) throw new Error('the home bundle failed');
 
 writeFileSync(
   resolve(site, 'demo/index.html'),
@@ -126,47 +121,8 @@ writeFileSync(
   }),
   'utf8',
 );
-writeFileSync(
-  resolve(site, 'login/index.html'),
-  fill(readFileSync(resolve(here, 'login.html'), 'utf8'), {
-    brandMark: BRAND_MARK,
-    brandFull: BRAND_FULL,
-  }),
-  'utf8',
-);
 writeFileSync(resolve(site, 'assets/favicon.svg'), FAVICON, 'utf8');
 cpSync(resolve(here, 'site.css'), resolve(site, 'assets/site.css'));
-
-/**
- * The deployment's public Supabase settings, or empty strings when it has none.
- *
- * Both of these are meant to be readable by anyone who opens the page — the anon key is a public
- * identifier, and what it is allowed to do is decided by row-level security in the database, not by
- * hiding it. The `service_role` key is the one that must never appear here, so this reads two named
- * variables rather than anything that could sweep it up by accident.
- *
- * Absent is a supported state: the site still works, and the account half of the entry page simply
- * does not render. A clone with no environment is a working site, not a broken one.
- */
-interface PublicConfig {
-  readonly supabaseUrl: string;
-  readonly supabaseAnonKey: string;
-}
-const committed = JSON.parse(
-  readFileSync(resolve(here, 'site.config.json'), 'utf8'),
-) as PublicConfig;
-const publicConfig: PublicConfig = {
-  supabaseUrl: process.env['SUPABASE_URL'] ?? committed.supabaseUrl,
-  supabaseAnonKey: process.env['SUPABASE_ANON_KEY'] ?? committed.supabaseAnonKey,
-};
-writeFileSync(
-  resolve(site, 'assets/config.js'),
-  `window.__TAPEDECK_CONFIG__=${JSON.stringify(publicConfig)};\n`,
-  'utf8',
-);
-console.log(
-  `config: accounts ${publicConfig.supabaseUrl === '' ? 'disabled (no SUPABASE_URL set)' : 'enabled'}`,
-);
 
 /**
  * The instruments the demo offers, and the only place their list is written down twice — the other

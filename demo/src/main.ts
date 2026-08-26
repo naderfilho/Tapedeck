@@ -40,13 +40,10 @@ import {
   execute,
   loadTape,
   quantityFor,
-  tickerFor,
   toQuery,
 } from './run.ts';
 import { type CursorState, attachCursor, readoutFor } from './cursor.ts';
 import { setup, t } from './i18n.ts';
-import { type UserSession, label, session, signOut } from './auth.ts';
-import { type SavedRun, list, remove, save, toConfig } from './saved.ts';
 
 const MONEY = 100_000_000;
 
@@ -422,7 +419,6 @@ async function boot(): Promise<void> {
   }
   el('run').addEventListener('click', run);
   setup(run);
-  wireAccount();
   await wireSharing();
 
   // A shared link wins over the example defaults, and skips the size initialisation below.
@@ -475,105 +471,4 @@ async function wireSharing(): Promise<void> {
     });
   });
   await Promise.resolve();
-}
-
-// ------------------------------------------------------------------------ saved runs
-
-let signedIn: UserSession | null = null;
-
-function describeRow(row: SavedRun): string {
-  return (
-    `${tickerFor(row.symbol)} · ${String(row.fast_period)}/${String(row.slow_period)} · ` +
-    `${Number(row.notional).toLocaleString('en-US')} USDT · ` +
-    `${row.preset === 'ideal' ? 'no costs' : 'Binance spot'}${row.allow_short ? '' : ' · long only'}`
-  );
-}
-
-function renderSaved(rows: readonly SavedRun[]): void {
-  const list = el('saved-list');
-  if (rows.length === 0) {
-    list.innerHTML = `<li class="saved__empty">${t('saved.empty', 'Nothing saved yet. Name the current configuration above.')}</li>`;
-    return;
-  }
-  list.innerHTML = rows
-    .map(
-      (row) =>
-        `<li class="saved__row"><span class="saved__name">${escape(row.name)}</span>` +
-        `<span class="saved__meta">${escape(describeRow(row))}</span>` +
-        `<button class="btn btn--ghost btn--small" type="button" data-load="${row.id}">${t('saved.load', 'Load')}</button>` +
-        `<button class="btn btn--ghost btn--small" type="button" data-delete="${row.id}">${t('saved.delete', 'Delete')}</button></li>`,
-    )
-    .join('');
-
-  for (const button of Array.from(list.querySelectorAll('[data-load]'))) {
-    button.addEventListener('click', () => {
-      const row = rows.find((r) => r.id === button.getAttribute('data-load'));
-      if (row === undefined) return;
-      const config = toConfig(row);
-      applyConfig(config);
-      void select(config.symbol);
-    });
-  }
-  for (const button of Array.from(list.querySelectorAll('[data-delete]'))) {
-    button.addEventListener('click', () => {
-      const id = button.getAttribute('data-delete');
-      if (signedIn === null || id === null) return;
-      void remove(signedIn, id).then(refreshSaved).catch(showSavedError);
-    });
-  }
-}
-
-/** Escapes a stored name before it goes back into the page. A row is untrusted input. */
-function escape(value: string): string {
-  return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
-
-function showSavedError(error: unknown): void {
-  el('saved-error').textContent = error instanceof Error ? error.message : String(error);
-}
-
-async function refreshSaved(): Promise<void> {
-  if (signedIn === null) return;
-  el('saved-error').textContent = '';
-  try {
-    renderSaved(await list(signedIn));
-  } catch (error: unknown) {
-    showSavedError(error);
-  }
-}
-
-function wireAccount(): void {
-  const current = session();
-  signedIn = current !== null && current.kind === 'user' ? current : null;
-
-  if (current !== null) {
-    el('whoami').hidden = false;
-    // Translated here rather than in `auth.ts`, which has no business knowing about the interface.
-    el('whoami-name').textContent =
-      current.kind === 'guest' ? t('account.guest', 'Guest') : label(current);
-    el('signin-link').hidden = true;
-  }
-  el('signout').addEventListener('click', () => {
-    signOut();
-    window.location.assign('../login/');
-  });
-
-  // Guests get everything except the list. Saving is the only thing an account is for, so it is
-  // the only thing that disappears without one.
-  if (signedIn === null) return;
-  el('saved').hidden = false;
-  void refreshSaved();
-
-  (el('save-form') as HTMLFormElement).addEventListener('submit', (event) => {
-    event.preventDefault();
-    const name = (el('save-name') as HTMLInputElement).value.trim();
-    if (name === '' || signedIn === null) return;
-    el('saved-error').textContent = '';
-    void save(signedIn, name, readConfig())
-      .then(() => {
-        (el('save-name') as HTMLInputElement).value = '';
-        return refreshSaved();
-      })
-      .catch(showSavedError);
-  });
 }

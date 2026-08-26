@@ -27,7 +27,6 @@ const PT: Readonly<Record<string, string>> = {
   'nav.bench': 'Benchmark',
   'nav.api': 'API',
   'nav.github': 'GitHub',
-  'nav.signin': 'Entrar',
   'nav.home': 'Início',
   'foot.apiGuide': 'Guia da API',
   'foot.adrs': 'Decisões de arquitetura',
@@ -152,18 +151,10 @@ const PT: Readonly<Record<string, string>> = {
   'helpm.costsAte':
     'Taxas como fração do lucro bruto. É o número que um backtester que ignora custos nunca precisa te mostrar.',
 
-  'account.guest': 'Convidado',
-  'account.signout': 'Sair',
   'action.share': 'Copiar link desta execução',
   'action.shareCopied': 'Link copiado.',
   'action.shareNote':
     'A barra de endereços já carrega esta configuração. Quem abrir recalcula os mesmos números, sem conta e sem nada guardado.',
-  'saved.title': 'Suas execuções salvas',
-  'saved.placeholder': 'Dê um nome a esta execução',
-  'saved.save': 'Salvar',
-  'saved.empty': 'Nada salvo ainda. Nomeie a configuração atual acima.',
-  'saved.load': 'Carregar',
-  'saved.delete': 'Apagar',
   'demo.more.cta': 'Abrir o report completo desta execução',
   'demo.more.note':
     'Lista de trades, abertura dos custos e parâmetros da execução, gerados pela mesma função que a linha de comando chama. O link carrega a configuração, então ele abre nesta execução e pode ser compartilhado.',
@@ -183,21 +174,6 @@ const PT: Readonly<Record<string, string>> = {
     'não tem nenhuma dependência de runtime e não importa nada de `node:`. Essa regra foi feita por reprodutibilidade, não por portabilidade; rodar no navegador saiu dela de graça.',
 
   // ---------------------------------------------------------------------- entry page
-  'login.title': 'Rode um backtest',
-  'login.lede':
-    'Tudo neste site funciona sem conta. Entrar acrescenta uma coisa só: os backtests que você configurar ficam salvos, e você ganha um link para compartilhar.',
-  'login.guest': 'Entrar como convidado',
-  'login.guestNote': 'Sem e-mail, nada guardado em servidor, nada para desfazer depois.',
-  'login.or': 'ou guarde suas execuções',
-  'login.email': 'e-mail',
-  'login.send': 'Me envie um link de acesso',
-  'login.sendNote':
-    'Um link de uso único, sem senha. Nunca vemos uma, e não existe nenhuma para vazar.',
-  'login.back': 'Voltar ao site',
-  'login.source': 'Código no GitHub',
-  'login.sending': 'Enviando…',
-  'login.check': 'Confira',
-  'login.checkTail': 'e procure o link de acesso.',
 
   // --------------------------------------------------------------------- report page
   'report.example':

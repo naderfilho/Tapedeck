@@ -25,15 +25,6 @@
           <a class="secondary" href="https://github.com/naderfilho/Tapedeck" data-i18n="nav.github"
             >GitHub</a
           >
-          <a class="topnav__cta" href="../login/" data-i18n="nav.signin" id="signin-link"
-            >Sign in</a
-          >
-          <span class="whoami" id="whoami" hidden
-            ><span id="whoami-name"></span
-            ><button class="whoami__out" type="button" id="signout" data-i18n="account.signout">
-              Sign out
-            </button></span
-          >
           <div class="langs" role="group" aria-label="Language">
             <button class="lang" type="button" data-lang="en" aria-pressed="true">EN</button>
             <button class="lang" type="button" data-lang="pt" aria-pressed="false">PT</button>
@@ -164,27 +155,6 @@
             numbers, with no account and nothing stored.</span
           >
         </div>
-
-        <section class="panel saved" id="saved" hidden>
-          <div class="saved__head">
-            <h3 data-i18n="saved.title">Your saved runs</h3>
-            <form class="saved__form" id="save-form">
-              <input
-                id="save-name"
-                type="text"
-                maxlength="80"
-                required
-                placeholder="Name this run"
-                data-i18n-attr="placeholder:saved.placeholder"
-              />
-              <button class="btn btn--ghost btn--small" type="submit" data-i18n="saved.save">
-                Save
-              </button>
-            </form>
-          </div>
-          <p class="saved__error" id="saved-error"></p>
-          <ul class="saved__list" id="saved-list"></ul>
-        </section>
 
         <p class="results__more">
           <a class="btn btn--ghost" href="../report/" data-report-link data-i18n="demo.more.cta"
