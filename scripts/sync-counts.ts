@@ -141,7 +141,12 @@ function syncBench(dryRun: boolean): 'missing' | 'ok' | 'stale' {
   const benchPath = at('bench.txt');
   if (!existsSync(benchPath)) return 'missing';
 
-  const wanted = parseRows(readFileSync(benchPath, 'utf8'));
+  // The benchmark prints its rows twice: once as it runs, and again under a heading offering the
+  // markdown for this table. Parsing the whole file returns both copies, which is how the table
+  // came to be pasted into the README twice.
+  const printed = readFileSync(benchPath, 'utf8');
+  const marker = printed.lastIndexOf('Markdown for the README:');
+  const wanted = parseRows(marker === -1 ? printed : printed.slice(marker));
   if (wanted.length === 0) throw new Error('bench.txt has no table in it; run the benchmark again');
 
   const readmePath = at('README.md');

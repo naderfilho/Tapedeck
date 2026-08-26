@@ -75,8 +75,9 @@ nothing from `node:`, so the whole engine runs in a browser tab. The
 it is the engine, the same kernel over the same committed tapes calling the same report function as
 the CLI. Evaluating this project costs a click rather than an install.
 
-The same constraint keeps the report a single file with no network request, and keeps the
-dependency count across the workspace at three. One language covers the strategy, the metrics and
+The same constraint keeps the report a single file with no network request, and holds the whole
+workspace to two runtime dependencies — zod where data is parsed and commander in the CLI, neither
+of them anywhere near the engine. One language covers the strategy, the metrics and
 the page, and Node 24 strips the types, so every file here runs without a build step.
 
 What it costs, plainly:
@@ -497,9 +498,9 @@ candle that has not finished forming is dropped rather than truncated, because l
 is a quiet way to hand a strategy the future.
 
 The repository ships a year of hourly candles for twelve markets — nine Binance pairs and three
-Coinbase products — fetched between two fixed dates so the files never drift. 8,760 bars and 480 KiB
-each, except the Coinbase tapes, which hold 8,750: the venue printed nothing during two five-hour
-outages, and the gap is kept rather than filled.
+Coinbase products — fetched between two fixed dates so the files never drift. 8,760 bars and
+480 KiB each, except the Coinbase tapes, which hold 8,750: the venue printed nothing during two
+five-hour outages, and the gap is kept rather than filled.
 
 Three of the Coinbase products duplicate assets Binance also lists, on purpose. **A result is a
 claim about a venue, not about an asset**, and the same 24/72 crossover over the same year of
@@ -532,15 +533,10 @@ own run, dated and with the machine that produced it, at
 | + resting limit order | 8.87 M bars/s  | 113 ns  | order matcher runs on every bar                             |
 | + crossover trading   | 7.21 M bars/s  | 139 ns  | indicators, orders, fills, PnL                              |
 | development mode      | 6.53 M bars/s  | 153 ns  | guarded bar views + data validation, as the test suite runs |
-| replay only           | 26.10 M bars/s | 38 ns   | clock, scheduler, mark-to-market, equity curve              |
-| + two moving averages | 9.01 M bars/s  | 111 ns  | incremental indicators on every bar                         |
-| + resting limit order | 8.87 M bars/s  | 113 ns  | order matcher runs on every bar                             |
-| + crossover trading   | 7.21 M bars/s  | 139 ns  | indicators, orders, fills, PnL                              |
-| development mode      | 6.53 M bars/s  | 153 ns  | guarded bar views + data validation, as the test suite runs |
 
 Measured on Node 24.12 / Windows 11 / x64. The run CI publishes lands between 40% and 55% of these
-figures, because a shared two-core cloud runner is not a desktop; that is why the benchmark job reports
-rather than gates, and why both numbers carry the machine that produced them.
+figures, because a shared two-core cloud runner is not a desktop; that is why the benchmark job
+reports rather than gates, and why both numbers carry the machine that produced them.
 
 Four rows rather than one headline figure, because replaying bars, updating indicators, matching
 resting orders and trading are four different workloads. The target was one million bars per
@@ -633,14 +629,13 @@ author already believed, and six of them changed the code rather than confirming
   sitting on the final point of a series was silently deleted from the chart. This one was found by
   CI rather than by the author: fast-check draws different cases every run, and the shape it needed
   had never come up locally.
-
 - the latency boundary, which found that an order becoming matchable at exactly a bar's close
   matched **that** bar, at its open — a price up to a whole bar older than the order. A bar's
   interval is half-open, so the gate wanted `>=` and had `>`, and any latency that is a whole
   multiple of the bar size lands on that boundary every time.
   [ADR-0005](docs/adr/0005-intrabar-execution-and-no-lookahead.md) had specified the right rule from
-  the start — "market data whose interval ends **strictly after** `activeFrom`" — and the code had
-  drifted a character away from it.
+  the start — "market data whose interval ends **strictly after** `activeFrom`" — and the code
+  had drifted a character away from it.
 
 The last one is the one worth reading about, because of how it was found. The attack that should
 have caught it could not: the fixture had the bar after the jump open at the jump's own close, so a
@@ -654,7 +649,7 @@ set of attacks: strategies that try to keep a bar, read a price only the current
 an immediate-or-cancel order, trigger a stop on a level only the current bar reached, reprice an
 order into the bar it is on, reach the tape through the context or an order snapshot, or chain an
 order from inside `onFill`. Two property tests generalise it: fills over a prefix of a tape are
-identical to fills over the whole of it — nothing consulted a bar it had not reached — and no fill
+identical to fills over the whole of it, so nothing consulted a bar it had not reached, and no fill
 lands on a bar that had already closed when its order became matchable. A no-lookahead guarantee
 that nobody tried to break is not worth stating.
 
@@ -679,7 +674,6 @@ that nobody tried to break is not worth stating.
       published tariffs, and a fetcher for the exchange's daily price reports. B3 data is fetched,
       never committed: its consumption policy permits internal use and requires approval to
       redistribute (ADR-0015).
-
 - [x] **Phase 7: a second venue.** Coinbase Exchange as a data provider, fee schedules transcribed
       from each exchange's own table with the date they were read, cost presets bound to the venue
       whose tape is loaded, and timeframe aggregation exact enough to derive daily candles from an
