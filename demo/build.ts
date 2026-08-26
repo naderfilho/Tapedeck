@@ -193,9 +193,31 @@ if (!existsSync(report)) {
 }
 
 mkdirSync(resolve(site, 'report'), { recursive: true });
+const reportBundle = await build({
+  entryPoints: [resolve(here, 'src/report.ts')],
+  outfile: resolve(site, 'report/report.js'),
+  bundle: true,
+  format: 'esm',
+  target: 'es2023',
+  platform: 'browser',
+  minify: true,
+  legalComments: 'none',
+  alias: {
+    '@tapedeck/core': src('packages/core/src/index.ts'),
+    '@tapedeck/indicators': src('packages/indicators/src/index.ts'),
+    '@tapedeck/report': src('packages/report/src/index.ts'),
+    '@tapedeck/data/codec': src('packages/data/src/tape-format.ts'),
+  },
+  define: {
+    'process.env.TAPEDECK_STRICT': '"0"',
+    'process.env.NODE_ENV': '"production"',
+  },
+});
+if (reportBundle.errors.length > 0) throw new Error('the report bundle failed');
+
 writeFileSync(resolve(site, 'report/index.html'), withSiteChrome(readFileSync(report, 'utf8')));
 cpSync(resolve(root, 'out/metrics.json'), resolve(site, 'report/metrics.json'));
-console.log('report: copied with the site header');
+console.log('report: copied with the site header and a recomputing script');
 
 /**
  * The benchmark, with the provenance that makes it worth publishing at all.
@@ -278,6 +300,22 @@ function withSiteChrome(html: string): string {
     'font-size:14px;font-weight:550;white-space:nowrap}' +
     '.site-nav a:hover{color:var(--ink);background:var(--panel-2)}' +
     '.site-nav a[aria-current=page]{color:var(--ink);background:var(--panel-2)}' +
+    // The banner says which run is on the page. It is the one part of the report that has to be
+    // read before the numbers, which is the same reason the caveats sit where they do.
+    '.report-banner{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;' +
+    'margin:0 0 26px;padding:12px 16px;border:1px solid var(--line);border-radius:12px;' +
+    'background:var(--panel);color:var(--ink-dim);font-size:13.5px;line-height:1.5}' +
+    '.report-banner:empty{display:none}' +
+    '.report-banner span{flex:1;min-width:220px}' +
+    '.report-banner strong{color:var(--ink)}' +
+    '.report-banner.is-live{border-color:color-mix(in srgb, var(--accent) 45%, var(--line))}' +
+    '.report-banner.is-error{border-color:var(--down);color:var(--down)}' +
+    '.btn{display:inline-flex;align-items:center;gap:8px;padding:11px 18px;border-radius:8px;' +
+    'border:1px solid transparent;font:600 15px/1 inherit;text-decoration:none;cursor:pointer}' +
+    '.btn--ghost{border-color:var(--line-strong);color:var(--ink);background:var(--panel)}' +
+    '.btn--ghost:hover{border-color:var(--accent);color:var(--accent)}' +
+    '.btn--small{padding:7px 12px;font-size:13px}' +
+    '@media print{.report-banner{display:none}}' +
     '@media (max-width:640px){.site-nav a.optional{display:none}}' +
     '</style>';
 
@@ -291,7 +329,13 @@ function withSiteChrome(html: string): string {
     '<a href="https://github.com/naderfilho/Tapedeck">GitHub</a>' +
     '</nav></div></header>';
 
+  const close = '</main>\n</body>';
+  if (!html.includes(close)) {
+    throw new Error(`could not find ${JSON.stringify(close)} to attach the report script to`);
+  }
+
   return html
     .replace(head, `</style>\n${style}\n</head>`)
-    .replace(anchor, `<body>\n${bar}\n<main>`);
+    .replace(anchor, `<body>\n${bar}\n<main>\n  <div id="banner"></div>`)
+    .replace(close, '</main>\n<script type="module" src="./report.js"></script>\n</body>');
 }

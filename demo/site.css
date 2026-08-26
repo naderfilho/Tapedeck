@@ -1157,3 +1157,86 @@ body.is-loading .market[aria-pressed='true'] {
   border-color: var(--accent);
   color: var(--accent) !important;
 }
+
+/* Help buttons sit inside form labels as well as metric cards, so the label becomes a flex row. */
+.field > span,
+.switch > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.results__more {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+  margin: 26px 0 0;
+}
+
+.results__more .small {
+  flex: 1;
+  min-width: 240px;
+  line-height: 1.5;
+}
+
+/* ------------------------------------------------- narrow screens */
+
+/* The bar gained a "Sign in" and stopped fitting a phone. Benchmark and API drop first because
+   they are reference material; GitHub goes next because the footer still carries it. Demo, Report
+   and Sign in are the three things a visitor came to press, so they never drop. */
+@media (max-width: 600px) {
+  .topbar__inner {
+    padding: 0 16px;
+    gap: 10px;
+  }
+
+  .topnav a {
+    padding: 6px 9px;
+    font-size: 13px;
+  }
+
+  .topnav a.secondary {
+    display: none;
+  }
+
+  .wrap {
+    padding: 0 16px;
+  }
+}
+
+/* A tooltip wider than the screen is a tooltip you cannot read, and anchoring it to the button that
+   opens it cannot help: `left: 0` is relative to a 14px button, so one sitting near the right edge
+   throws a 260px bubble off the page whatever the alignment. On a phone the bubble stops trying to
+   point at anything and docks to the bottom of the viewport, which cannot overflow by construction. */
+.help__bubble {
+  max-width: min(260px, calc(100vw - 32px));
+}
+
+@media (max-width: 600px) {
+  .help__bubble,
+  .metrics > .metric:first-child .help__bubble,
+  .metrics > .metric:last-child .help__bubble,
+  .toolbar .help__bubble,
+  .switch .help__bubble {
+    position: fixed;
+    inset: auto 16px 16px 16px;
+    width: auto;
+    max-width: none;
+    transform: translateY(8px);
+    box-shadow: 0 12px 32px rgb(0 0 0 / 0.4);
+  }
+
+  .help:hover .help__bubble,
+  .help:focus-visible .help__bubble,
+  .metrics > .metric:first-child .help:hover .help__bubble,
+  .metrics > .metric:first-child .help:focus-visible .help__bubble,
+  .metrics > .metric:last-child .help:hover .help__bubble,
+  .metrics > .metric:last-child .help:focus-visible .help__bubble,
+  .toolbar .help:hover .help__bubble,
+  .toolbar .help:focus-visible .help__bubble,
+  .switch .help:hover .help__bubble,
+  .switch .help:focus-visible .help__bubble {
+    transform: none;
+  }
+}
