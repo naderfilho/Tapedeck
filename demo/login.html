@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Sign in — Tapedeck</title>
+    <meta name="robots" content="noindex" />
+    <link rel="stylesheet" href="../assets/site.css" />
+    <script src="../assets/config.js"></script>
+  </head>
+  <body class="gate">
+    <main class="gate__panel">
+      <a class="brand gate__brand" href="../">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+          <rect
+            x="0.75"
+            y="3.75"
+            width="18.5"
+            height="12.5"
+            rx="3"
+            stroke="currentColor"
+            stroke-width="1.5"
+          />
+          <circle cx="6.6" cy="10" r="2.1" stroke="currentColor" stroke-width="1.5" />
+          <circle cx="13.4" cy="10" r="2.1" stroke="currentColor" stroke-width="1.5" />
+        </svg>
+        Tapedeck
+      </a>
+
+      <h1 class="gate__title">Run a backtest</h1>
+      <p class="gate__lede">
+        Everything on this site works without an account. Signing in only adds one thing: the
+        backtests you configure are kept, and you get a link you can share.
+      </p>
+
+      <button class="btn btn--primary gate__guest" id="guest" type="button">
+        Continue as guest
+      </button>
+      <p class="gate__note" id="guest-note">
+        No email, nothing stored on a server, nothing to undo later.
+      </p>
+
+      <!-- Rendered only when the deployment has a database behind it. A form that cannot work is
+           worse than no form: it promises an account and then fails on submit. -->
+      <div class="gate__accounts" id="accounts" hidden>
+        <div class="gate__or"><span>or keep your runs</span></div>
+        <form id="signin" class="gate__form">
+          <label class="field">
+            <span>email</span>
+            <input
+              id="email"
+              type="email"
+              required
+              autocomplete="email"
+              placeholder="you@example.com"
+            />
+          </label>
+          <button class="btn btn--ghost" type="submit" id="send">Email me a sign-in link</button>
+        </form>
+        <p class="gate__note">
+          A one-time link, no password. We never see one, and there is none to leak.
+        </p>
+      </div>
+
+      <p class="error" id="error" role="status"></p>
+
+      <p class="gate__foot">
+        <a href="../">Back to the site</a> ·
+        <a href="https://github.com/naderfilho/Tapedeck">Source on GitHub</a>
+      </p>
+    </main>
+    <script type="module" src="./login.js"></script>
+  </body>
+</html>

@@ -1,0 +1,5 @@
+{
+  "_comment": "Public deployment settings, baked into the page at build time. Both values are meant to be readable by anyone who opens the site: the publishable key identifies the project and nothing more, and what it is allowed to touch is decided by row-level security in the database. The service_role key is the one that must never appear here or anywhere else in this repository. SUPABASE_URL and SUPABASE_ANON_KEY in the environment override these, which is how a fork points at its own project.",
+  "supabaseUrl": "https://kefsjdtluuvmqygrfxim.supabase.co",
+  "supabaseAnonKey": "sb_publishable_PObFZCy4MDP_vZsF55DxqA_HPoq8ENJ"
+}

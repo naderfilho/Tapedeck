@@ -1034,3 +1034,126 @@ body.is-loading .market[aria-pressed='true'] {
     scroll-behavior: auto !important;
   }
 }
+
+/* ------------------------------------------------------------------- entry page */
+
+.gate {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  padding: 32px 20px;
+  background:
+    radial-gradient(60rem 40rem at 50% -10%, var(--accent-soft), transparent 70%), var(--bg);
+}
+
+.gate__panel {
+  width: 100%;
+  max-width: 400px;
+  padding: 32px 30px 26px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--panel);
+  text-align: center;
+}
+
+.gate__brand {
+  justify-content: center;
+  margin-bottom: 22px;
+}
+
+.gate__title {
+  font-size: 26px;
+  letter-spacing: -0.024em;
+  margin: 0 0 10px;
+}
+
+.gate__lede {
+  color: var(--ink-dim);
+  font-size: 14.5px;
+  line-height: 1.55;
+  margin: 0 0 22px;
+}
+
+.gate__guest {
+  width: 100%;
+  justify-content: center;
+  font-size: 15.5px;
+  padding: 13px 18px;
+}
+
+.gate__note {
+  margin: 10px 0 0;
+  font-size: 12.5px;
+  color: var(--ink-faint);
+}
+
+.gate__accounts {
+  margin-top: 24px;
+}
+
+.gate__or {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 18px;
+  color: var(--ink-faint);
+  font-size: 12px;
+}
+
+.gate__or::before,
+.gate__or::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+
+.gate__form {
+  display: grid;
+  gap: 12px;
+  text-align: left;
+}
+
+.gate__form input {
+  font: 14px/1.4 var(--sans);
+  padding: 11px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg-soft);
+  color: var(--ink);
+  width: 100%;
+}
+
+.gate__form input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.gate__form .btn {
+  justify-content: center;
+}
+
+.gate__foot {
+  margin: 22px 0 0;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+  font-size: 13px;
+  color: var(--ink-faint);
+}
+
+.gate .error {
+  min-height: 0;
+  margin-top: 14px;
+  font-size: 13.5px;
+}
+
+.topnav__cta {
+  border: 1px solid var(--line-strong);
+  color: var(--ink) !important;
+  margin-left: 6px;
+}
+
+.topnav__cta:hover {
+  border-color: var(--accent);
+  color: var(--accent) !important;
+}
