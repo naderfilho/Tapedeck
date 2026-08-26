@@ -92,7 +92,7 @@ needs to, write an ADR arguing for it first.
 6. **No `any`, no `@ts-ignore`.** `noUncheckedIndexedAccess` and `exactOptionalPropertyTypes` are on.
 7. **Core has zero runtime dependencies** and imports no other workspace package. The allowlist for
    everything else is in ADR-0007.
-8. **Read the ADRs before arguing with the code.** `docs/adr/` — eighteen of them, each with the
+8. **Read the ADRs before arguing with the code.** `docs/adr/` — 18 of them, each with the
    alternatives that were rejected. ADR-0014 amends ADR-0003; read them together.
 9. **A tape and its fee schedule travel together.** A Coinbase tape priced with Binance's fees is a
    report about a market nobody traded in. `SPOT_FEES` carries each venue's published percentages
@@ -117,10 +117,25 @@ reproducibility — never a particular PnL, because the fixtures are real prices
   that is the standard, not an exception.
 - **Write for someone who trades.** No hand-holding, no explaining what a stop order is. The reader
   knows the domain and is here for the engineering decisions.
+- **Keep the prose quiet.** A reviewer counted the aphorisms and the count itself became the
+  signal: every paragraph closing on an epigram reads as a register rather than as an argument, and
+  it makes a reader discount the parts that are load-bearing. Say the reason, stop. One or two
+  memorable lines in a document are a signature; a dozen are a tic. What should carry the weight is
+  the material prose cannot fake — the property tests that changed the code, the amended ADR, the
+  demo running the real kernel.
+- **Claims are sized to the code.** Paper trading runs against a live feed and a simulated broker,
+  so it is "a live feed", never "live trading": there is no order at a venue, no rejection, no
+  exchange-side partial fill, no reconciliation. Wherever the site or the README says otherwise,
+  that is a bug.
 - **Argue rather than comply.** If a decision recorded here looks wrong, make the case for changing
   it — in an ADR if it touches a non-negotiable. Silently working around one is the failure mode
   this file exists to prevent.
-- **Finished means green.** Format, lint, typecheck, build and coverage, in that order.
+- **Figures in the documentation are written by a run, never typed.** `corepack pnpm counts`
+  rewrites the test count, the coverage percentages and the ADR count in `README.md` and this file
+  from what `pnpm coverage` just produced; `counts:check` fails CI if a commit left them behind.
+  The README had 685 tests in its badge and 610 in its testing section before this existed, which is
+  precisely the drift the project complains about elsewhere.
+- **Finished means green.** Format, lint, typecheck, build, coverage and `counts`, in that order.
 
 ## Open questions
 

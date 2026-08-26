@@ -73,6 +73,13 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm coverage
 
+      # The README states the test count and the coverage percentage in five places. They are
+      # written from the run above rather than typed, and this fails the build if a commit left
+      # them behind.
+      - name: Documented figures match the run
+        if: matrix.os == 'ubuntu-latest'
+        run: pnpm counts:check
+
       - name: Upload coverage
         if: matrix.os == 'ubuntu-latest'
         uses: actions/upload-artifact@v5

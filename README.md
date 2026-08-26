@@ -7,8 +7,12 @@
 [![licence](https://img.shields.io/badge/licence-PolyForm%20Noncommercial-blue)](LICENSE.md)
 
 An event-driven backtesting and paper-trading engine for TypeScript. Deterministic by
-construction, honest about what it cannot know, and fast enough that a million bars is not a
-coffee break.
+construction, explicit about what it cannot know, and quick enough to replay a million bars in
+about 130 ms while trading them.
+
+It runs in a browser tab, which is unusual for this kind of engine and is the fastest way to judge
+it. How it compares to NautilusTrader, LEAN, VectorBT and backtrader is
+[further down](#where-this-sits), and so is [why it is TypeScript](#why-typescript-and-what-it-costs).
 
 [![The report a run writes](docs/images/report.png)](https://tapedeck-nader-filhos-projects.vercel.app/report/)
 
@@ -25,16 +29,19 @@ of the whole project: **what this run could not know, printed above the numbers 
 in a footnote. Below the fold sit the drawdown, the trade distribution, the exact execution
 configuration and every trade.
 
-> **Status: all six phases done.** The kernel, the indicator library, the data adapters, the SQLite
-> store, the metrics and report package, the `tapedeck` command line, live paper trading and the B3
-> layer (session calendar, contract expiries, continuous series) are all in. 685 tests, 96%
-> statement coverage, and a committed year of real candles from two exchanges so that `pnpm test`
-> measures something. Nothing is published to npm, deliberately. See the roadmap.
+> **Status: seven phases done.** The kernel, the indicator library, the data adapters, the SQLite
+> store, the metrics and report package, the `tapedeck` command line, paper trading against a live
+> feed, the B3 layer and a second exchange are all in.
+> 685 tests, 96% statement coverage, and a committed year of real candles from two exchanges so that
+> `pnpm test` measures something. Not published to npm, deliberately; see
+> [what this is for](#what-this-is-for).
 
-Built in pair with an AI assistant. Every decision that shaped it is argued in
-[eighteen ADRs](docs/adr/), each with the alternatives that were rejected, including
-[one that amends an earlier one](docs/adr/0014-paper-trading-runs-on-event-time.md) after the first
-live connection to a real exchange proved it wrong.
+Designed and built from scratch by [Nader Filho](https://github.com/naderfilho). The parts worth
+checking first are the [property tests that changed the code](#testing) rather than confirming it,
+the [ADR amended](docs/adr/0014-paper-trading-runs-on-event-time.md) after the first live connection
+disproved it, and the [demo](https://tapedeck-nader-filhos-projects.vercel.app/demo/), which is the
+engine itself rather than a recording of it. Every decision is argued in [18 ADRs](docs/adr/), each
+with the alternatives that were rejected.
 
 ## Why this exists
 
@@ -53,10 +60,57 @@ pessimistic-by-default policy and **counted in the run statistics**; money is fi
 all the way to the ledger. When the engine cannot know something (sub-bar latency on candle data,
 which side of a bar traded first) it says so in the result, above the numbers it qualifies.
 
-The second goal is that a strategy runs unchanged in backtest and in live paper trading. That is
-not a compatibility layer: both modes share one synchronous kernel, and the only real difference is
-who fills the event queue: a file, or a socket. Both run on event time; the wall clock measures
-how far behind a live session is and reports it, and never decides when an order may fill.
+The second goal is that a strategy runs unchanged in a backtest and against a live feed. Both modes
+share one synchronous kernel and differ only in who fills the event queue: a file, or a socket.
+Both run on event time; the wall clock measures how far behind a live session is and reports it,
+and never decides when an order may fill. What that does **not** include is order routing to a real
+venue — see [Paper trading](#paper-trading).
+
+## Why TypeScript, and what it costs
+
+Quant tooling lives in Python, C++ and Rust. This is TypeScript, and the choice buys one thing that
+turned out to matter more than the rest: `@tapedeck/core` has no runtime dependencies and imports
+nothing from `node:`, so the whole engine runs in a browser tab. The
+[demo](https://tapedeck-nader-filhos-projects.vercel.app/demo/) is not a recording of the engine —
+it is the engine, the same kernel over the same committed tapes calling the same report function as
+the CLI. Evaluating this project costs a click rather than an install.
+
+The same constraint keeps the report a single file with no network request, and keeps the
+dependency count across the workspace at three. One language covers the strategy, the metrics and
+the page, and Node 24 strips the types, so every file here runs without a build step.
+
+What it costs, plainly:
+
+- **No NumPy, pandas, SciPy or statsmodels.** Anything statistical beyond the shipped metric set is
+  yours to write.
+- **No vectorised parameter sweeps.** A grid search is a loop over runs. At 7.6 M bars/s with
+  trading that is comfortable for hundreds of runs and the wrong tool for millions.
+- **One core per run.** There is no multiprocessing story here.
+- **It will not beat a Rust core on latency**, and does not try to. This is a research and
+  simulation engine, not a low-latency execution stack.
+
+## Where this sits
+
+Tools that are older, larger and running real money already exist. This does not replace them.
+
+| Project                                              | What it is                                                                    | Where it is stronger than this                                                                      |
+| ---------------------------------------------------- | ----------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| [NautilusTrader](https://nautilustrader.io/)         | Rust core with a Python API, nanosecond event clock, adapters for real venues | Everything about going live: real order lifecycle, venue integrations, throughput, production users |
+| [LEAN / QuantConnect](https://www.quantconnect.com/) | C# engine plus a hosted platform with data and brokerages                     | Data and broker coverage, and a backtest-to-live path where the strategy code does not change       |
+| [VectorBT](https://vectorbt.dev/)                    | Vectorised NumPy backtesting                                                  | Parameter sweeps, by orders of magnitude                                                            |
+| [backtrader](https://www.backtrader.com/)            | Mature event-driven Python framework                                          | Ecosystem, examples, and years of community answers                                                 |
+
+Three things are different here:
+
+- **The modelling assumptions are reported numbers, not footnotes.** Bars whose fill order could not
+  be known, latency too short to honour on bar data, and what a timeframe aggregation had to leave
+  out are printed above the result — in the terminal, in the report and on the site. That is the
+  subject of this project rather than a feature of it.
+- **It runs in a tab.** No install, no account, no container, and the demo is the engine.
+- **It is small enough to read.** Six packages, zero runtime dependencies in the core, and an ADR
+  for every decision that could reasonably have gone the other way.
+
+If you need to trade real money this quarter, use one of the four above.
 
 ## Quickstart
 
@@ -100,9 +154,9 @@ Costs
   costs ate             72.3%
 ```
 
-That last line is the point of the exercise. A 24/72 crossover on hourly BTC made 8,332 before
-costs and kept 2,305 of it; a backtester that skipped fees would have reported a strategy three and
-a half times better than the one that exists.
+The last line is why the example ships with costs on. A 24/72 crossover on hourly BTC made 8,332
+before costs and kept 2,305 of it, so a backtester that skipped fees would have reported a strategy
+three and a half times better than the one that exists.
 
 The 36.7% win rate is not a defect either, and it is worth saying so before someone reads it as
 one: trend following pays for a few large wins with many small losses, so the number that decides
@@ -121,9 +175,8 @@ example ships the parameters it started with rather than the ones that flattered
 | [`mean-reversion`](examples/mean-reversion/) | Buys oversold, sells the bounce, with a time stop                               | Wins often and loses large, the crossover in reverse                     |
 
 The last two are worth running side by side. On the committed year of BTCUSDT the breakout wins
-37.8% of its trades and the reversion wins 56.2%, and both have a profit factor under one. A reader
-who ranks strategies by win rate ranks those two backwards, which is why the demo puts them one
-click apart.
+37.8% of its trades and the reversion wins 56.2%, and both have a profit factor under one: ranking
+them by win rate ranks them backwards.
 
 The breakout is the one that earns its place in the test suite: its bracket is an OCO group, and
 `examples/breakout/test` asserts that a bar containing both legs never executes both, and that the
@@ -158,14 +211,22 @@ tapedeck paper examples/sma-crossover/src/strategy.ts \
   --html out/paper.html
 ```
 
-A strategy is a module you point at, not a name in a registry. A strategy is code, and pretending
-otherwise means inventing a plugin system nobody asked for.
+A strategy is a module you point at rather than a name in a registry, which is why there is no
+plugin system to configure.
 
 ## Paper trading
 
 `run` and `paper` load the same module, drive the same kernel and write the same report. The
 strategy is not told which one it is running under, because there is nothing it could correctly do
 with the answer.
+
+**What this is and is not.** The market data is real and live. The broker is the same simulator the
+backtest uses. So the hard half of live trading is untouched: no order is sent to a venue, and there
+is no acknowledgement, no rejection, no exchange-side partial fill, no rate limit to respect and no
+reconciliation between local state and an account at the exchange. Those are the parts that break in
+production. They are absent by design — the provider has no concept of a credential
+([ADR-0011](docs/adr/0011-read-only-market-data.md)) — but absent is absent, and "live" here means a
+live feed, not live execution.
 
 What differs is who fills the queue: a file, or a WebSocket handler that enqueues and calls the
 same synchronous `drain()` a backtest calls. The kernel runs on **event time** in both cases
@@ -472,19 +533,18 @@ own run, dated and with the machine that produced it, at
 | development mode      | 4.0 M bars/s  | 250 ns  | guarded bar views and data validation, as the test suite runs |
 
 Measured on Node 24.12 / Windows 11 / x64. The run CI publishes is roughly 40% of these figures,
-because a shared two-core cloud runner is not a desktop, which is exactly why the benchmark job
-reports and never gates, and why both numbers carry the machine that produced them. Compare like
-with like or not at all.
+because a shared two-core cloud runner is not a desktop; that is why the benchmark job reports
+rather than gates, and why both numbers carry the machine that produced them.
 
-A single headline figure would be marketing: replaying
-bars, updating indicators, matching resting orders and actually trading are four different
-workloads, so the benchmark reports all four. The target was one million bars per second.
+Four rows rather than one headline figure, because replaying bars, updating indicators, matching
+resting orders and trading are four different workloads. The target was one million bars per
+second.
 
 Two of those numbers are trade-offs rather than achievements. Registering indicators through
-`ctx.use` costs roughly 20 nanoseconds per indicator per bar against calling a class directly. The
-price of an abstraction that makes reading a stale value impossible. Development mode is half the
-speed of production because guarded bar views and per-chunk validation are on; that is what the
-test suite runs at, on purpose.
+`ctx.use` costs roughly 20 nanoseconds per indicator per bar against calling a class directly,
+which is what buys the guarantee that a value read inside `onBar` cannot be stale. Development mode
+is half the speed of production because guarded bar views and per-chunk validation are on, and that
+is what the test suite runs at.
 
 The speed comes from decisions, not micro-optimisation: bars live in `Float64Array` columns instead
 of objects, the bar handed to a strategy is refilled rather than reallocated, the fixed-point
@@ -516,7 +576,7 @@ Each of these is an [ADR](docs/adr/) with the alternatives that were rejected an
   resolved by policy and counted.
 - **[Determinism and its limits](docs/adr/0006-determinism-guarantees-and-limits.md).** The trade
   list, equity curve and fill log are byte-identical across machines and chunkings; derived metrics
-  are compared at a documented tolerance instead. Saying so is the point.
+  are compared at a documented tolerance instead, and the ADR says which is which.
 - **[A `.tape` format instead of Parquet](docs/adr/0009-tape-binary-format.md).** The engine scans
   columns forwards, once. Parquet's strengths cost two megabytes of WebAssembly and buy nothing.
 - **[The indicator contract](docs/adr/0010-indicator-contract.md).** The engine owns the update, so
@@ -543,8 +603,8 @@ hoped for:
 ## Testing
 
 ```bash
-pnpm test          # 610 tests
-pnpm coverage      # 97% statements, 97% functions; 85% is the floor for every package
+pnpm test          # 685 tests
+pnpm coverage      # 96% statements, 97% functions; 85% is the floor for every package
 pnpm lint          # no `any`, no `@ts-ignore`, no wall clock in the kernel
 pnpm typecheck     # strict, plus noUncheckedIndexedAccess and exactOptionalPropertyTypes
 ```
@@ -587,10 +647,8 @@ worth stating.
       depth and lag are reported, heartbeats so a quiet market still moves time, crash-recoverable
       sessions, and `tapedeck paper`. No credentials, anywhere.
 - [x] **Phase 5: polish.** [The API guide](docs/api.md), a benchmark CI publishes with each push,
-      and the report itself served live rather than recorded. A page you can scroll beats a video
-      of someone else scrolling. Deliberately not an npm release: the licence is noncommercial, and
-      a package on a registry most consumers cannot legally use commercially is a trap rather than
-      a convenience. Clone it.
+      and the report served as a page rather than a screenshot. Deliberately not an npm release; see
+      [what this is for](#what-this-is-for).
 - [x] **Phase 6: B3.** Session calendar with computed holidays, contract expiries on B3's own
       rules, a roll measured from volume rather than assumed, back-adjusted continuous series, the
       published tariffs, and a fetcher for the exchange's daily price reports. B3 data is fetched,
@@ -606,12 +664,29 @@ worth stating.
 
 Not planned, and deliberately so: a strategy DSL, a GUI, or a "no-code" layer. This is a library.
 
+## What this is for
+
+A portfolio piece first, a usable library second, and it is worth saying so rather than leaving the
+licence and the empty star count to imply something.
+
+It was built to be read: by someone deciding whether the author can build a system with real
+invariants, and by anyone who wants to see how a backtester is kept from flattering its user. That
+is why the ADRs argue instead of announcing, why the figures on the site are written by runs on
+every deploy, and why the demo is the engine rather than a video of it.
+
+Adoption is not the goal, which is why it is not on npm: the licence is noncommercial, and a
+package on a public registry that most consumers cannot legally use commercially causes more
+confusion than it removes. Clone it, read it, run it.
+
+If you are evaluating the author, that is the intended use — the code, the ADRs and the demo are
+the artefact. Hiring, or a commercial licence: <ndr.dev@outlook.com>.
+
 ## Licence
 
 [PolyForm Noncommercial License 1.0.0](LICENSE.md). Read it, study it, run it, fork it and build on
 it for any noncommercial purpose: learning, research, evaluation, personal trading. Commercial use
 is not granted, which includes selling it, reselling it, or operating it or a derivative as part of
-a commercial offering. For a commercial licence, get in touch.
+a commercial offering.
 
 Nothing here is financial advice, and a backtest is not a prediction. The engine's job is to make
 its own assumptions visible so you can decide how much to believe it.
