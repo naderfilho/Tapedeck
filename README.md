@@ -10,12 +10,12 @@ An event-driven backtesting and paper-trading engine for TypeScript. Determinist
 construction, honest about what it cannot know, and fast enough that a million bars is not a
 coffee break.
 
-[![The report a run writes](docs/images/report.png)](https://naderfilho.github.io/Tapedeck/report/)
+[![The report a run writes](docs/images/report.png)](https://tapedeck-nader-filhos-projects.vercel.app/report/)
 
-**[Run a backtest in your browser →](https://naderfilho.github.io/Tapedeck/demo/)** — change the
+**[Run a backtest in your browser →](https://tapedeck-nader-filhos-projects.vercel.app/demo/)** — change the
 periods and the costs and the engine re-runs in the tab, on the same kernel the CLI uses. It works
 because `core` has zero runtime dependencies and imports nothing from `node:`; portability fell out
-of a rule made for reproducibility. **[The report above is here](https://naderfilho.github.io/Tapedeck/report/)**,
+of a rule made for reproducibility. **[The report above is here](https://tapedeck-nader-filhos-projects.vercel.app/report/)**,
 rebuilt by CI from the committed fixture on every push so it cannot drift from the code.
 
 That is the output of `node examples/sma-crossover/src/main.ts` on a committed year of hourly
@@ -411,7 +411,7 @@ points at a file you fetched yourself ([ADR-0011](docs/adr/0011-read-only-market
 
 One million bars, five runs each, median reported. Reproduce with `pnpm bench`; CI publishes its
 own run, dated and with the machine that produced it, at
-<https://naderfilho.github.io/Tapedeck/bench.txt>.
+<https://tapedeck-nader-filhos-projects.vercel.app/bench.txt>.
 
 | Scenario              | Throughput    | Per bar | What runs                                                     |
 | --------------------- | ------------- | ------- | ------------------------------------------------------------- |

@@ -15,7 +15,7 @@ writeFileSync('report.html', renderHtmlReport(result, metrics));
 
 The report is **one file**: no `<script>`, no CDN, no network. It opens from a USB stick in five
 years ([ADR-0013](../../docs/adr/0013-report-is-a-file.md)). A live one is published at
-<https://naderfilho.github.io/Tapedeck/>.
+<https://tapedeck-nader-filhos-projects.vercel.app/>.
 
 Every metric states its convention, and reports nothing rather than something when the data cannot
 support it ([ADR-0012](../../docs/adr/0012-metric-conventions.md)). `breakEvenCommissionPerUnit` is

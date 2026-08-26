@@ -44,16 +44,18 @@ substitutes), `index.html` for the demo, `site.css` for all of it, and `build.ts
 the site header onto a copy of `out/report.html`.
 
 `corepack pnpm site:build` is the whole thing — compile, replay the example, run the benchmark,
-assemble — and it is the single command **both** Vercel (`vercel.json`) and the Pages workflow run,
-so the two deployments cannot drift. `pnpm site` alone is the last step and needs `out/report.html`
-to exist already.
+assemble — and it is the command `vercel.json` runs. `pnpm site` alone is the last step and needs
+`out/report.html` to exist already.
+
+**The site is deployed by Vercel and nowhere else.** The GitHub Pages workflow was retired: two
+live copies of one site is two things to keep true, and the second was only ever a mirror.
 
 The landing page's result figures are substituted from `out/metrics.json`, not typed in. They were
 hardcoded once and that is precisely the failure this project complains about: a published number
 with no link to the run behind it, which survives the run that stops producing it.
 
-**A change to the site is not published until it is pushed.** Check the deployed URL, not
-`site:serve`, before calling it done.
+**A change to the site is not published until it is pushed.** Vercel builds on push to `main`.
+Check the deployed URL, not `site:serve`, before calling it done.
 
 Dark by default and light under `prefers-color-scheme`, in `demo/site.css` for the two hand-written
 pages and in `renderHtmlReport`'s inlined `STYLE` for the report, which carries the same token
@@ -172,7 +174,7 @@ rather than by someone thinking:
 
 - ~~A screenshot of `out/report.html` for the README.~~ Done: `docs/images/report.png`, cut after
   the equity chart, linking to the page CI publishes at
-  <https://naderfilho.github.io/Tapedeck/>. The browser pane is still unavailable here, so it is
+  <https://tapedeck-nader-filhos-projects.vercel.app/>. The browser pane is still unavailable here, so it is
   captured with headless Chrome, which is also what makes it reproducible:
 
   ```bash
