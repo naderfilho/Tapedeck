@@ -117,6 +117,7 @@ export {
   TickChunkBuilder,
   validateBarChunk,
 } from './tape/chunk.ts';
+export { type ResampleResult, resampleBars } from './tape/resample.ts';
 export {
   type ViewMode,
   MutableBarView,
