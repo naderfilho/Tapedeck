@@ -20,6 +20,7 @@ const TYPES: Readonly<Record<string, string>> = {
   // browser in standards mode refuses to apply it — the page renders with no styling at all and
   // nothing in the console says why.
   '.css': 'text/css; charset=utf-8',
+  '.svg': 'image/svg+xml',
   '.js': 'text/javascript; charset=utf-8',
   '.json': 'application/json; charset=utf-8',
   '.txt': 'text/plain; charset=utf-8',

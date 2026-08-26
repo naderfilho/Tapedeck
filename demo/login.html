@@ -5,27 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Sign in · Tapedeck</title>
     <meta name="robots" content="noindex" />
+    <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="../assets/site.css" />
     <script src="../assets/config.js"></script>
   </head>
   <body class="gate">
     <main class="gate__panel">
-      <a class="brand gate__brand" href="../">
-        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-          <rect
-            x="0.75"
-            y="3.75"
-            width="18.5"
-            height="12.5"
-            rx="3"
-            stroke="currentColor"
-            stroke-width="1.5"
-          />
-          <circle cx="6.6" cy="10" r="2.1" stroke="currentColor" stroke-width="1.5" />
-          <circle cx="13.4" cy="10" r="2.1" stroke="currentColor" stroke-width="1.5" />
-        </svg>
-        Tapedeck
-      </a>
+      <a class="gate__brand" href="../" aria-label="Tapedeck"> {{brandFull}} </a>
 
       <div class="langs gate__langs" role="group" aria-label="Language">
         <button class="lang" type="button" data-lang="en" aria-pressed="true">EN</button>

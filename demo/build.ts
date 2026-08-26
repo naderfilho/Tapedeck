@@ -25,12 +25,53 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
 
-/** The same mark the two hand-written pages carry, so the three headers are one header. */
+/**
+ * The monogram, defined once and substituted into every page that shows a header.
+ *
+ * Drawn rather than embedded: a header slot is 24 pixels, and a raster logo at 24 pixels is a
+ * smudge on a retina screen and a halo on a light background wherever its transparency was cut
+ * out of a dark original. The T takes `currentColor` so it inverts with the theme; the D keeps the
+ * brand blue in both, because that is the part people recognise.
+ */
 const BRAND_MARK =
-  '<svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">' +
-  '<rect x="0.75" y="3.75" width="18.5" height="12.5" rx="3" stroke="currentColor" stroke-width="1.5"/>' +
-  '<circle cx="6.6" cy="10" r="2.1" stroke="currentColor" stroke-width="1.5"/>' +
-  '<circle cx="13.4" cy="10" r="2.1" stroke="currentColor" stroke-width="1.5"/></svg>';
+  '<svg class="mark" width="24" height="24" viewBox="0 0 100 100" fill="none" aria-hidden="true"><defs><linearGradient id="td-c" x1="52" y1="14" x2="94" y2="86" gradientUnits="userSpaceOnUse"><stop stop-color="var(--brand-1, #5cb0ff)"/><stop offset="1" stop-color="var(--brand-2, #1358c9)"/></linearGradient></defs><path d="M58 14h6c22 0 36 15 36 36S86 86 64 86h-14l4-18h10c11 0 18-8 18-18s-7-18-18-18h-8z" fill="url(#td-c)"/><path d="M6 14h58l-4 18H44L32 86H12L24 32H2z" fill="currentColor"/><path d="M8 78l18-10 16 8 20-18" stroke="var(--brand-line, #3d9bff)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+/**
+ * The full lockup, for the one place with room for it.
+ *
+ * Same drawing with the detail put back: the candlesticks inside the bowl of the D and the trend
+ * line's nodes. They are the first thing to disappear at header size, which is why the mark above
+ * drops them rather than rendering them as three grey specks.
+ */
+const BRAND_FULL =
+  '<svg class="mark-full" width="88" height="88" viewBox="0 0 128 128" fill="none" aria-hidden="true">' +
+  '<defs><linearGradient id="td-f" x1="62" y1="16" x2="120" y2="108" gradientUnits="userSpaceOnUse">' +
+  '<stop stop-color="var(--brand-1, #5cb0ff)"/><stop offset="1" stop-color="var(--brand-2, #1358c9)"/>' +
+  '</linearGradient></defs>' +
+  '<path d="M74 16h8c26 0 44 19 44 46s-18 46-44 46H62l5-20h13c15 0 25-11 25-26s-10-26-25-26h-9z" fill="url(#td-f)"/>' +
+  '<path d="M8 16h70l-4 20H52L38 108H16L30 36H4z" fill="currentColor"/>' +
+  '<g fill="currentColor" opacity=".9">' +
+  '<rect x="62" y="52" width="6" height="28" rx="2"/><rect x="76" y="40" width="6" height="32" rx="2"/>' +
+  '<rect x="90" y="30" width="6" height="34" rx="2"/></g>' +
+  '<path d="M10 100l24-14 20 10 26-24 22-14" stroke="var(--brand-line, #3d9bff)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>' +
+  '<g fill="var(--brand-line, #3d9bff)"><circle cx="34" cy="86" r="5.5"/><circle cx="54" cy="96" r="5.5"/>' +
+  '<circle cx="80" cy="72" r="5.5"/></g></svg>';
+
+/**
+ * The tab icon, which cannot inherit anything.
+ *
+ * A favicon renders against whatever chrome the browser paints, so `currentColor` is no use and the
+ * T is pinned to a light grey that survives both. Sixteen pixels of monogram is all the detail
+ * there is room for.
+ */
+const FAVICON =
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">' +
+  '<defs><linearGradient id="f" x1="52" y1="14" x2="94" y2="86" gradientUnits="userSpaceOnUse">' +
+  '<stop stop-color="#5cb0ff"/><stop offset="1" stop-color="#1358c9"/></linearGradient></defs>' +
+  '<path d="M58 14h6c22 0 36 15 36 36S86 86 64 86h-14l4-18h10c11 0 18-8 18-18s-7-18-18-18h-8z" fill="url(#f)"/>' +
+  '<path d="M6 14h58l-4 18H44L32 86H12L24 32H2z" fill="#e8eef8"/>' +
+  '<path d="M8 78l18-10 16 8 20-18" stroke="#3d9bff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" fill="none"/>' +
+  '</svg>\n';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = resolve(here, '..');
@@ -88,8 +129,23 @@ for (const [entry, out] of [
   if (bundled.errors.length > 0) throw new Error(`the ${entry} bundle failed`);
 }
 
-cpSync(resolve(here, 'index.html'), resolve(site, 'demo/index.html'));
-cpSync(resolve(here, 'login.html'), resolve(site, 'login/index.html'));
+writeFileSync(
+  resolve(site, 'demo/index.html'),
+  fill(readFileSync(resolve(here, 'index.html'), 'utf8'), {
+    brandMark: BRAND_MARK,
+    brandFull: BRAND_FULL,
+  }),
+  'utf8',
+);
+writeFileSync(
+  resolve(site, 'login/index.html'),
+  fill(readFileSync(resolve(here, 'login.html'), 'utf8'), {
+    brandMark: BRAND_MARK,
+    brandFull: BRAND_FULL,
+  }),
+  'utf8',
+);
+writeFileSync(resolve(site, 'assets/favicon.svg'), FAVICON, 'utf8');
 cpSync(resolve(here, 'site.css'), resolve(site, 'assets/site.css'));
 
 /**
@@ -175,6 +231,8 @@ const share = metrics.costs.shareOfGross;
 writeFileSync(
   resolve(site, 'index.html'),
   fill(readFileSync(resolve(here, 'landing.html'), 'utf8'), {
+    brandMark: BRAND_MARK,
+    brandFull: BRAND_FULL,
     tests,
     adrs: String(adrs),
     netProfit: usd(metrics.equity.netProfit),

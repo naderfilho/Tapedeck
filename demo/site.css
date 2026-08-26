@@ -1309,3 +1309,39 @@ body.is-loading .market[aria-pressed='true'] {
     font-size: 11px;
   }
 }
+
+/* ------------------------------------------------------------------------- brand */
+
+/* The D keeps its blue in both themes because that is the half people recognise; the T rides
+   `currentColor` so it inverts. Two tokens rather than hard-coded stops, so a future palette change
+   moves the logo with it. */
+:root {
+  --brand-1: #5cb0ff;
+  --brand-2: #1358c9;
+  --brand-line: #3d9bff;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --brand-1: #3d9bff;
+    --brand-2: #0f4fbd;
+    --brand-line: #1d63d8;
+  }
+}
+
+.mark {
+  display: block;
+  flex: none;
+}
+
+.mark-full {
+  display: block;
+  margin: 0 auto 4px;
+  color: var(--ink);
+}
+
+.gate__brand {
+  display: block;
+  color: var(--ink);
+  text-decoration: none;
+}
