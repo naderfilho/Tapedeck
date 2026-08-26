@@ -14,6 +14,10 @@
  * page published under `/report/` needs a way back to `/` and the file you email someone does not —
  * a relative link in a downloaded file points at nothing. `out/report.html` stays untouched; the
  * navigation is grafted onto the copy.
+ *
+ * The landing page is a real file rather than a template literal, so prettier and an editor's HTML
+ * tooling can see it. It carries `{{placeholders}}` for the few numbers that describe the
+ * repository, which are substituted here so they cannot drift from it.
  */
 
 import { cpSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -21,12 +25,20 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
 
+/** The same mark the two hand-written pages carry, so the three headers are one header. */
+const BRAND_MARK =
+  '<svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">' +
+  '<rect x="0.75" y="3.75" width="18.5" height="12.5" rx="3" stroke="currentColor" stroke-width="1.5"/>' +
+  '<circle cx="6.6" cy="10" r="2.1" stroke="currentColor" stroke-width="1.5"/>' +
+  '<circle cx="13.4" cy="10" r="2.1" stroke="currentColor" stroke-width="1.5"/></svg>';
+
 const here = dirname(fileURLToPath(import.meta.url));
 const root = resolve(here, '..');
 const site = resolve(root, 'site');
 const src = (p: string): string => resolve(root, p);
 
 mkdirSync(resolve(site, 'demo'), { recursive: true });
+mkdirSync(resolve(site, 'assets'), { recursive: true });
 
 const result = await build({
   entryPoints: [resolve(here, 'src/main.ts')],
@@ -54,6 +66,7 @@ const result = await build({
 });
 
 cpSync(resolve(here, 'index.html'), resolve(site, 'demo/index.html'));
+cpSync(resolve(here, 'site.css'), resolve(site, 'assets/site.css'));
 cpSync(src('fixtures/binance-BTCUSDT-1h.tape'), resolve(site, 'demo/btcusdt-1h.tape'));
 
 const bundle = readFileSync(resolve(site, 'demo/demo.js'));
@@ -63,12 +76,19 @@ console.log(
     `no runtime dependencies bundled`,
 );
 
-// The landing page is generated so its numbers cannot drift from the repository they describe.
+// The landing page's numbers are substituted so they cannot drift from the repository.
 const tests = /tests-(\d+)/.exec(readFileSync(src('README.md'), 'utf8'))?.[1] ?? '0';
 const adrs = readFileSync(src('docs/adr/README.md'), 'utf8').match(/^\| \[\d{4}\]/gm)?.length ?? 0;
 
-writeFileSync(resolve(site, 'index.html'), landing({ tests, adrs: String(adrs) }), 'utf8');
-console.log('landing: written');
+writeFileSync(
+  resolve(site, 'index.html'),
+  fill(readFileSync(resolve(here, 'landing.html'), 'utf8'), {
+    tests,
+    adrs: String(adrs),
+  }),
+  'utf8',
+);
+console.log(`landing: written (${tests} tests, ${String(adrs)} ADRs)`);
 
 // The static report, as the site serves it: the generated file plus a way back to the site.
 const report = resolve(root, 'out/report.html');
@@ -80,130 +100,78 @@ if (!existsSync(report)) {
 }
 
 mkdirSync(resolve(site, 'report'), { recursive: true });
-writeFileSync(
-  resolve(site, 'report/index.html'),
-  withSiteNav(readFileSync(report, 'utf8'), [
-    ['../', '← Tapedeck'],
-    ['../demo/', 'Run it in your browser →'],
-  ]),
-  'utf8',
-);
+writeFileSync(resolve(site, 'report/index.html'), withSiteChrome(readFileSync(report, 'utf8')));
 cpSync(resolve(root, 'out/metrics.json'), resolve(site, 'report/metrics.json'));
-console.log('report: copied with site navigation');
+console.log('report: copied with the site header');
+
+/** Substitutes `{{name}}` placeholders, and refuses to ship a page with one left in it. */
+function fill(template: string, values: Readonly<Record<string, string>>): string {
+  const out = template.replace(/\{\{(\w+)\}\}/g, (_match, name: string) => {
+    const value = values[name];
+    if (value === undefined) throw new Error(`no value for the placeholder {{${name}}}`);
+    return value;
+  });
+  const leftover = /\{\{\w+\}\}/.exec(out);
+  if (leftover !== null) throw new Error(`unsubstituted placeholder ${leftover[0]}`);
+  return out;
+}
 
 /**
- * Grafts a navigation bar onto a standalone report.
+ * Grafts the site's header onto a standalone report.
+ *
+ * The bar is styled inline here rather than linked to `assets/site.css`, and it is pinned to the
+ * light palette on purpose. The rest of the site is dark by default; a report is a document. It
+ * gets printed, attached to a pull request and read on paper, and none of those want a black page.
+ * So the report is the light-mode expression of the same design — same type, same accent, same
+ * navigation — rather than an exception to it.
  *
  * Injection rather than a template: the report's markup belongs to `renderHtmlReport`, and this
- * has no business knowing anything about it beyond where `<main>` opens. If that anchor ever
- * stops matching this throws rather than publishing a page with no way out of it.
+ * has no business knowing anything about it beyond where `<main>` opens. If that anchor ever stops
+ * matching this throws rather than publishing a page with no way out of it.
  */
-function withSiteNav(html: string, links: readonly (readonly [string, string])[]): string {
+function withSiteChrome(html: string): string {
   const anchor = '<body>\n<main>';
   const head = '</style>\n</head>';
   for (const marker of [anchor, head]) {
     if (!html.includes(marker)) {
       throw new Error(
-        `could not find ${JSON.stringify(marker)} in the report to attach the nav to`,
+        `could not find ${JSON.stringify(marker)} in the report to attach the bar to`,
       );
     }
   }
+
   const style =
     '<style>' +
-    '.site-nav{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 20px}' +
-    '.site-nav .spacer{flex:1}' +
-    '.site-nav a{display:inline-block;padding:6px 12px;border:1px solid #e3e6ea;border-radius:6px;' +
-    'background:#fff;color:#5b6570;font-size:13px;font-weight:600;text-decoration:none}' +
-    '.site-nav a:hover{border-color:#1d4ed8;color:#1d4ed8}' +
+    // The report's own rule pads the body; the bar has to reach both edges, so the padding moves
+    // to `main`, which is already the centred column.
+    'body{padding:0 0 64px!important}' +
+    'main{padding:26px 24px 0}' +
+    '.site-topbar{position:sticky;top:0;z-index:20;background:rgba(255,255,255,.86);' +
+    'backdrop-filter:saturate(1.6) blur(12px);border-bottom:1px solid #e4e9f0}' +
+    '.site-topbar__inner{max-width:1080px;margin:0 auto;padding:0 24px;height:58px;' +
+    'display:flex;align-items:center;gap:20px}' +
+    `.site-brand{display:inline-flex;align-items:center;gap:9px;color:#0b1017;text-decoration:none;` +
+    'font-weight:650;font-size:15.5px;letter-spacing:-.01em}' +
+    '.site-brand svg{display:block}' +
+    '.site-nav{display:flex;align-items:center;gap:4px;margin-left:auto}' +
+    `.site-nav a{padding:7px 11px;border-radius:8px;color:#55637a;text-decoration:none;` +
+    'font-size:14px;font-weight:550;white-space:nowrap}' +
+    '.site-nav a:hover{color:#0b1017;background:#f4f7fb}' +
+    '.site-nav a[aria-current=page]{color:#0b1017;background:#f4f7fb}' +
+    '@media (max-width:640px){.site-nav a.optional{display:none}}' +
     '</style>';
-  const anchors = links.map(([href, text]) => `<a href="${href}">${text}</a>`);
-  // The first link is the way back; anything after it is pushed to the far side.
-  const nav = `<nav class="site-nav">${anchors.slice(0, 1).join('')}<span class="spacer"></span>${anchors.slice(1).join('')}</nav>`;
 
-  return html.replace(head, `</style>\n${style}\n</head>`).replace(anchor, `${anchor}\n  ${nav}`);
-}
+  const bar =
+    '<header class="site-topbar"><div class="site-topbar__inner">' +
+    `<a class="site-brand" href="../">${BRAND_MARK}Tapedeck</a>` +
+    '<nav class="site-nav">' +
+    '<a href="../demo/">Demo</a>' +
+    '<a href="./" aria-current="page">Report</a>' +
+    '<a class="optional" href="../bench.txt">Benchmark</a>' +
+    '<a href="https://github.com/naderfilho/Tapedeck">GitHub</a>' +
+    '</nav></div></header>';
 
-function landing(facts: { tests: string; adrs: string }): string {
-  return `<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Tapedeck — deterministic backtesting for TypeScript</title>
-<meta name="description" content="An event-driven backtesting and paper-trading engine for TypeScript. No lookahead, fixed-point money, and it reports what it could not know." />
-<style>
-:root{--ink:#0f172a;--muted:#64748b;--line:#e2e8f0;--bg:#f8fafc;--card:#fff;--accent:#1d4ed8}
-*{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif}
-.wrap{max-width:820px;margin:0 auto;padding:64px 20px 72px}
-h1{font-size:38px;margin:0 0 10px;letter-spacing:-.02em}
-.tag{color:var(--muted);font-size:19px;margin:0 0 28px;max-width:60ch}
-.row{display:flex;flex-wrap:wrap;gap:12px;margin:0 0 40px}
-.btn{display:inline-block;padding:11px 20px;border-radius:8px;text-decoration:none;font-weight:600;font-size:15px}
-.btn.primary{background:var(--accent);color:#fff}
-.btn.primary:hover{background:#1e40af}
-.btn.ghost{border:1px solid var(--line);color:var(--ink);background:var(--card)}
-.btn.ghost:hover{border-color:var(--accent);color:var(--accent)}
-.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;margin:0 0 44px}
-.fact{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:14px 16px}
-.fact b{display:block;font-size:22px;font-variant-numeric:tabular-nums}
-.fact span{font-size:12px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
-h2{font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:38px 0 12px}
-ol{padding-left:20px;margin:0}
-li{margin:0 0 12px}
-li b{font-weight:600}
-pre{background:#0f172a;color:#e2e8f0;padding:16px 18px;border-radius:8px;overflow-x:auto;font-size:13.5px;line-height:1.5}
-.note{color:var(--muted);font-size:14.5px}
-footer{margin-top:52px;padding-top:20px;border-top:1px solid var(--line);color:var(--muted);font-size:14px}
-a{color:var(--accent)}
-</style>
-</head>
-<body>
-<div class="wrap">
-  <h1>Tapedeck</h1>
-  <p class="tag">An event-driven backtesting and paper-trading engine for TypeScript. Deterministic by construction: no lookahead, fixed-point money, and it reports what it could not know.</p>
-
-  <div class="row">
-    <a class="btn primary" href="demo/">Run a backtest in your browser</a>
-    <a class="btn ghost" href="report/">See a full report</a>
-    <a class="btn ghost" href="https://github.com/naderfilho/Tapedeck">Source on GitHub</a>
-    <a class="btn ghost" href="bench.txt">Benchmark</a>
-  </div>
-
-  <div class="facts">
-    <div class="fact"><b>${facts.tests}</b><span>tests</span></div>
-    <div class="fact"><b>97%</b><span>coverage</span></div>
-    <div class="fact"><b>${facts.adrs}</b><span>decision records</span></div>
-    <div class="fact"><b>0</b><span>runtime deps in core</span></div>
-  </div>
-
-  <h2>Why it exists</h2>
-  <p>Most backtesters lie in one of three ways, and all three are structural rather than accidental:</p>
-  <ol>
-    <li><b>They let a strategy act on information it did not have.</b> A bar arrives, the strategy reads its close, and the engine fills the resulting order at that same close.</li>
-    <li><b>They resolve intrabar ambiguity in the strategy's favour.</b> When a stop and a target both sit inside one bar's range, the engine quietly picks one, and it is rarely the stop.</li>
-    <li><b>They keep money in floating point.</b> Across a few hundred thousand fills, the reported PnL stops reconciling with the sum of the trades.</li>
-  </ol>
-  <p>Tapedeck is built so that none of the three is expressible.</p>
-
-  <h2>What that buys you</h2>
-  <p>A 24/72 moving-average crossover on a year of hourly BTCUSDT, with real Binance fees:</p>
-<pre>net profit          2,305.40 USDT
-PnL before costs    8,332.60 USDT
-costs ate               72.3%</pre>
-  <p class="note">A backtester that skipped fees would have reported a strategy three and a half times better than the one that exists. <a href="demo/">Set the costs to none in the demo</a> and watch it happen.</p>
-
-  <h2>The same strategy, live</h2>
-  <p class="note">A strategy runs unchanged in backtest and in paper trading against a live exchange feed. Not a compatibility layer: both modes share one synchronous kernel, and the only real difference is who fills the event queue, a file or a socket.</p>
-
-  <footer>
-    Built by <a href="https://github.com/naderfilho">Nader Filho</a> ·
-    <a href="https://github.com/naderfilho/Tapedeck/blob/main/docs/api.md">API guide</a> ·
-    <a href="https://github.com/naderfilho/Tapedeck/tree/main/docs/adr">decision records</a> ·
-    PolyForm Noncommercial
-  </footer>
-</div>
-</body>
-</html>
-`;
+  return html
+    .replace(head, `</style>\n${style}\n</head>`)
+    .replace(anchor, `<body>\n${bar}\n<main>`);
 }

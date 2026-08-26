@@ -16,6 +16,10 @@ const port = Number(process.env['PORT'] ?? 4173);
 
 const TYPES: Readonly<Record<string, string>> = {
   '.html': 'text/html; charset=utf-8',
+  // Without this the fallback below hands a stylesheet out as `application/octet-stream`, and a
+  // browser in standards mode refuses to apply it — the page renders with no styling at all and
+  // nothing in the console says why.
+  '.css': 'text/css; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
   '.json': 'application/json; charset=utf-8',
   '.txt': 'text/plain; charset=utf-8',

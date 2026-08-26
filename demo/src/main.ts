@@ -107,11 +107,26 @@ function readParams(): Params {
   };
 }
 
+type Metric = readonly [label: string, value: string, tone: string];
+
+const renderMetricsInto = (id: string, metrics: readonly Metric[]): void => {
+  el(id).innerHTML = metrics
+    .map(
+      ([label, value, tone]) =>
+        `<div class="metric"><span class="label">${label}</span><span class="value ${tone}">${value}</span></div>`,
+    )
+    .join('');
+};
+
 function renderMetrics(metrics: Metrics, elapsed: number, bars: number): void {
-  const cards: readonly (readonly [string, string, string])[] = [
+  // Three headline numbers and then the rest. Nine cards of identical weight is a table pretending
+  // to be a dashboard: it makes the reader decide what matters before they know what any of it is.
+  const lead: readonly Metric[] = [
     ['net profit', `${money(metrics.netProfit)} USDT`, metrics.netProfit >= 0 ? 'up' : 'down'],
     ['total return', percent(metrics.totalReturn), metrics.totalReturn >= 0 ? 'up' : 'down'],
     ['max drawdown', percent(metrics.maxDrawdown), 'down'],
+  ];
+  const rest: readonly Metric[] = [
     ['Sharpe', decimal(metrics.sharpe), ''],
     [
       'trades',
@@ -128,12 +143,8 @@ function renderMetrics(metrics: Metrics, elapsed: number, bars: number): void {
     ],
   ];
 
-  el('cards').innerHTML = cards
-    .map(
-      ([label, value, tone]) =>
-        `<div class="card"><span class="label">${label}</span><span class="value ${tone}">${value}</span></div>`,
-    )
-    .join('');
+  renderMetricsInto('headline', lead);
+  renderMetricsInto('cards', rest);
 
   // A run that finishes inside the clock's resolution gets no throughput figure. `performance.now`
   // is deliberately coarsened against timing attacks, and dividing by the zero it then returns
@@ -148,8 +159,13 @@ function renderMetrics(metrics: Metrics, elapsed: number, bars: number): void {
     `${bars.toLocaleString('en-US')} bars replayed in ${took}${rate}, ` +
     `in this tab, on the same kernel the CLI runs.`;
 
+  // The class carries the styling, so a run with nothing to declare draws nothing at all. The
+  // container used to be styled unconditionally and left an empty warning box on a clean run,
+  // which trains a reader to stop looking at the one place this engine puts its caveats.
   const warnings = metrics.warnings;
-  el('warnings').innerHTML =
+  const box = el('warnings');
+  box.className = warnings.length === 0 ? '' : 'callout';
+  box.innerHTML =
     warnings.length === 0
       ? ''
       : `<h3>What this run could not know</h3><ul>${warnings

@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Tapedeck — deterministic backtesting for TypeScript</title>
+    <meta
+      name="description"
+      content="An event-driven backtesting and paper-trading engine for TypeScript. No lookahead, fixed-point money, and it reports what it could not know."
+    />
+    <link rel="stylesheet" href="assets/site.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="topbar__inner">
+        <a class="brand" href="./">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+            <rect
+              x="0.75"
+              y="3.75"
+              width="18.5"
+              height="12.5"
+              rx="3"
+              stroke="currentColor"
+              stroke-width="1.5"
+            />
+            <circle cx="6.6" cy="10" r="2.1" stroke="currentColor" stroke-width="1.5" />
+            <circle cx="13.4" cy="10" r="2.1" stroke="currentColor" stroke-width="1.5" />
+          </svg>
+          Tapedeck
+        </a>
+        <nav class="topnav">
+          <a href="demo/">Demo</a>
+          <a href="report/">Report</a>
+          <a class="optional" href="bench.txt">Benchmark</a>
+          <a class="optional" href="https://github.com/naderfilho/Tapedeck/blob/main/docs/api.md"
+            >API</a
+          >
+          <a href="https://github.com/naderfilho/Tapedeck">GitHub</a>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <div class="wrap">
+        <section class="hero">
+          <div class="hero__copy">
+            <p class="eyebrow">Backtesting engine · TypeScript</p>
+            <h1>Backtests that cannot flatter you.</h1>
+            <p class="lede">
+              An event-driven backtesting and paper-trading engine for TypeScript. No lookahead,
+              money in fixed-point integers, and every assumption the run had to make printed above
+              the result instead of under it.
+            </p>
+            <div class="cta">
+              <a class="btn btn--primary" href="demo/">Run a backtest in your browser</a>
+              <a class="btn btn--ghost" href="report/">See a full report</a>
+            </div>
+            <p class="small muted" style="margin-top: 18px">
+              8,760 hourly bars replay in about 50&nbsp;ms, in your tab, on the same kernel the CLI
+              runs. Nothing is uploaded.
+            </p>
+          </div>
+
+          <div class="code hero__code">
+            <div class="code__bar">
+              <span class="code__dot"></span><span class="code__dot"></span
+              ><span class="code__dot"></span>
+              <span style="margin-left: 6px">strategy.ts</span>
+            </div>
+            <pre><code><span class="t-key">onBar</span>(bar, ctx) {
+  <span class="t-key">const</span> fast = fastSma.value;
+  <span class="t-key">const</span> slow = slowSma.value;
+  <span class="t-key">if</span> (fast === <span class="t-key">null</span> || slow === <span class="t-key">null</span>) <span class="t-key">return</span>;
+
+  <span class="t-key">const</span> side = fast &gt; slow ? <span class="t-num">1</span> : fast &lt; slow ? <span class="t-num">-1</span> : previous;
+  <span class="t-key">if</span> (side === previous) <span class="t-key">return</span>;
+  previous = side;
+
+  <span class="t-com">// Order the difference to a target position.</span>
+  <span class="t-com">// Positions are the truth; flags drift.</span>
+  <span class="t-fn">rebalance</span>(ctx, side &gt; <span class="t-num">0</span> ? qty : -qty);
+}</code></pre>
+          </div>
+        </section>
+
+        <div class="stats">
+          <div class="stat"><b>{{tests}}</b><span>tests</span></div>
+          <div class="stat"><b>97%</b><span>coverage</span></div>
+          <div class="stat"><b>{{adrs}}</b><span>decision records</span></div>
+          <div class="stat"><b>0</b><span>runtime deps in core</span></div>
+        </div>
+      </div>
+
+      <section class="section">
+        <div class="wrap">
+          <div class="section__head">
+            <p class="eyebrow">Why it exists</p>
+            <h2>Three ways a backtester lies</h2>
+            <p class="muted">
+              All three are structural rather than accidental. Tapedeck is built so that none of
+              them is expressible.
+            </p>
+          </div>
+
+          <div class="cards cards--3">
+            <article class="card">
+              <p class="card__index">01</p>
+              <h3>It acts on what it did not know</h3>
+              <p>
+                A bar arrives, the strategy reads its close, and the engine fills the resulting
+                order at that same close.
+              </p>
+              <p class="card__fix">
+                An order submitted while processing a bar can never match against that bar.
+              </p>
+            </article>
+
+            <article class="card">
+              <p class="card__index">02</p>
+              <h3>It breaks ties in your favour</h3>
+              <p>
+                When a stop and a target both sit inside one bar's range, the engine quietly picks
+                one, and it is rarely the stop.
+              </p>
+              <p class="card__fix">
+                The pessimistic branch wins, and the bar is counted in
+                <code>stats.ambiguousBars</code>.
+              </p>
+            </article>
+
+            <article class="card">
+              <p class="card__index">03</p>
+              <h3>It keeps money in floating point</h3>
+              <p>
+                Across a few hundred thousand fills, the reported PnL stops reconciling with the sum
+                of the trades.
+              </p>
+              <p class="card__fix">
+                Fixed-point integers end to end, with a cost basis rather than an average price.
+              </p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="wrap">
+          <div class="section__head">
+            <p class="eyebrow">What that buys you</p>
+            <h2>Costs ate 72% of this strategy</h2>
+            <p class="muted">
+              A 24/72 moving-average crossover on a year of hourly BTCUSDT, with real Binance fees.
+            </p>
+          </div>
+
+          <div class="stats" style="margin-bottom: 18px">
+            <div class="stat">
+              <b style="color: var(--ink-dim)">8,332.60</b><span>PnL before costs, USDT</span>
+            </div>
+            <div class="stat">
+              <b style="color: var(--down)">−6,027.20</b><span>commission paid, USDT</span>
+            </div>
+            <div class="stat">
+              <b style="color: var(--up)">2,305.40</b><span>net profit, USDT</span>
+            </div>
+          </div>
+
+          <div class="meter" aria-hidden="true"><i style="width: 72.3%"></i></div>
+          <p class="small muted" style="margin-top: 12px">
+            A backtester that skipped fees would have reported a strategy three and a half times
+            better than the one that exists.
+            <a href="demo/">Set the costs to none in the demo</a> and watch it happen.
+          </p>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="wrap">
+          <div class="section__head">
+            <p class="eyebrow">Paper trading</p>
+            <h2>The same strategy, live</h2>
+            <p class="muted">
+              A strategy runs unchanged in backtest and in paper trading against a live exchange
+              feed. Not a compatibility layer: both modes share one synchronous kernel, and the only
+              real difference is who fills the event queue, a file or a socket.
+            </p>
+          </div>
+
+          <div class="code">
+            <div class="code__bar">
+              <span class="code__dot"></span><span class="code__dot"></span
+              ><span class="code__dot"></span>
+              <span style="margin-left: 6px">terminal</span>
+            </div>
+            <pre><code><span class="t-com"># the committed year of hourly BTCUSDT, start to finish</span>
+$ tapedeck run strategy.ts --data btcusdt-1h.tape
+
+<span class="t-com"># the same file, against the live Binance socket</span>
+$ tapedeck paper strategy.ts --venue binance --symbol BTCUSDT</code></pre>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="wrap">
+        <div class="footer__links">
+          <a href="demo/">Demo</a>
+          <a href="report/">Report</a>
+          <a href="bench.txt">Benchmark</a>
+          <a href="https://github.com/naderfilho/Tapedeck/blob/main/docs/api.md">API guide</a>
+          <a href="https://github.com/naderfilho/Tapedeck/tree/main/docs/adr">Decision records</a>
+          <a href="https://github.com/naderfilho/Tapedeck">Source</a>
+        </div>
+        <p style="margin: 0">
+          Built by <a href="https://github.com/naderfilho">Nader Filho</a> · PolyForm Noncommercial
+        </p>
+      </div>
+    </footer>
+  </body>
+</html>

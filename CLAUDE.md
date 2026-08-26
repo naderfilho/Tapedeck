@@ -38,6 +38,17 @@ to `src` and does not. So a change to core that you are testing through the CLI 
 `corepack pnpm -r build` first, or you will be debugging the previous build — which happened while
 phase 4's live session was being smoke-tested, and looked exactly like a bug in the new code.
 
+**The site.** `site/` is a build output and is gitignored — editing it changes nothing. The sources
+are `demo/`: `landing.html` (with `{{placeholders}}` the build substitutes), `index.html` for the
+demo, `site.css` for all of it, and `build.ts`, which also grafts the site header onto a copy of
+`out/report.html`. So `corepack pnpm site` needs the example to have run first, and **a change to
+the site is not published until it is pushed** — the Pages workflow rebuilds on push to `main` and
+nothing else. Check the deployed URL, not `site:serve`, before calling it done.
+
+One stylesheet, dark by default and light under `prefers-color-scheme`. The report page is the
+light expression of the same tokens rather than an exception to them: it is a document, and it gets
+printed. `renderHtmlReport` stays untouched by any of this.
+
 ## Non-negotiables
 
 These are the decisions the project exists to demonstrate. Do not quietly relax one; if a change

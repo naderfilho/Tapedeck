@@ -238,12 +238,16 @@ function tradeTable(result: RunResult, currency: string, limit: number): string 
       ? `<p class="note">Showing the first ${String(shown.length)} of ${String(result.trades.length)} trades.</p>`
       : '';
 
-  return `<table>
+  // Nine columns of ISO timestamps do not fit a phone, and a table that cannot fit takes the whole
+  // page sideways with it: every heading above it then scrolls too, so the reader is dragging the
+  // document left and right to read a number. Scrolling the table inside its own box keeps the
+  // overflow where it belongs. Still one file, still no script.
+  return `<div class="table-scroll"><table>
   <thead><tr><th>#</th><th>Symbol</th><th>Side</th><th>Entry</th><th>Exit</th><th>Bars</th><th>Gross</th><th>Fees</th><th>Net</th></tr></thead>
   <tbody>
 ${rows}
   </tbody>
-</table>${note}`;
+</table></div>${note}`;
 }
 
 const STYLE = `
@@ -277,10 +281,11 @@ h2 { font-size: 15px; text-transform: uppercase; letter-spacing: 0.08em; color: 
 .bin { fill: #8a95a1; }
 .bin.win { fill: #0f7b4f; }
 .bin.loss { fill: #b3261e; }
-.meta { display: grid; grid-template-columns: 180px 1fr; gap: 4px 16px; font-size: 14px; }
+.meta { display: grid; grid-template-columns: minmax(120px, 180px) 1fr; gap: 4px 16px; font-size: 14px; }
 .meta dt { color: #5b6570; }
-.meta dd { margin: 0; font-variant-numeric: tabular-nums; }
-table { width: 100%; border-collapse: collapse; font-size: 13px; background: #fff; border: 1px solid #e3e6ea; border-radius: 10px; overflow: hidden; }
+.meta dd { margin: 0; min-width: 0; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.table-scroll { overflow-x: auto; border: 1px solid #e3e6ea; border-radius: 10px; background: #fff; }
+table { width: 100%; min-width: 640px; border-collapse: collapse; font-size: 13px; background: #fff; }
 th, td { padding: 7px 10px; text-align: left; border-bottom: 1px solid #eef0f3; }
 th { background: #fafbfc; font-weight: 600; color: #5b6570; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
 td.num { text-align: right; font-variant-numeric: tabular-nums; }
