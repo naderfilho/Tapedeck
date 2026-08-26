@@ -60,8 +60,9 @@
               >
             </div>
             <p class="small muted" style="margin-top: 18px" data-i18n="home.note">
-              8,760 hourly bars replay in about 50&nbsp;ms, in your tab, on the same kernel the CLI
-              runs. Nothing is uploaded.
+              8,760 hourly bars replay in about 50&nbsp;ms in your tab, on the same kernel the CLI
+              runs — the demo is the engine, not a recording of it. That is what a core with no
+              runtime dependencies buys, and it is the reason this is TypeScript.
             </p>
           </div>
 
@@ -108,8 +109,7 @@ Result
 
             <p class="hero__caption" data-i18n="home.caption">
               The caveats print <strong>above</strong> the result. In the terminal, in the report
-              and on this site, every time. An engine that knows what it could not model and hides
-              it is the one that flatters you.
+              and on this site, every time.
             </p>
           </div>
         </section>
@@ -178,7 +178,11 @@ Result
         <div class="wrap">
           <div class="section__head">
             <p class="eyebrow" data-i18n="home.costs.eyebrow">What that buys you</p>
-            <h2>Costs ate {{costShare}}% of this strategy</h2>
+            <!-- Split so the figure stays substituted at build time while the words around it translate. -->
+            <h2>
+              <span data-i18n="home.costs.pre">Costs ate</span> {{costShare}}%
+              <span data-i18n="home.costs.post">of this strategy</span>
+            </h2>
             <p class="muted" data-i18n="home.costs.lede">
               A 24/72 moving-average crossover on a year of hourly BTCUSDT, with real Binance fees.
             </p>
@@ -285,11 +289,18 @@ Result
         <div class="wrap">
           <div class="section__head">
             <p class="eyebrow" data-i18n="home.live.eyebrow">Paper trading</p>
-            <h2 data-i18n="home.live.title">The same strategy, live</h2>
+            <h2 data-i18n="home.live.title">The same strategy, on a live feed</h2>
             <p class="muted" data-i18n="home.live.lede">
-              A strategy runs unchanged in backtest and in paper trading against a live exchange
-              feed. Not a compatibility layer: both modes share one synchronous kernel, and the only
-              real difference is who fills the event queue, a file or a socket.
+              A strategy runs unchanged in a backtest and against a live exchange feed. Both modes
+              share one synchronous kernel and differ only in who fills the event queue, a file or a
+              socket.
+            </p>
+            <p class="muted" data-i18n="home.live.limits">
+              The feed is live; the broker is the simulator. So the hard half of live trading is not
+              here: no order reaches a venue, and there is no acknowledgement, no rejection, no
+              exchange-side partial fill, no rate limit and no reconciliation against a real
+              account. The provider has no concept of a credential, by design — but absent is
+              absent, and this is a live feed rather than live execution.
             </p>
           </div>
 
@@ -304,6 +315,49 @@ $ tapedeck run strategy.ts --data btcusdt-1h.tape
 
 <span class="t-com"># the same file, against the live Binance socket</span>
 $ tapedeck paper strategy.ts --venue binance --symbol BTCUSDT</code></pre>
+          </div>
+        </div>
+      </section>
+      <section class="section">
+        <div class="wrap">
+          <div class="section__head">
+            <p class="eyebrow" data-i18n="home.peers.eyebrow">Where this sits</p>
+            <h2 data-i18n="home.peers.title">What this is not</h2>
+            <p class="muted" data-i18n="home.peers.lede">
+              Older and larger tools already do this, and some of them run real money.
+              <a href="https://nautilustrader.io/">NautilusTrader</a> has a Rust core and adapters
+              for real venues; <a href="https://www.quantconnect.com/">LEAN</a> brings data and
+              brokerages with it; <a href="https://vectorbt.dev/">VectorBT</a> sweeps parameters
+              orders of magnitude faster; <a href="https://www.backtrader.com/">backtrader</a> has
+              years of community behind it. If you need to trade real money this quarter, use one of
+              those.
+            </p>
+          </div>
+
+          <div class="cards cards--3">
+            <article class="card">
+              <h3 data-i18n="home.peers.a.title">What is different</h3>
+              <p data-i18n="home.peers.a.body">
+                Every modelling assumption is a reported number rather than a footnote: ambiguous
+                bars, latency too short to honour, and what an aggregation left out, printed above
+                the result. That is the subject here, not a feature.
+              </p>
+            </article>
+            <article class="card">
+              <h3 data-i18n="home.peers.b.title">It runs in a tab</h3>
+              <p data-i18n="home.peers.b.body">
+                No install, no account, no container. The core has no runtime dependencies and
+                imports nothing from Node, so the page you are on runs the same engine the command
+                line does.
+              </p>
+            </article>
+            <article class="card">
+              <h3 data-i18n="home.peers.c.title">It is small enough to read</h3>
+              <p data-i18n="home.peers.c.body">
+                Six packages, an ADR for every decision that could have gone the other way, and a
+                test suite where five property tests changed the code rather than confirming it.
+              </p>
+            </article>
           </div>
         </div>
       </section>
@@ -326,8 +380,11 @@ $ tapedeck paper strategy.ts --venue binance --symbol BTCUSDT</code></pre>
           <a href="https://github.com/naderfilho/Tapedeck" data-i18n="foot.source">Source</a>
         </div>
         <p class="footer__credit" style="margin: 0">
-          {{brandMark}} Built by <a href="https://github.com/naderfilho">Nader Filho</a> · PolyForm
-          Noncommercial
+          {{brandMark}}
+          <span data-i18n="foot.credit"
+            >Designed and built by <a href="https://github.com/naderfilho">Nader Filho</a> ·
+            PolyForm Noncommercial</span
+          >
         </p>
       </div>
     </footer>

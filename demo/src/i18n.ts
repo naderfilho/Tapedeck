@@ -31,7 +31,8 @@ const PT: Readonly<Record<string, string>> = {
   'foot.apiGuide': 'Guia da API',
   'foot.adrs': 'Decisões de arquitetura',
   'foot.source': 'Código-fonte',
-  'foot.builtBy': 'Feito por',
+  'foot.credit':
+    'Projetado e construído por <a href="https://github.com/naderfilho">Nader Filho</a> · PolyForm Noncommercial',
 
   // -------------------------------------------------------------------- landing page
   'home.eyebrow': 'Motor de backtest · TypeScript',
@@ -41,9 +42,9 @@ const PT: Readonly<Record<string, string>> = {
   'home.cta.demo': 'Rode um backtest no navegador',
   'home.cta.report': 'Veja um report completo',
   'home.note':
-    '8.760 candles de 1h são reprocessados em cerca de 50 ms, na sua aba, no mesmo kernel que a linha de comando roda. Nada sai do seu navegador.',
+    '8.760 candles de 1h são reprocessados em cerca de 50 ms na sua aba, no mesmo kernel que a linha de comando roda — a demo é o motor, não uma gravação dele. É isso que um core sem dependências de runtime compra, e é a razão de isto ser TypeScript.',
   'home.caption':
-    'As ressalvas são impressas <strong>acima</strong> do resultado. No terminal, no report e neste site, sempre. O motor que sabe o que não conseguiu modelar e esconde é o que bajula.',
+    'As ressalvas são impressas <strong>acima</strong> do resultado. No terminal, no report e neste site, sempre.',
   'stat.tests': 'testes',
   'stat.coverage': 'cobertura',
   'stat.adrs': 'decisões registradas',
@@ -70,6 +71,8 @@ const PT: Readonly<Record<string, string>> = {
     'Inteiros de ponto fixo de ponta a ponta, com custo de aquisição em vez de preço médio.',
 
   'home.costs.eyebrow': 'O que isso te dá',
+  'home.costs.pre': 'Os custos comeram',
+  'home.costs.post': 'desta estratégia',
   'home.costs.lede':
     'Um cruzamento de médias móveis 24/72 sobre um ano de BTCUSDT em 1h, com as taxas reais da Binance.',
   'home.costs.gross': 'PnL antes dos custos, USDT',
@@ -95,9 +98,25 @@ const PT: Readonly<Record<string, string>> = {
     'Faixa de entrada nas duas, tirada da tabela de cada corretora com a data em que foi lida. Os tapes são dois books diferentes, então isto é o custo de uma corretora somado ao mercado dela, e não taxas no vácuo — que é exatamente por que o motor não deixa precificar o tape de uma corretora com as taxas da outra. <a href="demo/?symbol=coinbase-BTC-USD&amp;tf=1h&amp;strategy=sma-crossover&amp;size=25000&amp;costs=coinbaseExchange">Abra a execução da Coinbase</a>.',
 
   'home.live.eyebrow': 'Paper trading',
-  'home.live.title': 'A mesma estratégia, ao vivo',
+  'home.live.title': 'A mesma estratégia, num feed ao vivo',
   'home.live.lede':
-    'Uma estratégia roda inalterada em backtest e em paper trading contra o feed ao vivo da exchange. Não é camada de compatibilidade: os dois modos compartilham um único kernel síncrono, e a única diferença real é quem alimenta a fila de eventos, um arquivo ou um socket.',
+    'Uma estratégia roda inalterada em backtest e contra o feed ao vivo da corretora. Os dois modos compartilham um único kernel síncrono e diferem só em quem alimenta a fila de eventos: um arquivo ou um socket.',
+  'home.live.limits':
+    'O feed é ao vivo; o broker é o simulador. Então a metade difícil de operar ao vivo não está aqui: nenhuma ordem chega à corretora, e não há confirmação, rejeição, execução parcial do lado da exchange, rate limit nem reconciliação com uma conta real. O provider não tem conceito de credencial, de propósito — mas ausente é ausente, e isto é um feed ao vivo, não execução ao vivo.',
+
+  'home.peers.eyebrow': 'Onde isso se encaixa',
+  'home.peers.title': 'O que isto não é',
+  'home.peers.lede':
+    'Ferramentas mais antigas e maiores já fazem isso, e algumas operam dinheiro de verdade. O <a href="https://nautilustrader.io/">NautilusTrader</a> tem core em Rust e adaptadores para corretoras reais; o <a href="https://www.quantconnect.com/">LEAN</a> já vem com dados e brokers; o <a href="https://vectorbt.dev/">VectorBT</a> varre parâmetros ordens de grandeza mais rápido; o <a href="https://www.backtrader.com/">backtrader</a> tem anos de comunidade atrás. Se você precisa operar dinheiro real neste trimestre, use uma delas.',
+  'home.peers.a.title': 'O que é diferente',
+  'home.peers.a.body':
+    'Toda suposição de modelagem é um número reportado, não uma nota de rodapé: barras ambíguas, latência curta demais para ser honrada, e o que a agregação deixou de fora, impressos acima do resultado. Isso é o assunto aqui, não um recurso.',
+  'home.peers.b.title': 'Roda numa aba',
+  'home.peers.b.body':
+    'Sem instalar, sem conta, sem container. O core não tem dependências de runtime e não importa nada do Node, então esta página roda o mesmo motor que a linha de comando.',
+  'home.peers.c.title': 'É pequeno o bastante para ler',
+  'home.peers.c.body':
+    'Seis pacotes, um ADR para cada decisão que poderia ter ido para o outro lado, e uma suíte onde cinco testes de propriedade mudaram o código em vez de confirmá-lo.',
 
   // ----------------------------------------------------------------------- demo page
   'demo.eyebrow': 'Demo ao vivo',
