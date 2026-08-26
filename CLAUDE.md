@@ -45,9 +45,13 @@ demo, `site.css` for all of it, and `build.ts`, which also grafts the site heade
 the site is not published until it is pushed** — the Pages workflow rebuilds on push to `main` and
 nothing else. Check the deployed URL, not `site:serve`, before calling it done.
 
-One stylesheet, dark by default and light under `prefers-color-scheme`. The report page is the
-light expression of the same tokens rather than an exception to them: it is a document, and it gets
-printed. `renderHtmlReport` stays untouched by any of this.
+Dark by default and light under `prefers-color-scheme`, in `demo/site.css` for the two hand-written
+pages and in `renderHtmlReport`'s inlined `STYLE` for the report, which carries the same token
+names. ADR-0013 constrains the report to one file with no script and no network request; it says
+nothing about colour, so following the reader's system does not relax it. **Printing does**
+constrain it — the ADR's context names it — so `@media print` forces the palette back to ink on
+white, drops the header and unwraps the table's scroll box. Verified from a generated PDF rather
+than by reading the stylesheet: the page fill comes out `1 1 1`.
 
 ## Non-negotiables
 

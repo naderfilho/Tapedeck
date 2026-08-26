@@ -251,49 +251,93 @@ ${rows}
 }
 
 const STYLE = `
-:root { color-scheme: light; }
+/* The site's tokens, inlined. A report is still one file with no script and no network request
+   (ADR-0013) — that decision says nothing about colour, so this follows the reader's system
+   instead of being the one white page in a dark site. Printing is handled at the bottom: the
+   palette is forced back to paper, because "it gets printed" is in the ADR's own context. */
+:root {
+  color-scheme: dark;
+  --bg: #0d1219; --panel: #111823; --panel-2: #161f2b;
+  --line: #1e2836; --line-strong: #2a3648;
+  --ink: #e8eef8; --ink-dim: #97a6bd; --ink-faint: #7d8ca6;
+  --accent: #5aa9ff; --accent-soft: rgba(90, 169, 255, 0.10);
+  --up: #35d399; --down: #ff6f6f; --down-soft: rgba(255, 111, 111, 0.12);
+  --warn: #f5b544; --warn-soft: rgba(245, 181, 68, 0.08);
+  --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, "Liberation Mono", monospace;
+}
+@media (prefers-color-scheme: light) {
+  :root {
+    color-scheme: light;
+    --bg: #f6f8fb; --panel: #ffffff; --panel-2: #f4f7fb;
+    --line: #e4e9f0; --line-strong: #d2dae5;
+    --ink: #0b1017; --ink-dim: #55637a; --ink-faint: #646e80;
+    --accent: #1d63d8; --accent-soft: rgba(29, 99, 216, 0.08);
+    --up: #0b7a51; --down: #b8271f; --down-soft: rgba(184, 39, 31, 0.10);
+    --warn: #9a6410; --warn-soft: rgba(154, 100, 16, 0.07);
+  }
+}
 * { box-sizing: border-box; }
-body { margin: 0; padding: 32px 24px 64px; font: 15px/1.55 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: #14171a; background: #f6f7f9; }
-main { max-width: 1080px; margin: 0 auto; }
-h1 { font-size: 24px; margin: 0 0 4px; letter-spacing: -0.01em; }
-h2 { font-size: 15px; text-transform: uppercase; letter-spacing: 0.08em; color: #5b6570; margin: 40px 0 12px; font-weight: 600; }
-.subtitle { color: #5b6570; margin: 0 0 24px; font-size: 14px; }
-.panel { background: #fff; border: 1px solid #e3e6ea; border-radius: 10px; padding: 20px; }
-.caveats { border-left: 4px solid #c2801a; background: #fff8ec; }
-.caveats h2 { margin-top: 0; color: #8a5a10; }
-.caveats ul { margin: 0; padding-left: 20px; }
+body { margin: 0; padding: 0 0 64px; font: 15px/1.55 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: var(--ink); background: var(--bg); -webkit-font-smoothing: antialiased; }
+main { max-width: 1080px; margin: 0 auto; padding: 34px 24px 0; }
+h1 { font-size: 27px; margin: 0 0 5px; letter-spacing: -0.022em; font-weight: 650; }
+h2 { font-family: var(--mono); font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.09em; color: var(--ink-faint); margin: 40px 0 10px; font-weight: 600; }
+.subtitle { color: var(--ink-dim); margin: 0 0 24px; font-size: 14px; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 20px; }
+.caveats { border: 1px solid var(--warn); border-left-width: 4px; background: var(--warn-soft); }
+.caveats h2 { margin-top: 0; color: var(--warn); }
+.caveats ul { margin: 0; padding-left: 20px; color: var(--ink-dim); }
 .caveats li { margin-bottom: 8px; }
 .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 12px; }
-.card { background: #fff; border: 1px solid #e3e6ea; border-radius: 10px; padding: 12px 14px; }
-.card-label { font-size: 12px; color: #5b6570; text-transform: uppercase; letter-spacing: 0.05em; }
-.card-value { font-size: 20px; font-variant-numeric: tabular-nums; margin-top: 4px; }
-.card.good .card-value { color: #0f7b4f; }
-.card.bad .card-value { color: #b3261e; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 13px 15px; }
+.card-label { font-family: var(--mono); font-size: 11px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.06em; }
+.card-value { font-family: var(--mono); font-size: 18px; font-weight: 600; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; margin-top: 6px; }
+.card.good .card-value { color: var(--up); }
+.card.bad .card-value { color: var(--down); }
 .chart { width: 100%; height: auto; display: block; }
-.grid { stroke: #e3e6ea; stroke-width: 1; }
-.tick { fill: #7a8590; font-size: 11px; font-family: inherit; }
-.baseline { stroke: #b9c0c8; stroke-width: 1; stroke-dasharray: 4 4; }
-.equity-line { fill: none; stroke: #1f6feb; stroke-width: 1.6; stroke-linejoin: round; }
-.equity-area { fill: rgba(31, 111, 235, 0.08); stroke: none; }
-.drawdown-span { fill: rgba(179, 38, 30, 0.08); }
-.drawdown-line { fill: none; stroke: #b3261e; stroke-width: 1.2; }
-.drawdown-area { fill: rgba(179, 38, 30, 0.12); stroke: none; }
-.bin { fill: #8a95a1; }
-.bin.win { fill: #0f7b4f; }
-.bin.loss { fill: #b3261e; }
-.meta { display: grid; grid-template-columns: minmax(120px, 180px) 1fr; gap: 4px 16px; font-size: 14px; }
-.meta dt { color: #5b6570; }
-.meta dd { margin: 0; min-width: 0; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
-.table-scroll { overflow-x: auto; border: 1px solid #e3e6ea; border-radius: 10px; background: #fff; }
-table { width: 100%; min-width: 640px; border-collapse: collapse; font-size: 13px; background: #fff; }
-th, td { padding: 7px 10px; text-align: left; border-bottom: 1px solid #eef0f3; }
-th { background: #fafbfc; font-weight: 600; color: #5b6570; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
-td.num { text-align: right; font-variant-numeric: tabular-nums; }
-td.strong { font-weight: 600; }
-tr.win td.strong { color: #0f7b4f; }
-tr.loss td.strong { color: #b3261e; }
-.note, .empty { color: #7a8590; font-size: 13px; margin: 10px 2px 0; }
-footer { margin-top: 48px; color: #7a8590; font-size: 12px; }
+.grid { stroke: var(--line); stroke-width: 1; }
+.tick { fill: var(--ink-faint); font-size: 13px; font-family: var(--mono); }
+.baseline { stroke: var(--line-strong); stroke-width: 1; stroke-dasharray: 4 4; }
+.equity-line { fill: none; stroke: var(--accent); stroke-width: 1.8; stroke-linejoin: round; }
+.equity-area { fill: var(--accent-soft); stroke: none; }
+.drawdown-span { fill: var(--down-soft); }
+.drawdown-line { fill: none; stroke: var(--down); stroke-width: 1.4; }
+.drawdown-area { fill: var(--down-soft); stroke: none; }
+.bin { fill: var(--ink-faint); }
+.bin.win { fill: var(--up); }
+.bin.loss { fill: var(--down); }
+.meta { display: grid; grid-template-columns: minmax(120px, 180px) 1fr; gap: 6px 16px; font-size: 14px; }
+.meta dt { color: var(--ink-dim); }
+.meta dd { margin: 0; min-width: 0; overflow-wrap: anywhere; font-family: var(--mono); font-size: 13px; font-variant-numeric: tabular-nums; }
+.table-scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); }
+table { width: 100%; min-width: 640px; border-collapse: collapse; font-size: 13px; background: var(--panel); }
+th, td { padding: 8px 11px; text-align: left; border-bottom: 1px solid var(--line); }
+th { background: var(--panel-2); font-family: var(--mono); font-weight: 600; color: var(--ink-faint); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
+td { color: var(--ink-dim); }
+td.num { text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; }
+td.strong { font-weight: 600; color: var(--ink); }
+tr.win td.strong { color: var(--up); }
+tr.loss td.strong { color: var(--down); }
+.note, .empty { color: var(--ink-faint); font-size: 13px; margin: 10px 2px 0; }
+footer { margin-top: 48px; padding-top: 20px; border-top: 1px solid var(--line); color: var(--ink-faint); font-size: 12px; }
+@media (max-width: 720px) { .tick { font-size: 20px; } }
+/* On paper the palette goes back to ink on white whatever the screen was set to, and the table
+   stops being a scroll box, because a clipped column does not exist once it is printed. */
+@media print {
+  :root {
+    color-scheme: light;
+    --bg: #ffffff; --panel: #ffffff; --panel-2: #ffffff;
+    --line: #c8ced8; --line-strong: #aab3c0;
+    --ink: #000000; --ink-dim: #333c48; --ink-faint: #56606e;
+    --accent: #10459c; --accent-soft: rgba(16, 69, 156, 0.08);
+    --up: #0a6b47; --down: #97201a; --down-soft: rgba(151, 32, 26, 0.10);
+    --warn: #7d5210; --warn-soft: rgba(125, 82, 16, 0.06);
+  }
+  body { padding: 0; }
+  main { padding: 0; max-width: none; }
+  .table-scroll { overflow: visible; }
+  table { min-width: 0; }
+  .site-topbar { display: none; }
+}
 `;
 
 /**

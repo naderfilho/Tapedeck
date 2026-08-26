@@ -119,11 +119,10 @@ function fill(template: string, values: Readonly<Record<string, string>>): strin
 /**
  * Grafts the site's header onto a standalone report.
  *
- * The bar is styled inline here rather than linked to `assets/site.css`, and it is pinned to the
- * light palette on purpose. The rest of the site is dark by default; a report is a document. It
- * gets printed, attached to a pull request and read on paper, and none of those want a black page.
- * So the report is the light-mode expression of the same design — same type, same accent, same
- * navigation — rather than an exception to it.
+ * The bar is styled inline rather than linked to `assets/site.css`, because the page it lands on
+ * has to keep working as a file on a USB stick with no `assets/` next to it (ADR-0013). It draws
+ * its colours from the tokens `renderHtmlReport` already defines, so the header follows whatever
+ * theme the report is in instead of pinning one — including the print block, which hides it.
  *
  * Injection rather than a template: the report's markup belongs to `renderHtmlReport`, and this
  * has no business knowing anything about it beyond where `<main>` opens. If that anchor ever stops
@@ -142,22 +141,22 @@ function withSiteChrome(html: string): string {
 
   const style =
     '<style>' +
-    // The report's own rule pads the body; the bar has to reach both edges, so the padding moves
-    // to `main`, which is already the centred column.
-    'body{padding:0 0 64px!important}' +
-    'main{padding:26px 24px 0}' +
-    '.site-topbar{position:sticky;top:0;z-index:20;background:rgba(255,255,255,.86);' +
-    'backdrop-filter:saturate(1.6) blur(12px);border-bottom:1px solid #e4e9f0}' +
+    // The bar sits above `main`, which already carries the report's own top padding; without this
+    // the page opens with 34px of gap under the header.
+    'main{padding-top:26px}' +
+    '.site-topbar{position:sticky;top:0;z-index:20;' +
+    'background:color-mix(in srgb, var(--bg) 86%, transparent);' +
+    'backdrop-filter:saturate(1.6) blur(12px);border-bottom:1px solid var(--line)}' +
     '.site-topbar__inner{max-width:1080px;margin:0 auto;padding:0 24px;height:58px;' +
     'display:flex;align-items:center;gap:20px}' +
-    `.site-brand{display:inline-flex;align-items:center;gap:9px;color:#0b1017;text-decoration:none;` +
-    'font-weight:650;font-size:15.5px;letter-spacing:-.01em}' +
+    '.site-brand{display:inline-flex;align-items:center;gap:9px;color:var(--ink);' +
+    'text-decoration:none;font-weight:650;font-size:15.5px;letter-spacing:-.01em}' +
     '.site-brand svg{display:block}' +
     '.site-nav{display:flex;align-items:center;gap:4px;margin-left:auto}' +
-    `.site-nav a{padding:7px 11px;border-radius:8px;color:#55637a;text-decoration:none;` +
+    '.site-nav a{padding:7px 11px;border-radius:8px;color:var(--ink-dim);text-decoration:none;' +
     'font-size:14px;font-weight:550;white-space:nowrap}' +
-    '.site-nav a:hover{color:#0b1017;background:#f4f7fb}' +
-    '.site-nav a[aria-current=page]{color:#0b1017;background:#f4f7fb}' +
+    '.site-nav a:hover{color:var(--ink);background:var(--panel-2)}' +
+    '.site-nav a[aria-current=page]{color:var(--ink);background:var(--panel-2)}' +
     '@media (max-width:640px){.site-nav a.optional{display:none}}' +
     '</style>';
 
