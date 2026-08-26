@@ -30,23 +30,29 @@
           Tapedeck
         </a>
         <nav class="topnav">
-          <a href="./" aria-current="page">Demo</a>
-          <a href="../report/" data-report-link>Report</a>
-          <a class="optional" href="../bench.txt">Benchmark</a>
+          <a href="./" aria-current="page" data-i18n="nav.demo">Demo</a>
+          <a href="../report/" data-report-link data-i18n="nav.report">Report</a>
+          <a class="optional" href="../bench.txt" data-i18n="nav.bench">Benchmark</a>
           <a class="optional" href="https://github.com/naderfilho/Tapedeck/blob/main/docs/api.md"
             >API</a
           >
-          <a class="secondary" href="https://github.com/naderfilho/Tapedeck">GitHub</a>
-          <a class="topnav__cta" href="../login/">Sign in</a>
+          <a class="secondary" href="https://github.com/naderfilho/Tapedeck" data-i18n="nav.github"
+            >GitHub</a
+          >
+          <a class="topnav__cta" href="../login/" data-i18n="nav.signin">Sign in</a>
+          <div class="langs" role="group" aria-label="Language">
+            <button class="lang" type="button" data-lang="en" aria-pressed="true">EN</button>
+            <button class="lang" type="button" data-lang="pt" aria-pressed="false">PT</button>
+          </div>
         </nav>
       </div>
     </header>
 
     <main class="wrap">
       <section class="page-head">
-        <p class="eyebrow">Live demo</p>
-        <h1>The engine, running in your browser</h1>
-        <p class="lede">
+        <p class="eyebrow" data-i18n="demo.eyebrow">Live demo</p>
+        <h1 data-i18n="demo.title">The engine, running in your browser</h1>
+        <p class="lede" data-i18n="demo.lede">
           Pick a market, change any parameter, and the backtest re-runs in this tab on the same
           deterministic kernel the command line uses. Nothing is sent anywhere, the page replays a
           committed year of real Binance data locally.
@@ -59,9 +65,9 @@
       <form class="toolbar" onsubmit="return false;">
         <label class="field">
           <span
-            >fast average
+            ><span data-i18n="field.fast">fast average</span>
             <button class="help" type="button" aria-label="What this does">
-              ?<span class="help__bubble" role="tooltip"
+              ?<span class="help__bubble" role="tooltip" data-i18n="help.fast"
                 >Bars in the shorter moving average. It reacts sooner, so it crosses more often and
                 pays more commission.</span
               >
@@ -71,9 +77,9 @@
         </label>
         <label class="field">
           <span
-            >slow average
+            ><span data-i18n="field.slow">slow average</span>
             <button class="help" type="button" aria-label="What this does">
-              ?<span class="help__bubble" role="tooltip"
+              ?<span class="help__bubble" role="tooltip" data-i18n="help.slow"
                 >Bars in the longer moving average. The pair crossing is the entire signal: fast
                 above slow is long, below is short.</span
               >
@@ -83,9 +89,9 @@
         </label>
         <label class="field">
           <span
-            >position size (USDT)
+            ><span data-i18n="field.size">position size (USDT)</span>
             <button class="help" type="button" aria-label="What this does">
-              ?<span class="help__bubble" role="tooltip"
+              ?<span class="help__bubble" role="tooltip" data-i18n="help.size"
                 >How much to hold per signal, in quote currency. Quoted in USDT rather than coins so
                 the five markets are comparable; the coin amount is derived per instrument and shown
                 below.</span
@@ -97,33 +103,35 @@
         </label>
         <label class="field field--wide">
           <span
-            >costs
+            ><span data-i18n="field.costs">costs</span>
             <button class="help" type="button" aria-label="What this does">
-              ?<span class="help__bubble" role="tooltip"
+              ?<span class="help__bubble" role="tooltip" data-i18n="help.costs"
                 >Binance spot applies the venue published 10 bps taker fee plus slippage. Setting it
                 to none is the flattering configuration most backtesters ship by default.</span
               >
             </button></span
           >
           <select id="preset">
-            <option value="binanceSpot">Binance spot, 10 bps + slippage</option>
-            <option value="ideal">none, the flattering one</option>
+            <option value="binanceSpot" data-i18n="costs.binance">
+              Binance spot, 10 bps + slippage
+            </option>
+            <option value="ideal" data-i18n="costs.ideal">none, the flattering one</option>
           </select>
         </label>
         <label class="switch">
           <input id="short" type="checkbox" checked />
           <span
-            >allow shorts
+            ><span data-i18n="field.short">allow shorts</span>
             <button class="help" type="button" aria-label="What this does">
-              ?<span class="help__bubble" role="tooltip"
+              ?<span class="help__bubble" role="tooltip" data-i18n="help.short"
                 >When on, a bearish cross opens a short. When off, it exits to flat instead, which
                 is what a spot account without margin can actually do.</span
               >
             </button></span
           >
         </label>
-        <button id="run" class="btn btn--primary" type="button">Run</button>
-        <p class="toolbar__hint">
+        <button id="run" class="btn btn--primary" type="button" data-i18n="field.run">Run</button>
+        <p class="toolbar__hint" data-i18n="demo.hint">
           Every change re-runs the backtest. Starting equity is 100,000&nbsp;USDT, and the defaults
           are the exact configuration behind <a href="../report/">the published report</a>.
         </p>
@@ -142,20 +150,22 @@
         <div id="cards" class="metrics"></div>
 
         <h2 class="chart-title">
-          Equity <span class="chart-title__hint">hover to read a date</span>
+          <span data-i18n="chart.equity">Equity</span>
+          <span class="chart-title__hint" data-i18n="chart.hover">hover to read a date</span>
         </h2>
         <div class="panel chart-panel" id="equity"></div>
 
         <h2 class="chart-title">
-          Drawdown <span class="chart-title__hint">hover to read a date</span>
+          <span data-i18n="chart.drawdown">Drawdown</span>
+          <span class="chart-title__hint" data-i18n="chart.hover">hover to read a date</span>
         </h2>
         <div class="panel chart-panel" id="drawdown"></div>
 
         <p class="results__more">
-          <a class="btn btn--ghost" href="../report/" data-report-link
+          <a class="btn btn--ghost" href="../report/" data-report-link data-i18n="demo.more.cta"
             >Open the full report for this run</a
           >
-          <span class="small muted"
+          <span class="small muted" data-i18n="demo.more.note"
             >Trade list, cost breakdown and run settings, generated by the same function the CLI
             calls. The link carries the configuration, so it opens on this run and can be
             shared.</span
@@ -165,27 +175,27 @@
 
       <section class="section">
         <div class="section__head">
-          <p class="eyebrow">Two things worth trying</p>
-          <h2>Where the result comes from</h2>
+          <p class="eyebrow" data-i18n="demo.try.eyebrow">Two things worth trying</p>
+          <h2 data-i18n="demo.try.title">Where the result comes from</h2>
         </div>
         <div class="cards cards--3">
           <article class="card">
-            <h3>Set the costs to none</h3>
-            <p>
+            <h3 data-i18n="demo.try1.title">Set the costs to none</h3>
+            <p data-i18n="demo.try1.body">
               The result roughly quadruples. That gap is the whole argument: a backtester that skips
               fees reports a strategy that does not exist.
             </p>
           </article>
           <article class="card">
-            <h3>Hunt for a better period</h3>
-            <p>
+            <h3 data-i18n="demo.try2.title">Hunt for a better period</h3>
+            <p data-i18n="demo.try2.body">
               Across a 5&times;5 grid of them, thirteen of nineteen lose money, and none finishes
               with more winners than losers.
             </p>
           </article>
           <article class="card">
-            <h3>Read the profit factor</h3>
-            <p>
+            <h3 data-i18n="demo.try3.title">Read the profit factor</h3>
+            <p data-i18n="demo.try3.body">
               A 36% win rate is what trend following looks like: many small losses paying for a few
               large wins. The win rate is not the number to read.
             </p>
@@ -197,11 +207,15 @@
     <footer class="footer">
       <div class="wrap">
         <div class="footer__links">
-          <a href="../">Home</a>
+          <a href="../" data-i18n="nav.home">Home</a>
           <a href="../report/" data-report-link>Report</a>
-          <a href="../bench.txt">Benchmark</a>
-          <a href="https://github.com/naderfilho/Tapedeck/blob/main/docs/api.md">API guide</a>
-          <a href="https://github.com/naderfilho/Tapedeck">Source</a>
+          <a href="../bench.txt" data-i18n="nav.bench">Benchmark</a>
+          <a
+            href="https://github.com/naderfilho/Tapedeck/blob/main/docs/api.md"
+            data-i18n="foot.apiGuide"
+            >API guide</a
+          >
+          <a href="https://github.com/naderfilho/Tapedeck" data-i18n="foot.source">Source</a>
         </div>
         <p style="margin: 0">
           <code>@tapedeck/core</code> has zero runtime dependencies and imports nothing from

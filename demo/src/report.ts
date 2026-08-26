@@ -29,6 +29,7 @@ import {
 } from '@tapedeck/report';
 import type { RunResult } from '@tapedeck/core';
 import { attachCursor, ensureCursorGroup, readoutFor } from './cursor.ts';
+import { apply, initialLang, t } from './i18n.ts';
 import { type RunConfig, describeConfig, execute, fromQuery, loadTape, tickerFor } from './run.ts';
 
 const TAPES = '../demo/tapes/';
@@ -129,6 +130,19 @@ function offerDownload(html: string, config: RunConfig): void {
 }
 
 async function boot(): Promise<void> {
+  // Only the chrome translates. The report itself is `renderHtmlReport`'s output and stays English
+  // wherever it is opened, which is the point of it being a published artefact (ADR-0016).
+  apply(initialLang());
+  for (const button of Array.from(document.querySelectorAll<HTMLElement>('[data-lang]'))) {
+    button.addEventListener('click', () => {
+      const next = button.dataset['lang'];
+      if (next === 'pt' || next === 'en') {
+        apply(next);
+        void boot();
+      }
+    });
+  }
+
   const banner = el('banner');
   const config = fromQuery(window.location.search);
 
@@ -137,14 +151,13 @@ async function boot(): Promise<void> {
     // already in the page, so say what it is rather than replacing it with an error.
     banner.className = 'report-banner';
     banner.innerHTML =
-      '<span>The published example: a 24/72 crossover on a year of hourly BTCUSDT, ' +
-      'regenerated from the committed fixture on every deploy.</span>' +
-      '<a class="btn btn--ghost btn--small" href="../demo/">Run your own →</a>';
+      `<span>${t('report.example', 'The published example: a 24/72 crossover on a year of hourly BTCUSDT, regenerated from the committed fixture on every deploy.')}</span>` +
+      `<a class="btn btn--ghost btn--small" href="../demo/">${t('report.runYours', 'Run your own →')}</a>`;
     return;
   }
 
   banner.className = 'report-banner is-live';
-  banner.innerHTML = '<span>Recomputing…</span>';
+  banner.innerHTML = `<span>${t('report.recomputing', 'Recomputing…')}</span>`;
 
   try {
     const tape = await loadTape(config.symbol, TAPES);
@@ -157,14 +170,14 @@ async function boot(): Promise<void> {
     document.title = `${describeConfig(config)} · Tapedeck report`;
 
     banner.innerHTML =
-      `<span><strong>Your run.</strong> ${describeConfig(config)}. Recomputed in this tab from ` +
-      "the same kernel and the same tape, so these are the demo's numbers to the cent.</span>" +
-      '<button class="btn btn--ghost btn--small" id="download" type="button" hidden>Download</button>' +
-      '<a class="btn btn--ghost btn--small" href="../demo/">Back to the demo</a>';
+      `<span><strong>${t('report.yours', 'Your run.')}</strong> ${describeConfig(config)}. ` +
+      `${t('report.yoursTail', "Recomputed in this tab from the same kernel and the same tape, so these are the demo's numbers to the cent.")}</span>` +
+      `<button class="btn btn--ghost btn--small" id="download" type="button" hidden>${t('report.download', 'Download')}</button>` +
+      `<a class="btn btn--ghost btn--small" href="../demo/">${t('report.back', 'Back to the demo')}</a>`;
     offerDownload(html, config);
   } catch (error: unknown) {
     banner.className = 'report-banner is-error';
-    banner.textContent = `Could not compute that run: ${String(error)}`;
+    banner.textContent = `${t('report.failed', 'Could not compute that run:')} ${String(error)}`;
   }
 }
 

@@ -27,26 +27,31 @@
         Tapedeck
       </a>
 
-      <h1 class="gate__title">Run a backtest</h1>
-      <p class="gate__lede">
+      <div class="langs gate__langs" role="group" aria-label="Language">
+        <button class="lang" type="button" data-lang="en" aria-pressed="true">EN</button>
+        <button class="lang" type="button" data-lang="pt" aria-pressed="false">PT</button>
+      </div>
+
+      <h1 class="gate__title" data-i18n="login.title">Run a backtest</h1>
+      <p class="gate__lede" data-i18n="login.lede">
         Everything on this site works without an account. Signing in only adds one thing: the
         backtests you configure are kept, and you get a link you can share.
       </p>
 
-      <button class="btn btn--primary gate__guest" id="guest" type="button">
+      <button class="btn btn--primary gate__guest" id="guest" type="button" data-i18n="login.guest">
         Continue as guest
       </button>
-      <p class="gate__note" id="guest-note">
+      <p class="gate__note" id="guest-note" data-i18n="login.guestNote">
         No email, nothing stored on a server, nothing to undo later.
       </p>
 
       <!-- Rendered only when the deployment has a database behind it. A form that cannot work is
            worse than no form: it promises an account and then fails on submit. -->
       <div class="gate__accounts" id="accounts" hidden>
-        <div class="gate__or"><span>or keep your runs</span></div>
+        <div class="gate__or"><span data-i18n="login.or">or keep your runs</span></div>
         <form id="signin" class="gate__form">
           <label class="field">
-            <span>email</span>
+            <span data-i18n="login.email">email</span>
             <input
               id="email"
               type="email"
@@ -55,9 +60,11 @@
               placeholder="you@example.com"
             />
           </label>
-          <button class="btn btn--ghost" type="submit" id="send">Email me a sign-in link</button>
+          <button class="btn btn--ghost" type="submit" id="send" data-i18n="login.send">
+            Email me a sign-in link
+          </button>
         </form>
-        <p class="gate__note">
+        <p class="gate__note" data-i18n="login.sendNote">
           A one-time link, no password. We never see one, and there is none to leak.
         </p>
       </div>
@@ -65,8 +72,10 @@
       <p class="error" id="error" role="status"></p>
 
       <p class="gate__foot">
-        <a href="../">Back to the site</a> ·
-        <a href="https://github.com/naderfilho/Tapedeck">Source on GitHub</a>
+        <a href="../" data-i18n="login.back">Back to the site</a> ·
+        <a href="https://github.com/naderfilho/Tapedeck" data-i18n="login.source"
+          >Source on GitHub</a
+        >
       </p>
     </main>
     <script type="module" src="./login.js"></script>

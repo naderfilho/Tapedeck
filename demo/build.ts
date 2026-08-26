@@ -69,17 +69,24 @@ const result = await build({
   },
 });
 
-const login = await build({
-  entryPoints: [resolve(here, 'src/login.ts')],
-  outfile: resolve(site, 'login/login.js'),
-  bundle: true,
-  format: 'esm',
-  target: 'es2023',
-  platform: 'browser',
-  minify: true,
-  legalComments: 'none',
-});
-if (login.errors.length > 0) throw new Error('the login bundle failed');
+// The two script-light pages: the entry gate and the landing page's language toggle. Neither
+// touches the engine, so they skip the workspace aliases the demo bundle needs.
+for (const [entry, out] of [
+  ['src/login.ts', 'login/login.js'],
+  ['src/home.ts', 'assets/home.js'],
+] as const) {
+  const bundled = await build({
+    entryPoints: [resolve(here, entry)],
+    outfile: resolve(site, out),
+    bundle: true,
+    format: 'esm',
+    target: 'es2023',
+    platform: 'browser',
+    minify: true,
+    legalComments: 'none',
+  });
+  if (bundled.errors.length > 0) throw new Error(`the ${entry} bundle failed`);
+}
 
 cpSync(resolve(here, 'index.html'), resolve(site, 'demo/index.html'));
 cpSync(resolve(here, 'login.html'), resolve(site, 'login/index.html'));
@@ -300,6 +307,11 @@ function withSiteChrome(html: string): string {
     'font-size:14px;font-weight:550;white-space:nowrap}' +
     '.site-nav a:hover{color:var(--ink);background:var(--panel-2)}' +
     '.site-nav a[aria-current=page]{color:var(--ink);background:var(--panel-2)}' +
+    '.langs{display:inline-flex;padding:2px;border:1px solid var(--line);border-radius:8px;' +
+    'background:var(--panel-2);margin-left:8px}' +
+    '.lang{padding:4px 9px;border:0;border-radius:6px;background:transparent;color:var(--ink-faint);' +
+    'font:600 11.5px/1 ui-monospace,Menlo,Consolas,monospace;cursor:pointer}' +
+    '.lang[aria-pressed=true]{background:var(--panel);color:var(--ink)}' +
     // The banner says which run is on the page. It is the one part of the report that has to be
     // read before the numbers, which is the same reason the caveats sit where they do.
     '.report-banner{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;' +
@@ -316,7 +328,9 @@ function withSiteChrome(html: string): string {
     '.btn--ghost:hover{border-color:var(--accent);color:var(--accent)}' +
     '.btn--small{padding:7px 12px;font-size:13px}' +
     '@media print{.report-banner{display:none}}' +
-    '@media (max-width:640px){.site-nav a.optional{display:none}}' +
+    '@media (max-width:640px){.site-nav a.optional{display:none}' +
+    '.site-nav{min-width:0;overflow-x:auto;scrollbar-width:none}' +
+    '.site-nav a,.site-nav .langs{flex:none}}' +
     '</style>';
 
   const bar =
@@ -327,6 +341,10 @@ function withSiteChrome(html: string): string {
     '<a href="./" aria-current="page">Report</a>' +
     '<a class="optional" href="../bench.txt">Benchmark</a>' +
     '<a href="https://github.com/naderfilho/Tapedeck">GitHub</a>' +
+    '<div class="langs" role="group" aria-label="Language">' +
+    '<button class="lang" type="button" data-lang="en" aria-pressed="true">EN</button>' +
+    '<button class="lang" type="button" data-lang="pt" aria-pressed="false">PT</button>' +
+    '</div>' +
     '</nav></div></header>';
 
   const close = '</main>\n</body>';

@@ -12,6 +12,7 @@ import {
   continueAsGuest,
   requestSignInLink,
 } from './auth.ts';
+import { setup, t } from './i18n.ts';
 
 function el(id: string): HTMLElement {
   const node = document.getElementById(id);
@@ -26,6 +27,9 @@ function fail(message: string): void {
 }
 
 async function boot(): Promise<void> {
+  // Nothing on this page is script-rendered, so a language change needs no redraw.
+  setup(() => undefined);
+
   // Landing here with tokens in the fragment means the reader followed a sign-in link.
   const signedIn = await completeSignInFromUrl();
   if (signedIn !== null) {
@@ -51,20 +55,21 @@ async function boot(): Promise<void> {
     // Disabled while in flight, because a double submit is how a reader earns a rate limit on a
     // form whose successful response looks identical to its failed one.
     send.disabled = true;
-    send.textContent = 'Sending…';
+    send.textContent = t('login.sending', 'Sending…');
     fail('');
 
     void requestSignInLink(email, new URL('./', window.location.href).href)
       .then(() => {
         form.hidden = true;
-        el('error').textContent = `Check ${email} for a sign-in link.`;
+        el('error').textContent =
+          `${t('login.check', 'Check')} ${email} ${t('login.checkTail', 'for a sign-in link.')}`;
       })
       .catch((error: unknown) => {
         fail(error instanceof Error ? error.message : String(error));
       })
       .finally(() => {
         send.disabled = false;
-        send.textContent = 'Email me a sign-in link';
+        send.textContent = t('login.send', 'Email me a sign-in link');
       });
   });
 }

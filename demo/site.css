@@ -1240,3 +1240,72 @@ body.is-loading .market[aria-pressed='true'] {
     transform: none;
   }
 }
+
+/* --------------------------------------------------------------- language toggle */
+
+.langs {
+  display: inline-flex;
+  padding: 2px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--bg-soft);
+}
+
+.lang {
+  padding: 4px 9px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink-faint);
+  font: 600 11.5px/1 var(--mono);
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+
+.lang:hover {
+  color: var(--ink);
+}
+
+.lang[aria-pressed='true'] {
+  background: var(--panel-2);
+  color: var(--ink);
+}
+
+.lang:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.topnav .langs {
+  margin-left: 8px;
+}
+
+.gate__langs {
+  margin: 0 0 20px;
+}
+
+/* The header runs out of room on a phone once it carries a language toggle as well as Sign in.
+   Rather than dropping another item, the nav itself scrolls: `min-width: 0` lets it shrink inside
+   the flex row, so the overflow is contained and the page never moves sideways. Everything stays
+   reachable with a swipe, and nothing is hidden from someone who came looking for it. */
+@media (max-width: 600px) {
+  .topnav {
+    min-width: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .topnav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .topnav a,
+  .topnav .langs {
+    flex: none;
+  }
+
+  .lang {
+    padding: 4px 7px;
+    font-size: 11px;
+  }
+}

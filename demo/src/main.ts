@@ -42,6 +42,7 @@ import {
   toQuery,
 } from './run.ts';
 import { type CursorState, attachCursor, readoutFor } from './cursor.ts';
+import { setup, t } from './i18n.ts';
 
 const MONEY = 100_000_000;
 
@@ -171,40 +172,59 @@ const renderMetricsInto = (id: string, metrics: readonly Metric[]): void => {
 
 const helpFor = (label: string): string => HELP[label] ?? '';
 
+/** Label and bubble for one metric, in the reader's language. */
+const m = (key: string, english: string): string => t(`metric.${key}`, english);
+const h = (key: string, english: string): string => t(`helpm.${key}`, helpFor(english));
+
 function renderMetrics(metrics: Metrics, elapsed: number, bars: number): void {
   // Three headline numbers and then the rest. Nine cards of identical weight is a table pretending
   // to be a dashboard: it makes the reader decide what matters before they know what any of it is.
   const lead: readonly Metric[] = [
     [
-      'net profit',
+      m('netProfit', 'net profit'),
       `${money(metrics.netProfit)} USDT`,
       metrics.netProfit >= 0 ? 'up' : 'down',
-      helpFor('net profit'),
+      h('netProfit', 'net profit'),
     ],
     [
-      'total return',
+      m('totalReturn', 'total return'),
       percent(metrics.totalReturn),
       metrics.totalReturn >= 0 ? 'up' : 'down',
-      helpFor('total return'),
+      h('totalReturn', 'total return'),
     ],
-    ['max drawdown', percent(metrics.maxDrawdown), 'down', helpFor('max drawdown')],
+    [
+      m('maxDrawdown', 'max drawdown'),
+      percent(metrics.maxDrawdown),
+      'down',
+      h('maxDrawdown', 'max drawdown'),
+    ],
   ];
   const rest: readonly Metric[] = [
-    ['Sharpe', decimal(metrics.sharpe), '', helpFor('Sharpe')],
+    [m('sharpe', 'Sharpe'), decimal(metrics.sharpe), '', h('sharpe', 'Sharpe')],
     [
-      'trades',
+      m('trades', 'trades'),
       `${String(metrics.trades)} (${String(metrics.wins)}W/${String(metrics.losses)}L)`,
       '',
-      helpFor('trades'),
+      h('trades', 'trades'),
     ],
-    ['win rate', percent(metrics.winRate), '', helpFor('win rate')],
-    ['profit factor', decimal(metrics.profitFactor), '', helpFor('profit factor')],
-    ['commission', `${money(metrics.commissionPaid)} USDT`, 'down', helpFor('commission')],
+    [m('winRate', 'win rate'), percent(metrics.winRate), '', h('winRate', 'win rate')],
     [
-      'costs ate',
+      m('profitFactor', 'profit factor'),
+      decimal(metrics.profitFactor),
+      '',
+      h('profitFactor', 'profit factor'),
+    ],
+    [
+      m('commission', 'commission'),
+      `${money(metrics.commissionPaid)} USDT`,
+      'down',
+      h('commission', 'commission'),
+    ],
+    [
+      m('costsAte', 'costs ate'),
       percent(metrics.commissionShareOfGross),
       (metrics.commissionShareOfGross ?? 0) > 0.5 ? 'down' : '',
-      helpFor('costs ate'),
+      h('costsAte', 'costs ate'),
     ],
   ];
 
@@ -233,7 +253,7 @@ function renderMetrics(metrics: Metrics, elapsed: number, bars: number): void {
   box.innerHTML =
     warnings.length === 0
       ? ''
-      : `<h3>What this run could not know</h3><ul>${warnings
+      : `<h3>${t('warn.title', 'What this run could not know')}</h3><ul>${warnings
           .map((w) => `<li>${w.replace(/[<>&]/g, '')}</li>`)
           .join('')}</ul>`;
 }
@@ -394,6 +414,7 @@ async function boot(): Promise<void> {
     el(id).addEventListener('change', run);
   }
   el('run').addEventListener('click', run);
+  setup(run);
 
   await select(active);
 }
