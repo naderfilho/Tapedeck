@@ -1,8 +1,8 @@
 # Tapedeck
 
 [![CI](https://github.com/naderfilho/Tapedeck/actions/workflows/ci.yml/badge.svg)](https://github.com/naderfilho/Tapedeck/actions/workflows/ci.yml)
-![tests](https://img.shields.io/badge/tests-630-brightgreen)
-![coverage](https://img.shields.io/badge/coverage-97%25-brightgreen)
+![tests](https://img.shields.io/badge/tests-685-brightgreen)
+![coverage](https://img.shields.io/badge/coverage-96%25-brightgreen)
 ![node](https://img.shields.io/badge/node-%E2%89%A524-informational)
 [![licence](https://img.shields.io/badge/licence-PolyForm%20Noncommercial-blue)](LICENSE.md)
 
@@ -12,8 +12,9 @@ coffee break.
 
 [![The report a run writes](docs/images/report.png)](https://tapedeck-nader-filhos-projects.vercel.app/report/)
 
-**[Run a backtest in your browser →](https://tapedeck-nader-filhos-projects.vercel.app/demo/)**. Change the
-periods and the costs and the engine re-runs in the tab, on the same kernel the CLI uses. It works
+**[Run a backtest in your browser →](https://tapedeck-nader-filhos-projects.vercel.app/demo/)**. Twelve
+markets across two exchanges, three strategies, three bar clocks; change anything and the engine
+re-runs in the tab, on the same kernel the CLI uses. Free, no account, nothing uploaded. It works
 because `core` has zero runtime dependencies and imports nothing from `node:`; portability fell out
 of a rule made for reproducibility. **[The report above is here](https://tapedeck-nader-filhos-projects.vercel.app/report/)**,
 rebuilt by CI from the committed fixture on every push so it cannot drift from the code.
@@ -26,12 +27,12 @@ configuration and every trade.
 
 > **Status: all six phases done.** The kernel, the indicator library, the data adapters, the SQLite
 > store, the metrics and report package, the `tapedeck` command line, live paper trading and the B3
-> layer (session calendar, contract expiries, continuous series) are all in. 610 tests, 97%
-> statement coverage, and a committed year of real BTCUSDT candles so that `pnpm test` measures
-> something. Nothing is published to npm, deliberately. See the roadmap.
+> layer (session calendar, contract expiries, continuous series) are all in. 685 tests, 96%
+> statement coverage, and a committed year of real candles from two exchanges so that `pnpm test`
+> measures something. Nothing is published to npm, deliberately. See the roadmap.
 
 Built in pair with an AI assistant. Every decision that shaped it is argued in
-[sixteen ADRs](docs/adr/), each with the alternatives that were rejected, including
+[eighteen ADRs](docs/adr/), each with the alternatives that were rejected, including
 [one that amends an earlier one](docs/adr/0014-paper-trading-runs-on-event-time.md) after the first
 live connection to a real exchange proved it wrong.
 
@@ -325,14 +326,14 @@ strategy is awake.
 
 ## Packages
 
-| Package                | What it is                                                           | Runtime dependencies |
-| ---------------------- | -------------------------------------------------------------------- | -------------------- |
-| `@tapedeck/core`       | Events, clock, calendar, tape, broker, contracts, portfolio, engine  | none                 |
-| `@tapedeck/indicators` | Incremental SMA, EMA, RMA, RSI, ATR, Bollinger, VWAP, MACD           | none                 |
-| `@tapedeck/data`       | CSV, Binance REST and socket, B3 reports, `.tape`, continuous series | `zod`                |
-| `@tapedeck/report`     | Metrics, JSON output, and a self-contained HTML report               | none                 |
-| `@tapedeck/store`      | Bar cache, run history and paper state on `node:sqlite`              | none                 |
-| `@tapedeck/cli`        | The `tapedeck` command                                               | `commander`, `zod`   |
+| Package                | What it is                                                          | Runtime dependencies |
+| ---------------------- | ------------------------------------------------------------------- | -------------------- |
+| `@tapedeck/core`       | Events, clock, calendar, tape, broker, contracts, portfolio, engine | none                 |
+| `@tapedeck/indicators` | Incremental SMA, EMA, RMA, RSI, ATR, Bollinger, VWAP, MACD          | none                 |
+| `@tapedeck/data`       | CSV, Binance and Coinbase REST, Binance socket, B3, `.tape`         | `zod`                |
+| `@tapedeck/report`     | Metrics, JSON output, and a self-contained HTML report              | none                 |
+| `@tapedeck/store`      | Bar cache, run history and paper state on `node:sqlite`             | none                 |
+| `@tapedeck/cli`        | The `tapedeck` command                                              | `commander`, `zod`   |
 
 The dependency arrows only ever point inward: `core` declares the contracts (`Strategy`,
 `Broker`, `DataProvider`, `Indicator`, `Store`) and imports no other workspace package.
@@ -402,15 +403,26 @@ the same configuration produce byte-identical metrics on any machine, despite `M
 
 ## Data
 
-Three sources, one contract:
+Four sources, one contract:
 
 ```ts
-import { BinanceDataProvider, CsvBarProvider, readBarTapeFile } from '@tapedeck/data';
+import {
+  BinanceDataProvider,
+  CoinbaseDataProvider,
+  CsvBarProvider,
+  readBarTapeFile,
+} from '@tapedeck/data';
 
 // Public endpoints only. The provider has no concept of an API key, so it cannot place an order.
 const binance = new BinanceDataProvider();
 const instrument = await binance.describe('BTCUSDT'); // scales come from the venue's own filters
 for await (const chunk of binance.bars({ symbol: 'BTCUSDT', timeframe, from, to })) {
+  engine.feedBars(chunk);
+}
+
+// The same contract, a different exchange — and a different fee schedule to run it under.
+const coinbase = new CoinbaseDataProvider();
+for await (const chunk of coinbase.bars({ symbol: 'BTC-USD', timeframe, from, to })) {
   engine.feedBars(chunk);
 }
 
@@ -422,9 +434,28 @@ Prices travel from the venue to `parseFixed` **as strings** and become integers 
 candle that has not finished forming is dropped rather than truncated, because letting one through
 is a quiet way to hand a strategy the future.
 
-The repository ships a year of hourly BTCUSDT: 8,760 bars, 480 KiB, fetched between two fixed
-dates so the file never drifts. B3 data is neither public nor redistributable, so every B3 example
-points at a file you fetched yourself ([ADR-0011](docs/adr/0011-read-only-market-data.md)).
+The repository ships a year of hourly candles for twelve markets — nine Binance pairs and three
+Coinbase products — fetched between two fixed dates so the files never drift. 8,760 bars and 480 KiB
+each, except the Coinbase tapes, which hold 8,750: the venue printed nothing during two five-hour
+outages, and the gap is kept rather than filled.
+
+Three of the Coinbase products duplicate assets Binance also lists, on purpose. **A result is a
+claim about a venue, not about an asset**, and the same 24/72 crossover over the same year of
+Bitcoin is slightly profitable on Binance and down 21% on Coinbase Exchange's entry tier, whose
+taker fee is six times Binance's. `node scripts/venue-compare.ts` runs both and writes
+`out/venues.json`; the landing page's figures come from that file rather than from a paragraph.
+Each venue's schedule lives in `SPOT_FEES` with the source URL and the date it was read, and the
+demo only offers a market the fee table of the exchange it trades on
+([ADR-0017](docs/adr/0017-a-tape-carries-its-venue.md)).
+
+Slower bar clocks are aggregated rather than downloaded. `resampleBars` rebuilds a chunk on a whole
+multiple of its timeframe — first open, last close, max high, min low, summed volume, all integer
+arithmetic — aligned to the epoch, dropping a trailing bucket the tape has not finished, and
+counting the buckets a gap left short so the caller can say so
+([ADR-0018](docs/adr/0018-slower-timeframes-are-aggregated.md)).
+
+B3 data is neither public nor redistributable, so every B3 example points at a file you fetched
+yourself ([ADR-0011](docs/adr/0011-read-only-market-data.md)).
 
 ## Benchmark
 
@@ -565,6 +596,13 @@ worth stating.
       published tariffs, and a fetcher for the exchange's daily price reports. B3 data is fetched,
       never committed: its consumption policy permits internal use and requires approval to
       redistribute (ADR-0015).
+
+- [x] **Phase 7: a second venue.** Coinbase Exchange as a data provider, fee schedules transcribed
+      from each exchange's own table with the date they were read, cost presets bound to the venue
+      whose tape is loaded, and timeframe aggregation exact enough to derive daily candles from an
+      hourly file rather than downloading them again (ADR-0017, ADR-0018). The demo grew to twelve
+      markets across two exchanges and three bar clocks, and the landing page's cross-venue figures
+      are written by a run on every build rather than typed.
 
 Not planned, and deliberately so: a strategy DSL, a GUI, or a "no-code" layer. This is a library.
 

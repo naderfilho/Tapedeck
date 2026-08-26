@@ -7,8 +7,9 @@ explains it to whoever is about to change it.
 
 All six phases are done and committed: the deterministic kernel, the incremental indicator library,
 the data adapters and `.tape` format, the SQLite store, the metrics and HTML report, the `tapedeck`
-CLI, live paper trading, and the B3 layer. 610 tests, 97% statement coverage, a committed year of real hourly
-BTCUSDT.
+CLI, live paper trading, and the B3 layer. A seventh landed after them: a second venue, venue-bound
+fee schedules and timeframe aggregation (ADR-0017, ADR-0018). 685 tests, 96% statement coverage, a
+committed year of real hourly candles for twelve markets across two exchanges.
 
 The roadmap at the end of the README is the authority on what each phase contained. What is left is
 in "Still owed" at the bottom of this file.
@@ -22,6 +23,8 @@ corepack pnpm lint
 corepack pnpm typecheck
 corepack pnpm coverage         # runs the suite and enforces the floors
 corepack pnpm bench
+corepack pnpm fixtures         # refetch every tape; takes ids, e.g. `coinbase-BTC-USD`
+corepack pnpm venues           # the cross-venue comparison the landing page quotes
 node examples/sma-crossover/src/main.ts   # end-to-end on real data, writes out/report.html
 ```
 
@@ -43,6 +46,11 @@ it changes nothing. The sources are `demo/`: `landing.html` (with `{{placeholder
 substitutes), `index.html` for the demo, `site.css` for all of it, and `build.ts`, which also grafts
 the site header onto a copy of `out/report.html`.
 
+`demo/src/markets.ts` is the one list of tapes, imported by the picker, by `demo/build.ts` and by
+`scripts/fetch-fixtures.ts`. It has no imports on purpose: the fixture script runs under plain Node
+with no bundler aliases. Adding a market means adding a row there and running `corepack pnpm
+fixtures <id>`; the build throws rather than shipping a picker with a 404 in it.
+
 `corepack pnpm site:build` is the whole thing — compile, replay the example, run the benchmark,
 assemble — and it is the command `vercel.json` runs. `pnpm site` alone is the last step and needs
 `out/report.html` to exist already.
@@ -50,9 +58,11 @@ assemble — and it is the command `vercel.json` runs. `pnpm site` alone is the 
 **The site is deployed by Vercel and nowhere else.** The GitHub Pages workflow was retired: two
 live copies of one site is two things to keep true, and the second was only ever a mirror.
 
-The landing page's result figures are substituted from `out/metrics.json`, not typed in. They were
-hardcoded once and that is precisely the failure this project complains about: a published number
-with no link to the run behind it, which survives the run that stops producing it.
+The landing page's result figures are substituted from `out/metrics.json` and `out/venues.json`, not
+typed in. They were hardcoded once and that is precisely the failure this project complains about: a
+published number with no link to the run behind it, which survives the run that stops producing it.
+`scripts/venue-compare.ts` writes the second file by running the same crossover on both exchanges,
+and `site:build` runs it. If a figure is on the page, something computed it on this build.
 
 **A change to the site is not published until it is pushed.** Vercel builds on push to `main`.
 Check the deployed URL, not `site:serve`, before calling it done.
@@ -82,8 +92,12 @@ needs to, write an ADR arguing for it first.
 6. **No `any`, no `@ts-ignore`.** `noUncheckedIndexedAccess` and `exactOptionalPropertyTypes` are on.
 7. **Core has zero runtime dependencies** and imports no other workspace package. The allowlist for
    everything else is in ADR-0007.
-8. **Read the ADRs before arguing with the code.** `docs/adr/` — fifteen of them, each with the
+8. **Read the ADRs before arguing with the code.** `docs/adr/` — eighteen of them, each with the
    alternatives that were rejected. ADR-0014 amends ADR-0003; read them together.
+9. **A tape and its fee schedule travel together.** A Coinbase tape priced with Binance's fees is a
+   report about a market nobody traded in. `SPOT_FEES` carries each venue's published percentages
+   with a source URL and a read date, and the demo derives its cost options from the selected
+   market's venue — there is no path through the page that pairs them wrongly (ADR-0017).
 
 ## Testing style
 
@@ -170,12 +184,30 @@ rather than by someone thinking:
   charts now use the report's `CHART_BOX`, `SMALL_BOX` and `axes`, and `charts.test.ts` asserts
   that a shipped box leaves a plot area inside its canvas.
 
+- **Coinbase publishes candles as JSON numbers, not strings.** By the time `JSON.parse` has run the
+  decimal is already a double, so the string discipline the Binance provider keeps is not available.
+  `decimalString` converts without adding a second error — `String(n)` is the shortest decimal that
+  round-trips — and expands the exponential notation `parseFixed` cannot read. The loss is
+  documented in the provider's header rather than hidden.
+- **Both Coinbase tapes are ten hours short of a year**, at 2025-10-25T15:00Z and 2026-05-08T01:00Z,
+  identically across all three products. That is the venue, not the pager: the same holes come back
+  from a hand-rolled `curl`. They stay as holes, and `resampleBars` counts the buckets they leave
+  partial so the demo can print it above the numbers.
+- **A bare `1fr` grid track is at least as wide as its content.** The hero's mobile layout used one,
+  so the code panel's longest line pushed the whole landing page sideways on a phone and cut the
+  headline off — with `overflow-x: auto` sitting uselessly on the `<pre>` the entire time. It is
+  `minmax(0, 1fr)` now.
+- **Half the demo is built by script, so the language has to be applied before it is drawn.** The
+  strategy chips and the cost options render through `t()`; rendering them before `setup()` meant a
+  Portuguese page opened with an English picker until something re-ran.
+
 ## Still owed from earlier phases
 
 - ~~A screenshot of `out/report.html` for the README.~~ Done: `docs/images/report.png`, cut after
   the equity chart, linking to the page CI publishes at
-  <https://tapedeck-nader-filhos-projects.vercel.app/>. The browser pane is still unavailable here, so it is
-  captured with headless Chrome, which is also what makes it reproducible:
+  <https://tapedeck-nader-filhos-projects.vercel.app/>. The browser pane can drive the page and read
+  the DOM back, but it cannot screenshot unless it is on screen, so the image is captured with
+  headless Chrome — which is also what makes it reproducible:
 
   ```bash
   node examples/sma-crossover/src/main.ts
