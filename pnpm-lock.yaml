@@ -20,6 +20,9 @@ importers:
       '@tapedeck/indicators':
         specifier: workspace:*
         version: link:packages/indicators
+      '@tapedeck/report':
+        specifier: workspace:*
+        version: link:packages/report
       '@types/node':
         specifier: ^24.10.1
         version: 24.13.3

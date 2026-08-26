@@ -37,6 +37,15 @@
   --radius: 12px;
   --radius-sm: 8px;
   --shell: 1080px;
+
+  /* The backdrop, as three named parts rather than three opaque gradients: a wash that lifts the
+     top of the page, a chart grid, and the glow the brand mark is drawn in. */
+  --wash:
+    radial-gradient(1100px 620px at 12% -10%, rgba(61, 155, 255, 0.16), transparent 68%),
+    radial-gradient(900px 520px at 88% 4%, rgba(53, 211, 153, 0.07), transparent 62%);
+  --grid-line: rgba(148, 176, 214, 0.07);
+  --grid-size: 64px;
+  --panel-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent 40%);
 }
 
 @media (prefers-color-scheme: light) {
@@ -59,6 +68,14 @@
     --down: #b8271f;
     --warn: #9a6410;
     --warn-soft: rgba(154, 100, 16, 0.07);
+
+    /* Same three parts, quieter: on white the wash has to stay under the text rather than tint it,
+       and a grid that reads as a grid on black reads as dirt on paper. */
+    --wash:
+      radial-gradient(1100px 620px at 12% -10%, rgba(29, 99, 216, 0.09), transparent 66%),
+      radial-gradient(900px 520px at 88% 4%, rgba(11, 122, 81, 0.05), transparent 60%);
+    --grid-line: rgba(23, 52, 94, 0.055);
+    --panel-sheen: linear-gradient(180deg, rgba(11, 16, 23, 0.02), transparent 40%);
   }
 }
 
@@ -76,6 +93,50 @@ body {
   color: var(--ink);
   font: 16px/1.6 var(--sans);
   -webkit-font-smoothing: antialiased;
+  position: relative;
+}
+
+/*
+ * The backdrop: a price grid under a coloured wash, both fixed and both inert.
+ *
+ * Two pseudo-elements on the body rather than a container, so no page has to carry an empty div to
+ * be decorated, and it is fixed so the grid stays still while the page scrolls — a grid that
+ * scrolls with the text reads as wallpaper, and one that does not reads as the paper.
+ *
+ * Everything here is a gradient. No image, no request, nothing to fail to load, and it costs the
+ * same as a background colour once painted.
+ */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  background: var(--wash);
+  pointer-events: none;
+}
+
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background-image:
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size: var(--grid-size) var(--grid-size);
+  /* Fades out down the viewport so the grid frames the top of a page instead of tiling the whole
+     of it. Masked rather than faded with opacity, which would take the wash with it. */
+  -webkit-mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.85), transparent 72%);
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.85), transparent 72%);
+  pointer-events: none;
+}
+
+/* A page being printed is a page on paper: no wash, no grid, no glow. */
+@media print {
+  body::before,
+  body::after {
+    display: none;
+  }
 }
 
 a {
@@ -386,11 +447,30 @@ p {
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
 }
 
+.cards--4 {
+  grid-template-columns: repeat(auto-fit, minmax(232px, 1fr));
+}
+
 .card {
   background: var(--panel);
+  background-image: var(--panel-sheen);
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 20px 22px;
+  transition:
+    border-color 0.16s ease,
+    transform 0.16s ease;
+}
+
+.card:hover {
+  border-color: var(--line-strong);
+  transform: translateY(-2px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card:hover {
+    transform: none;
+  }
 }
 
 .card__index {
@@ -532,10 +612,132 @@ p {
 
 @media (max-width: 900px) {
   .hero {
-    grid-template-columns: 1fr;
+    /* minmax(0, 1fr) rather than a bare 1fr, which is at least as wide as its widest content: the
+       code panel's longest line pushed the whole page sideways on a phone and cut the headline off
+       at the right edge. The track may now be narrower than the code, and the code scrolls inside
+       it, which is what the overflow on `.code pre` was always for. */
+    grid-template-columns: minmax(0, 1fr);
     gap: 32px;
     padding: 48px 0 36px;
   }
+}
+
+/* ----------------------------------------------------------------- badges */
+
+/*
+ * What the page costs the reader, said once and near the top.
+ *
+ * Four claims, all of them checkable: it is free, it needs no sign-in, nothing is uploaded, and
+ * the data is real. The count comes from the tape list at build time rather than from this file,
+ * so adding a market updates the sentence.
+ */
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 20px 0 22px;
+  padding: 0;
+  list-style: none;
+}
+
+.badges li {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 12px 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--panel) 70%, transparent);
+  color: var(--ink-dim);
+  font-size: 12.5px;
+  font-weight: 550;
+  white-space: nowrap;
+}
+
+.badges li::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--up);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--up) 18%, transparent);
+}
+
+/* ----------------------------------------------------------------- versus */
+
+/*
+ * Two venues, side by side, with the run's own figures in them.
+ *
+ * A table would have been fewer lines and would have read as a specification. This is an argument
+ * with two sides, so it is drawn as two sides — and the only thing that differs between them, the
+ * fee schedule, is the last row of both.
+ */
+.versus {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 14px;
+}
+
+.versus__side {
+  position: relative;
+  padding: 22px 24px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+  background-image: var(--panel-sheen);
+  overflow: hidden;
+}
+
+.versus__venue {
+  margin: 0 0 10px;
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  color: var(--ink-faint);
+}
+
+.versus__net {
+  margin: 0 0 16px;
+  font-family: var(--mono);
+  font-size: clamp(26px, 3.6vw, 34px);
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+.versus__net--up {
+  color: var(--up);
+}
+
+.versus__net--down {
+  color: var(--down);
+}
+
+.versus__rows {
+  margin: 0;
+  display: grid;
+  gap: 7px;
+}
+
+.versus__rows > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+  border-top: 1px solid var(--line);
+  padding-top: 7px;
+}
+
+.versus__rows dt {
+  font-size: 13.5px;
+  color: var(--ink-faint);
+}
+
+.versus__rows dd {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 13.5px;
+  color: var(--ink);
 }
 
 /* ------------------------------------------------------------------ meter */
@@ -730,11 +932,90 @@ p {
 
 /* ---------------------------------------------------------------- market picker */
 
+/* Twelve markets across two venues. Grouped rather than a flat row, because BTC appears under
+   both and the venue is what decides which fee schedule applies to it. */
 .markets {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 10px 18px;
   margin: 0 0 14px;
+}
+
+.markets__group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--panel) 55%, transparent);
+}
+
+.markets__venue {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  padding-right: 4px;
+}
+
+/* ------------------------------------------------------------- timeframe picker */
+
+.picker-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 20px;
+}
+
+.timeframes {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 22px 0 10px;
+}
+
+.timeframes__label {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.timeframes__chips {
+  display: inline-flex;
+  padding: 3px;
+  gap: 2px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel-2);
+}
+
+.tf {
+  padding: 6px 13px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--ink-faint);
+  font: 650 12.5px/1 var(--mono);
+  cursor: pointer;
+  transition:
+    background 0.16s ease,
+    color 0.16s ease;
+}
+
+.tf:hover {
+  color: var(--ink);
+}
+
+.tf[aria-pressed='true'] {
+  background: var(--panel);
+  color: var(--accent);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.16);
 }
 
 .market {
@@ -1284,4 +1565,43 @@ body.is-loading .market[aria-pressed='true'] {
   align-items: flex-end;
   gap: 22px 18px;
   flex: 1 1 100%;
+}
+
+/* ------------------------------------------------------- the mark, used larger */
+
+/*
+ * The full lockup at the top of the hero.
+ *
+ * The header's monogram is 24 pixels and drops the detail that makes it a drawing rather than a
+ * letterform. This is the one place with room for the candlesticks and the trend line, so it is the
+ * one place that shows them — and it is hidden on a narrow screen, where the first fold is worth
+ * more than a logo.
+ */
+.hero__mark {
+  margin: 0 0 18px;
+  line-height: 0;
+  filter: drop-shadow(0 6px 24px color-mix(in srgb, var(--accent) 26%, transparent));
+}
+
+.hero__mark svg {
+  width: 60px;
+  height: 60px;
+  margin: 0;
+}
+
+@media (max-width: 900px) {
+  .hero__mark {
+    display: none;
+  }
+}
+
+.footer__credit {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.footer__credit svg {
+  flex: none;
+  opacity: 0.85;
 }

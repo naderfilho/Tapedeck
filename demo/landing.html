@@ -37,8 +37,15 @@
       <div class="wrap">
         <section class="hero">
           <div class="hero__copy">
+            <div class="hero__mark" aria-hidden="true">{{brandMark}}</div>
             <p class="eyebrow" data-i18n="home.eyebrow">Backtesting engine · TypeScript</p>
             <h1 data-i18n="home.title">Backtests that cannot flatter you.</h1>
+            <ul class="badges" aria-label="What this costs you">
+              <li data-i18n="home.badge.free">Free to run</li>
+              <li data-i18n="home.badge.account">No account</li>
+              <li data-i18n="home.badge.upload">Nothing uploaded</li>
+              <li data-i18n="home.badge.data">{{markets}} markets of real data</li>
+            </ul>
             <p class="lede" data-i18n="home.lede">
               An event-driven backtesting and paper-trading engine for TypeScript. No lookahead,
               money in fixed-point integers, and every assumption the run had to make printed above
@@ -95,7 +102,7 @@
 
 Result
   net profit            <span class="t-up">{{netProfit}} USDT</span>
-  total return          <span class="t-up">2.31%</span>
+  total return          <span class="t-up">{{totalReturn}}%</span>
   costs ate             <span class="t-down">{{costSharePrecise}}%</span></code></pre>
             </div>
 
@@ -204,6 +211,79 @@ Result
       <section class="section">
         <div class="wrap">
           <div class="section__head">
+            <p class="eyebrow" data-i18n="home.venues.eyebrow">Two exchanges</p>
+            <h2 data-i18n="home.venues.title">A result is a claim about a venue</h2>
+            <p class="muted" data-i18n="home.venues.lede">
+              The same 24/72 crossover, the same year of Bitcoin, the same position size — run once
+              against Binance's published fee schedule and once against Coinbase Exchange's. Both
+              figures come out of the run below, not out of a paragraph.
+            </p>
+          </div>
+
+          <div class="versus">
+            <article class="versus__side">
+              <p class="versus__venue">Binance spot · BTCUSDT</p>
+              <p class="versus__net versus__net--up">{{venueBinanceNet}} USDT</p>
+              <dl class="versus__rows">
+                <div>
+                  <dt data-i18n="home.venues.return">total return</dt>
+                  <dd>{{venueBinanceReturn}}%</dd>
+                </div>
+                <div>
+                  <dt data-i18n="home.venues.fees">fees paid</dt>
+                  <dd>{{venueBinanceFees}}</dd>
+                </div>
+                <div>
+                  <dt data-i18n="home.venues.share">fees over gross profit</dt>
+                  <dd>{{venueBinanceShare}}%</dd>
+                </div>
+                <div>
+                  <dt data-i18n="home.venues.schedule">schedule</dt>
+                  <dd>0.100% / 0.100%</dd>
+                </div>
+              </dl>
+            </article>
+
+            <article class="versus__side">
+              <p class="versus__venue">Coinbase Exchange · BTC-USD</p>
+              <p class="versus__net versus__net--down">{{venueCoinbaseNet}} USD</p>
+              <dl class="versus__rows">
+                <div>
+                  <dt data-i18n="home.venues.return">total return</dt>
+                  <dd>{{venueCoinbaseReturn}}%</dd>
+                </div>
+                <div>
+                  <dt data-i18n="home.venues.fees">fees paid</dt>
+                  <dd>{{venueCoinbaseFees}}</dd>
+                </div>
+                <div>
+                  <dt data-i18n="home.venues.share">fees over gross profit</dt>
+                  <dd>{{venueCoinbaseShare}}%</dd>
+                </div>
+                <div>
+                  <dt data-i18n="home.venues.schedule">schedule</dt>
+                  <dd>0.40% / 0.60%</dd>
+                </div>
+              </dl>
+            </article>
+          </div>
+
+          <p class="small muted" style="margin-top: 14px" data-i18n="home.venues.note">
+            Entry tier on both, taken from each exchange's own table with the date it was read. The
+            tapes are two different books, so this is the cost of a venue on top of its market
+            rather than fees in a vacuum — which is exactly why the engine will not price one
+            exchange's tape with another's fees.
+            <a
+              href="demo/?symbol=coinbase-BTC-USD&amp;tf=1h&amp;strategy=sma-crossover&amp;size=25000&amp;costs=coinbaseExchange"
+              >Open the Coinbase run</a
+            >.
+          </p>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="wrap">
+          <div class="section__head">
             <p class="eyebrow" data-i18n="home.live.eyebrow">Paper trading</p>
             <h2 data-i18n="home.live.title">The same strategy, live</h2>
             <p class="muted" data-i18n="home.live.lede">
@@ -245,8 +325,9 @@ $ tapedeck paper strategy.ts --venue binance --symbol BTCUSDT</code></pre>
           >
           <a href="https://github.com/naderfilho/Tapedeck" data-i18n="foot.source">Source</a>
         </div>
-        <p style="margin: 0">
-          Built by <a href="https://github.com/naderfilho">Nader Filho</a> · PolyForm Noncommercial
+        <p class="footer__credit" style="margin: 0">
+          {{brandMark}} Built by <a href="https://github.com/naderfilho">Nader Filho</a> · PolyForm
+          Noncommercial
         </p>
       </div>
     </footer>

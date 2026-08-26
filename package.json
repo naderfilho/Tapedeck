@@ -31,8 +31,9 @@
     "bench": "node bench/replay.bench.ts",
     "check": "pnpm lint && pnpm typecheck && pnpm test",
     "fixtures": "node scripts/fetch-fixtures.ts",
+    "venues": "node scripts/venue-compare.ts",
     "site": "node demo/build.ts",
-    "site:build": "pnpm -r build && node examples/sma-crossover/src/main.ts && node bench/replay.bench.ts > bench.txt && node demo/build.ts",
+    "site:build": "pnpm -r build && node examples/sma-crossover/src/main.ts && node scripts/venue-compare.ts && node bench/replay.bench.ts > bench.txt && node demo/build.ts",
     "site:serve": "node demo/serve.ts"
   },
   "devDependencies": {
@@ -40,6 +41,7 @@
     "@tapedeck/core": "workspace:*",
     "@tapedeck/data": "workspace:*",
     "@tapedeck/indicators": "workspace:*",
+    "@tapedeck/report": "workspace:*",
     "@types/node": "^24.10.1",
     "@vitest/coverage-v8": "^3.2.4",
     "esbuild": "^0.28.2",
