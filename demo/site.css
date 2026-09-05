@@ -610,6 +610,12 @@ p {
   min-width: 0;
 }
 
+/* The strategy and what it prints are one thought, so the two panels sit closer than sections do —
+   but not flush. Touching borders read as a single panel with a rule through the middle of it. */
+.hero__code--out {
+  margin-top: 12px;
+}
+
 @media (max-width: 900px) {
   .hero {
     /* minmax(0, 1fr) rather than a bare 1fr, which is at least as wide as its widest content: the
