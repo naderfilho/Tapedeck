@@ -1,3 +1,24 @@
+Required Notice: Copyright 2026 Nader Filho (https://github.com/naderfilho)
+
+The licensor of Tapedeck is Nader Filho. Everything below the rule is the PolyForm Noncommercial
+License 1.0.0, reproduced without modification. The two permissions in this preamble are granted by
+the licensor **in addition** to those terms: they widen the licence, and nothing here narrows it.
+
+**Evaluation.** Reading, copying, running and reproducing the results of this software in order to
+evaluate its author is a permitted purpose — including by an organisation considering hiring him,
+and including running the test suite, the examples, the benchmark and the demo. This is the use the
+project was published for, so it is granted outright rather than left to depend on how anyone reads
+"noncommercial".
+
+**Personal trading.** Using this software to research, backtest or trade a natural person's own
+capital is a permitted purpose, whether or not that person hopes to profit by it. Operating it, or a
+derivative of it, for or on behalf of anyone else — clients, subscribers, an employer, a fund — is
+not.
+
+Any other commercial use needs a separate licence: <ndr.dev@outlook.com>.
+
+---
+
 # PolyForm Noncommercial License 1.0.0
 
 <https://polyformproject.org/licenses/noncommercial/1.0.0>

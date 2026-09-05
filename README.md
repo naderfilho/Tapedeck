@@ -708,10 +708,12 @@ the artefact. Hiring, or a commercial licence: <ndr.dev@outlook.com>.
 
 ## Licence
 
-[PolyForm Noncommercial License 1.0.0](LICENSE.md). Read it, study it, run it, fork it and build on
-it for any noncommercial purpose: learning, research, evaluation, personal trading. Commercial use
-is not granted, which includes selling it, reselling it, or operating it or a derivative as part of
-a commercial offering.
+[PolyForm Noncommercial License 1.0.0](LICENSE.md), and two permissions the licensor grants on top
+of it in the same file. Read it, study it, run it, fork it and build on it for any noncommercial
+purpose. Evaluating the author — including by a company deciding whether to hire him — and trading
+your own capital are granted outright, because otherwise both would rest on how a reader takes the
+word "noncommercial". Commercial use is not granted, which includes selling it, reselling it, or
+operating it or a derivative for anyone but yourself.
 
 Nothing here is financial advice, and a backtest is not a prediction. The engine's job is to make
 its own assumptions visible so you can decide how much to believe it.
